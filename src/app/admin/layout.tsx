@@ -1,0 +1,46 @@
+"use client"
+
+import { useState } from "react"
+import Footer from "@/components/layout/admin/Footer"
+import Header from "@/components/layout/admin/Header"
+import Sidebar from "@/components/layout/admin/Sidebar"
+import { WorkspaceProvider } from "@/context/WorkspaceContext"
+// import { DashboardLayout } from "@/components/layout/admin/Dashboard Layout"
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  return (
+    <WorkspaceProvider>
+      <div className="min-h-screen bg-gray-50 text-gray-900">
+        {/* Sidebar (Fixed di desktop, Drawer di mobile) */}
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+        {/* Overlay (untuk mobile mode) */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Main Content */}
+        <div
+          className={`
+          flex flex-col min-h-screen transition-all duration-300
+          ${sidebarOpen ? "ml-0" : "ml-0"} 
+          md:ml-64
+        `}
+        >
+          <Header onMenuClick={() => setSidebarOpen(true)} />
+          <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+          <Footer />
+        </div>
+      </div>
+      </WorkspaceProvider>
+  )
+}
