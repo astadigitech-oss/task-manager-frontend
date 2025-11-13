@@ -17,17 +17,18 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       login: async (email: string, password: string) => {
-        // Mock login - replace with real API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
         
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         const mockUser: User = {
-            id: "1",
-            name: "John Doe",
-            email: email,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-            role: "admin",
-            projectsCount: 0,
-            tasksCompleted: 0
+          id: "1",
+          name: "John Doe",
+          email: email,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+          role: "admin",
+          projectsCount: 0,
+          tasksCompleted: 0,
+          division: ""
         };
 
         set({ user: mockUser, isAuthenticated: true });
@@ -35,20 +36,23 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         set({ user: null, isAuthenticated: false });
+        localStorage.removeItem("auth-storage"); 
+        sessionStorage.clear(); 
       },
 
       register: async (name: string, email: string, password: string) => {
-        // Mock registration - replace with real API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
         
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         const mockUser: User = {
-            id: "1",
-            name: name,
-            email: email,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-            role: "admin",
-            projectsCount: 0,
-            tasksCompleted: 0
+          id: "1",
+          name: name,
+          email: email,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+          role: "admin",
+          projectsCount: 0,
+          tasksCompleted: 0,
+          division: ""
         };
 
         set({ user: mockUser, isAuthenticated: true });

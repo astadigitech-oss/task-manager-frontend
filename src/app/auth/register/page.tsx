@@ -28,7 +28,7 @@ export default function RegisterPage() {
     await register(form.username, form.email, form.password);
     setLoading(false);
 
-    router.push("/member/dashboard");
+    router.push("auth/login");
   };
 
   return (

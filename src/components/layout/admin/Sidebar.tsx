@@ -21,6 +21,7 @@ import { useWorkspace } from "@/context/WorkspaceContext";
 import { CreateWorkspaceDialog } from "@/components/modals/CreateNewWorkspace";
 import { useModal } from "@/hooks/useModal";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -74,6 +75,8 @@ export function Sidebar({
     new Set(["1"])
   );
 
+  const { logout } = useAuthStore();
+
   const {
     workspaces,
     getWorkspaceProjects,
@@ -85,12 +88,12 @@ export function Sidebar({
   const { createWorkspace } = useModal();
 
   const isMenuActive = (menuId: string) => {
-  // Ambil segment terakhir dari pathname
-  const pathSegments = pathname.split('/').filter(Boolean);
-  const currentRoute = pathSegments[pathSegments.length - 1] || 'dashboard';
-  
-  return currentRoute === menuId;
-};
+    // Ambil segment terakhir dari pathname
+    const pathSegments = pathname.split('/').filter(Boolean);
+    const currentRoute = pathSegments[pathSegments.length - 1] || 'dashboard';
+
+    return currentRoute === menuId;
+  };
 
   const toggleWorkspace = (workspaceId: string) => {
     const newExpanded = new Set(expandedWorkspaces);
@@ -174,7 +177,7 @@ export function Sidebar({
             <nav className="space-y-1">
               {menuItems.map((item) => {
                 const isActive = isMenuActive(item.id);
-                
+
                 return (
                   <button
                     key={item.id}
@@ -274,17 +277,20 @@ export function Sidebar({
           </div>
         </div>
 
-        {/* Logout Button - Fixed at Bottom */}
         <div className="p-4 border-t border-slate-200 bg-white">
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 font-medium"
-            onClick={() => onNavigate?.("login")}
+            onClick={() => {
+              logout(); 
+              window.location.href = "/auth/login"; 
+            }}
           >
             <LogOut className="h-5 w-5" />
             <span>Logout</span>
           </Button>
         </div>
+
       </aside>
 
       {/* Create Workspace Dialog */}
