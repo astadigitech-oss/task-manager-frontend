@@ -1,169 +1,314 @@
-"use client"
+"use client";
 
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { useState } from "react"
-import { X, ClipboardList, User, Calendar as CalendarIcon, Tag, Layout } from "lucide-react"
-import { format } from "date-fns"
+} from "../ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Calendar } from "../ui/calendar";
+import {
+  ClipboardList,
+  UserPlus,
+  Calendar as CalendarIcon,
+  Tag,
+  Layout,
+  CheckCircle2,
+  X,
+} from "lucide-react";
+import { useState } from "react";
+import { format } from "date-fns";
+import { useTask } from "@/hooks/useTask";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import type { TaskStatus, TaskPriority } from "@/types";
+import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-export default function AddTaskModal() {
-  const [open, setOpen] = useState(false)
-  const [startDate, setStartDate] = useState<Date | undefined>()
-  const [dueDate, setDueDate] = useState<Date | undefined>()
+export function AddTaskModal({ projectId }: { projectId?: string }) {
+  const { addTask } = useTask();
+  const { projects, members } = useWorkspace();
+
+  const [open, setOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId || "");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [status, setStatus] = useState<TaskStatus>("on-board");
+  const [assignees, setAssignees] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [dueDate, setDueDate] = useState<Date | undefined>();
+  const [priority, setPriority] = useState<TaskPriority>("normal");
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setStatus("on-board");
+    setAssignees([]);
+    setStartDate(undefined);
+    setDueDate(undefined);
+    setPriority("normal");
+  };
+
+  const handleSubmit = () => {
+    if (!title.trim() || !selectedProjectId) return;
+
+    addTask({
+      title,
+      description,
+      status,
+      priority,
+      projectId: selectedProjectId,
+      assignTo: assignees,
+      startDate: startDate ? format(startDate, "yyyy-MM-dd") : undefined,
+      dueDate: dueDate
+        ? format(dueDate, "yyyy-MM-dd")
+        : new Date().toISOString().split("T")[0],
+    });
+
+    resetForm();
+    setOpen(false);
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    setOpen(false);
+  };
+
+  const toggleAssignee = (id: string) => {
+    setAssignees((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
+    );
+  };
+
+  const assignedMembers = members.filter((m) => assignees.includes(m.id));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button>
           + New Task
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-lg sm:max-w-xl bg-gray-50">
-        <DialogHeader className="flex flex-row justify-between items-center">
-          <DialogTitle className="text-lg font-semibold">Add New Task</DialogTitle>
-          <DialogClose asChild>
-            {/* <Button variant="ghost" size="icon" className="text-gray-600 hover:bg-gray-200">
-              <X className="w-4 h-4" />
-            </Button> */}
-          </DialogClose>
+      <DialogContent className="max-w-xl sm:max-w-4xl bg-white rounded-lg p-6">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-gray-900">
+            Add Task
+          </DialogTitle>
+          <DialogDescription className="text-gray-500 text-sm">
+            Create a new task and assign it to your team members
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 mt-2">
-          <Select defaultValue="project-1">
-            <SelectTrigger className="w-fit border border-gray-300 bg-white">
+        {/* 🔹 Task Fields */}
+        <div className="mt-4 flex flex-col gap-4">
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+            <SelectTrigger className="w-full border border-gray-300 bg-white">
               <ClipboardList className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Select Project" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="project-1">Project 1</SelectItem>
-              <SelectItem value="project-2">Project 2</SelectItem>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
           <Input
-            placeholder="Task name"
-            className="bg-white border-gray-300 focus-visible:ring-1 focus-visible:ring-blue-500"
+            placeholder="Task Name or type '/' for commands"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="text-gray-900 border-gray-300 focus-visible:ring-blue-500 focus-visible:ring-1"
           />
 
           <Textarea
-            placeholder="Description"
-            className="min-h-[120px] bg-white border-gray-300 focus-visible:ring-1 focus-visible:ring-blue-500"
+            placeholder="Add a more detailed description..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="min-h-[100px] border-gray-300 focus-visible:ring-blue-500 focus-visible:ring-1"
           />
-
-          <div className="grid sm:grid-cols-2 gap-3 mt-2">
-            <Select>
-              <SelectTrigger className="w-full bg-black text-white text-sm">
-                <Layout className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="On Board" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="onboard">On Board</SelectItem>
-                <SelectItem value="onprogress">On Progress</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="done">Done</SelectItem>
-                <SelectItem value="canceled">Canceled</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select>
-              <SelectTrigger className="w-full bg-black text-white text-sm">
-                <User className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Assignee" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="member1">Member 1</SelectItem>
-                <SelectItem value="member2">Member 2</SelectItem>
-                <SelectItem value="member3">Member 3</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="default"
-                  className="w-full bg-black text-white text-sm flex items-center justify-start gap-2"
-                >
-                  <CalendarIcon className="w-4 h-4" />
-                  {startDate ? (
-                    <span>{format(startDate, "MMM d, yyyy")}</span>
-                  ) : (
-                    <span>Start Date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-2 bg-white" align="start">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="default"
-                  className="w-full bg-black text-white text-sm flex items-center justify-start gap-2"
-                >
-                  <CalendarIcon className="w-4 h-4" />
-                  {dueDate ? (
-                    <span>{format(dueDate, "MMM d, yyyy")}</span>
-                  ) : (
-                    <span>Due Date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-2 bg-white" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dueDate}
-                  onSelect={setDueDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-
-            <Select>
-              <SelectTrigger className="w-full bg-black text-white text-sm">
-                <Tag className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
-        <div className="flex justify-end mt-4">
-          <Button className="bg-black text-white hover:bg-gray-900">
+        {/* 🔹 Meta Section (sejajar semua tombol meta, ala ClickUp bar) */}
+        <div className="flex flex-wrap items-center gap-3 mt-5">
+          {/* Status */}
+          <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)}>
+            <SelectTrigger className="bg-gray-100 text-gray-700 border-gray-300 w-auto px-3 text-sm">
+              <Layout className="w-4 h-4 mr-1 text-gray-500" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="on-board">On Board</SelectItem>
+              <SelectItem value="on-progress">On Progress</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="done">Done</SelectItem>
+              <SelectItem value="canceled">Canceled</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Assignees Button (inline, avatar-based like ClickUp) */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative flex items-center gap-1 h-9 px-2 text-sm border border-gray-300 bg-gray-100 hover:bg-gray-200"
+              >
+                {assignedMembers.length > 0 ? (
+                  <div className="flex -space-x-2">
+                    {assignedMembers.slice(0, 5).map((member) => (
+                      <TooltipProvider key={member.id}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Avatar className="h-7 w-7 border-2 border-white shadow-sm">
+                              <AvatarImage src={member.avatar} alt={member.name} />
+                              <AvatarFallback className="text-xs">
+                                {member.name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </TooltipTrigger>
+                          <TooltipContent>{member.name}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ))}
+                    {assignedMembers.length > 5 && (
+                      <span className="text-xs bg-gray-300 text-gray-700 rounded-full px-1.5 py-0.5">
+                        +{assignedMembers.length - 5}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-gray-500">
+                    <UserPlus className="w-4 h-4" />
+                    Assign
+                  </div>
+                )}
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent className="w-64 p-2" align="start">
+              <div className="space-y-1">
+                {members.map((member) => (
+                  <button
+                    key={member.id}
+                    onClick={() => toggleAssignee(member.id)}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 transition-colors",
+                      assignees.includes(member.id) && "bg-blue-50"
+                    )}
+                  >
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src={member.avatar} alt={member.name} />
+                      <AvatarFallback className="text-xs">
+                        {member.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm flex-1 text-left">
+                      {member.name}
+                    </span>
+                    {assignees.includes(member.id) && (
+                      <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Start Date */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="bg-gray-100 text-gray-700 border-gray-300 w-auto px-3 text-sm flex items-center gap-2"
+              >
+                <CalendarIcon className="w-4 h-4 text-gray-500" />
+                {startDate ? format(startDate, "MMM d, yyyy") : "Start Date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2 bg-white border border-gray-200">
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={setStartDate}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+
+          {/* Due Date */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="bg-gray-100 text-gray-700 border-gray-300 w-auto px-3 text-sm flex items-center gap-2"
+              >
+                <CalendarIcon className="w-4 h-4 text-gray-500" />
+                {dueDate ? format(dueDate, "MMM d, yyyy") : "Due Date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2 bg-white border border-gray-200">
+              <Calendar
+                mode="single"
+                selected={dueDate}
+                onSelect={setDueDate}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+
+          {/* Priority */}
+          <Select
+            value={priority}
+            onValueChange={(v) => setPriority(v as TaskPriority)}
+          >
+            <SelectTrigger className="bg-gray-100 text-gray-700 border-gray-300 w-auto px-3 text-sm">
+              <Tag className="w-4 h-4 mr-1 text-gray-500" />
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="normal">Normal</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="urgent">Urgent</SelectItem>
+              <SelectItem value="critical">Critical</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* 🔹 Footer */}
+        <div className="flex justify-end items-center mt-6 border-t border-gray-200 pt-4 gap-2">
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            className="text-gray-700 border-gray-300"
+          >
+            Cancel
+          </Button>
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 text-sm rounded-md"
+            onClick={handleSubmit}
+            disabled={!title.trim() || !selectedProjectId}
+          >
             Create Task
           </Button>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

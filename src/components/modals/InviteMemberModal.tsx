@@ -1,4 +1,6 @@
-"use client"
+// components/modals/InviteMemberModal.tsx
+
+"use client";
 
 import { useState } from "react";
 import {
@@ -6,51 +8,54 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+  DialogDescription,
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import type { TeamMember, Role } from "@/components/shared/TeamManagement";
+} from "../ui/select";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import { divisionConfig, type Division } from "@/types";
 
 interface CreateMemberDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (member: Omit<TeamMember, "id">) => void;
 }
 
-export function CreateMemberDialog({
-  isOpen,
-  onClose,
-  onCreate,
-}: CreateMemberDialogProps) {
+export function CreateMemberDialog({ isOpen, onClose }: CreateMemberDialogProps) {
+  const { addMember } = useWorkspace();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<Role>("member");
+  const [role, setRole] = useState<"admin" | "member">("member");
+  const [division, setDivision] = useState<Division>("frontend");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    onCreate({
+    if (!name.trim() || !email.trim()) return;
+
+    addMember({
       name,
       email,
       role,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
+      division, // ✅ wajib dikirim!
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
       projectsCount: 0,
       tasksCompleted: 0,
     });
+
 
     // Reset form
     setName("");
     setEmail("");
     setRole("member");
+    setDivision("frontend");
     onClose();
   };
 
@@ -58,60 +63,86 @@ export function CreateMemberDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Tambah Anggota Baru</DialogTitle>
+          <DialogTitle>Invite Team Member</DialogTitle>
+          <DialogDescription>
+            Add a new member to your team
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-6 py-4">
-            {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Nama Lengkap</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Masukkan nama lengkap"
-                required
-              />
-            </div>
-
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
-                required
-              />
-            </div>
-
-            {/* Role */}
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select value={role} onValueChange={(value) => setRole(value as Role)}>
-                <SelectTrigger id="role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="member">Member</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-slate-500">
-                 Admin memiliki akses penuh, Member hanya dapat melihat
-              </p>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {/* Name */}
+          <div className="space-y-2">
+            <Label htmlFor="name">Full Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="John Doe"
+              required
+            />
           </div>
 
-          <DialogFooter>
+          {/* Email */}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email Address</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="john@example.com"
+              required
+            />
+          </div>
+
+          {/* Role */}
+          <div className="space-y-2">
+            <Label htmlFor="role">Role</Label>
+            <Select value={role} onValueChange={(value) => setRole(value as "admin" | "member")}>
+              <SelectTrigger id="role">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="member">Member</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">
+              {role === "admin"
+                ? "Can manage projects, tasks, and members"
+                : "Can view and edit assigned tasks"}
+            </p>
+          </div>
+
+          {/* Division */}
+          <div className="space-y-2">
+            <Label htmlFor="division">Division</Label>
+            <Select value={division} onValueChange={(value) => setDivision(value as Division)}>
+              <SelectTrigger id="division">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(divisionConfig).map(([key, config]) => (
+                  <SelectItem key={key} value={key}>
+                    <div className="flex items-center gap-2">
+                      <span>{config.emoji}</span>
+                      <span>{config.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
-              Batal
+              Cancel
             </Button>
-            <Button type="submit">Tambah Anggota</Button>
-          </DialogFooter>
+            <Button type="submit">
+              Invite Member
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

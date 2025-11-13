@@ -16,6 +16,7 @@ interface WorkspaceContextType {
   addMember: (member: Omit<User, "id">) => void;
   deleteMember: (id: string) => void;
   getWorkspaceProjects: (workspaceId: string) => Project[];
+  updateMember: (id: string, updates: Partial<User>) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
@@ -41,7 +42,7 @@ const initialProjects: Project[] = [
     name: "Website Redesign",
     description: "Complete overhaul of company website with modern design",
     progress: 65,
-    assignTo: ["1", "2", "3"],
+    members: ["1", "2", "3"],
     tasksCompleted: 13,
     tasksTotal: 20,
     workspaceId: "1",
@@ -51,7 +52,7 @@ const initialProjects: Project[] = [
     name: "Mobile App Development",
     description: "Native iOS and Android app for customer engagement",
     progress: 42,
-    assignTo: ["1", "4", "5"],
+    members: ["1", "4", "5"],
     tasksCompleted: 8,
     tasksTotal: 19,
     workspaceId: "1",
@@ -61,7 +62,7 @@ const initialProjects: Project[] = [
     name: "Marketing Campaign Q4",
     description: "Holiday season marketing strategy and execution",
     progress: 15,
-    assignTo: ["2", "6"],
+    members: ["2", "6"],
     tasksCompleted: 3,
     tasksTotal: 20,
     workspaceId: "1",
@@ -71,7 +72,7 @@ const initialProjects: Project[] = [
     name: "Data Migration",
     description: "Migrate legacy database to new cloud infrastructure",
     progress: 30,
-    assignTo: ["4", "5"],
+    members: ["4", "5"],
     tasksCompleted: 6,
     tasksTotal: 20,
     workspaceId: "2",
@@ -81,12 +82,14 @@ const initialProjects: Project[] = [
     name: "Customer Portal",
     description: "Self-service portal for customer support",
     progress: 100,
-    assignTo: ["1", "3", "4"],
+    members: ["1", "3", "4"],
     tasksCompleted: 15,
     tasksTotal: 15,
     workspaceId: "2",
   },
 ];
+
+// context/WorkspaceContext.tsx
 
 const initialMembers: User[] = [
   {
@@ -94,6 +97,7 @@ const initialMembers: User[] = [
     name: "Sarah Johnson",
     email: "sarah.j@company.com",
     role: "admin",
+    division: "project-management", // ← Tambah
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
     projectsCount: 4,
     tasksCompleted: 42,
@@ -103,6 +107,7 @@ const initialMembers: User[] = [
     name: "Michael Chen",
     email: "michael.c@company.com",
     role: "admin",
+    division: "backend", // ← Tambah
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop",
     projectsCount: 3,
     tasksCompleted: 38,
@@ -112,6 +117,7 @@ const initialMembers: User[] = [
     name: "Emma Davis",
     email: "emma.d@company.com",
     role: "member",
+    division: "ui-ux", // ← Tambah
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
     projectsCount: 2,
     tasksCompleted: 29,
@@ -121,6 +127,7 @@ const initialMembers: User[] = [
     name: "James Wilson",
     email: "james.w@company.com",
     role: "member",
+    division: "frontend", // ← Tambah
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop",
     projectsCount: 3,
     tasksCompleted: 31,
@@ -130,6 +137,7 @@ const initialMembers: User[] = [
     name: "Lisa Anderson",
     email: "lisa.a@company.com",
     role: "member",
+    division: "qa", // ← Tambah
     avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop",
     projectsCount: 2,
     tasksCompleted: 25,
@@ -139,6 +147,7 @@ const initialMembers: User[] = [
     name: "David Brown",
     email: "david.b@company.com",
     role: "member",
+    division: "devops", // ← Tambah
     avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop",
     projectsCount: 1,
     tasksCompleted: 12,
@@ -165,11 +174,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       id: (projects.length + 1).toString(),
     };
     setProjects([...projects, newProject]);
-    
+
     // Update workspace projectIds
     if (project.workspaceId) {
-      setWorkspaces(workspaces.map(ws => 
-        ws.id === project.workspaceId 
+      setWorkspaces(workspaces.map(ws =>
+        ws.id === project.workspaceId
           ? { ...ws, projectIds: [...ws.projectIds, newProject.id] }
           : ws
       ));
@@ -183,11 +192,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const deleteProject = (id: string) => {
     const project = projects.find(p => p.id === id);
     setProjects(projects.filter(p => p.id !== id));
-    
+
     // Update workspace projectIds
     if (project) {
-      setWorkspaces(workspaces.map(ws => 
-        ws.id === project.workspaceId 
+      setWorkspaces(workspaces.map(ws =>
+        ws.id === project.workspaceId
           ? { ...ws, projectIds: ws.projectIds.filter(pid => pid !== id) }
           : ws
       ));
@@ -198,9 +207,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const newMember: User = {
       ...member,
       id: (members.length + 1).toString(),
+      division: member.division || "frontend", // ✅ fallback default
     };
     setMembers([...members, newMember]);
   };
+
+
 
   const deleteMember = (id: string) => {
     setMembers(members.filter(m => m.id !== id));
@@ -209,6 +221,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const getWorkspaceProjects = (workspaceId: string) => {
     return projects.filter(p => p.workspaceId === workspaceId);
   };
+
+  function updateMember(id: string, updates: Partial<User>) {
+    setMembers((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
+    );
+  }
+
 
   return (
     <WorkspaceContext.Provider
@@ -224,7 +243,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         deleteProject,
         addMember,
         deleteMember,
-        getWorkspaceProjects
+        getWorkspaceProjects,
+        updateMember
       }}
     >
       {children}

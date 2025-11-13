@@ -1,139 +1,164 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Calendar, Tag, Plus, X } from "lucide-react"
-import TaskDetailModal from "@/components/modals/TaskDetailModal"
+import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Card, CardContent } from "../ui/card";
+import { Calendar, Tag, MoreHorizontal } from "lucide-react";
+import { TaskDetailModal } from "@/components/modals/TaskDetailModal";
+import { QuickAddTask } from "@/components/task/QuickAddTask";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useTask } from "@/hooks/useTask";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import type { Task, TaskStatus } from "@/types/index";
 
-interface Task {
-  id: number
-  title: string
-  assignee?: string
-  date?: string
-  priority?: string
-  description?: string
+const priorityConfig: Record<string, string> = {
+  low: "badge-low",
+  normal: "badge-normal",
+  high: "badge-high",
+  urgent: "badge-urgent",
+  critical: "badge-critical",
+  tbd: "badge-tbd",
+};
+
+interface TaskCardProps {
+  tasks: Task[];
+  status: TaskStatus;
+  projectId: string;
 }
 
-export default function TaskCard() {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: 1,
-      title: "Task 1",
-      date: "11/1/2024",
-      priority: "Normal",
-      assignee: "AB",
-      description: "This is a description for Task 1.",
+export function TaskCard({ tasks, status, projectId }: TaskCardProps) {
+  const { deleteTask } = useTask();
+  const { members } = useWorkspace();
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  const handleDelete = (taskId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this task?")) {
+      deleteTask(taskId);
     }
-  ])
-
-  const [isAdding, setIsAdding] = useState(false)
-  const [newTaskTitle, setNewTaskTitle] = useState("")
-  const [newTaskDesc, setNewTaskDesc] = useState("")
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
-
-  const handleAddTask = () => {
-    if (!newTaskTitle.trim()) return
-    setTasks([
-      ...tasks,
-      {
-        id: tasks.length + 1,
-        title: newTaskTitle,
-        priority: "Normal",
-        description: newTaskDesc,
-        assignee: "AB",
-      },
-    ])
-    setNewTaskTitle("")
-    setNewTaskDesc("")
-    setIsAdding(false)
-  }
+  };
 
   return (
     <div className="flex flex-col gap-3">
-      {tasks.map((task) => (
-        <Card
-          key={task.id}
-          className="bg-gray-100 border border-gray-300 shadow-sm rounded-2xl hover:shadow-md cursor-pointer transition-all"
-          onClick={() => setSelectedTask(task)}
-        >
-          <CardContent className="p-3 flex flex-col gap-2">
-            <h3 className="font-medium text-sm text-gray-900 leading-tight">
-              {task.title}
-            </h3>
+      {tasks.map((task) => {
+        const assignedMembers = members.filter((m) => task.assignTo.includes(m.id));
 
-            <div className="flex items-center justify-between text-gray-600 text-xs">
-              <div className="flex items-center gap-2">
-                <Avatar className="w-6 h-6">
-                  <AvatarImage src="" alt="AB" />
-                  <AvatarFallback>{task.assignee}</AvatarFallback>
-                </Avatar>
-                {task.date && (
+        return (
+          <Card
+            key={task.id}
+            className="bg-white border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all group relative"
+            onClick={() => setSelectedTask(task)}
+          >
+            <CardContent className="p-3 flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-medium text-sm text-gray-900 leading-tight flex-1">
+                  {task.title}
+                </h3>
+
+                {/* Quick Actions Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTask(task);
+                      }}
+                    >
+                      Edit Task
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-red-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(task.id, e as any);
+                      }}
+                    >
+                      Delete Task
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {task.description && (
+                <p className="text-xs text-gray-600 line-clamp-2">
+                  {task.description}
+                </p>
+              )}
+
+              <div className="flex items-center justify-between text-gray-600 text-xs mt-1">
+                <div className="flex items-center gap-2">
+                  {assignedMembers.length > 0 ? (
+                    <div className="flex -space-x-2">
+                      {assignedMembers.slice(0, 3).map((member) => (
+                        <Avatar
+                          key={member.id}
+                          className="w-5 h-5 border-2 border-white shadow-sm hover:scale-105 transition-transform"
+                        >
+                          <AvatarImage src={member.avatar} alt={member.name} />
+                          <AvatarFallback className="text-[10px]">
+                            {member.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                      {assignedMembers.length > 3 && (
+                        <div className="w-5 h-5 flex items-center justify-center text-[10px] font-medium bg-gray-200 text-gray-700 rounded-full border-2 border-white">
+                          +{assignedMembers.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 text-xs">Unassigned</span>
+                  )}
+
+                  {task.dueDate && (
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      <span className="text-[11px]">
+                        {new Date(task.dueDate).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+
+                {task.priority && task.priority !== "normal" && (
                   <div className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>{task.date}</span>
+                    <Tag className="w-3 h-3 text-gray-500" />
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${priorityConfig[task.priority] || "badge-normal"
+                        }`}
+                    >
+                      {task.priority.charAt(0).toUpperCase() +
+                        task.priority.slice(1)}
+                    </span>
                   </div>
                 )}
               </div>
-            </div>
+            </CardContent>
+          </Card>
+        );
+      })}
 
-            {task.priority && (
-              <div className="flex items-center gap-1 text-xs mt-1">
-                <Tag className="w-3.5 h-3.5 text-gray-500" />
-                <span className="bg-gray-300 text-gray-800 px-2 py-0.5 rounded-md text-[11px]">
-                  {task.priority}
-                </span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+      {/* Quick Add Task */}
+      <QuickAddTask projectId={projectId} status={status} />
 
-      {isAdding ? (
-        <div className="p-2 bg-white border rounded-lg shadow-sm space-y-2">
-          <Input
-            placeholder="Task name..."
-            value={newTaskTitle}
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-            className="text-sm"
-          />
-          <Textarea
-            placeholder="Description (optional)"
-            value={newTaskDesc}
-            onChange={(e) => setNewTaskDesc(e.target.value)}
-            className="text-sm"
-          />
-
-          <div className="flex justify-end gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsAdding(false)}
-            >
-              <X className="w-4 h-4" />
-              Cancel
-            </Button>
-            <Button size="sm" onClick={handleAddTask}>
-              <Plus className="w-4 h-4" />
-              Add
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="flex items-center justify-start gap-1 text-xs text-gray-800 hover:bg-gray-200 w-full"
-          onClick={() => setIsAdding(true)}
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add Task
-        </Button>
-      )}
-
+      {/* Task Detail Modal */}
       {selectedTask && (
         <TaskDetailModal
           task={selectedTask}
@@ -141,5 +166,5 @@ export default function TaskCard() {
         />
       )}
     </div>
-  )
+  );
 }

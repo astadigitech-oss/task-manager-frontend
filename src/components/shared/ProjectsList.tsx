@@ -2,23 +2,26 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { MoreVertical, CheckCircle2, Users } from "lucide-react";
+import { MoreVertical, Calendar, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "../ui/dropdown-menu";
 import { ProjectDetailDialog } from "@/components/modals/ProjectDetailModal";
-import type { Project, TeamMember } from "@/components/shared/TeamManagement";
+import type { Project } from "@/types/index";
+import type { TeamMember } from "@/types/index";
 
 interface ProjectListProps {
   projects: Project[];
   members: TeamMember[];
   onDelete: (id: string) => void;
+  onViewDetail?: (projectId: string) => void;
 }
 
 const statusConfig = {
@@ -28,22 +31,17 @@ const statusConfig = {
   planning: { label: "Perencanaan", color: "bg-purple-100 text-purple-700 border-purple-200" }
 };
 
-export function ProjectList({ projects, members, onDelete }: ProjectListProps) {
+export function ProjectList({ projects, members, onDelete, onViewDetail }: ProjectListProps) {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const getProjectMembers = (memberIds: string[]) => {
-    return members.filter(m => memberIds.includes(m.id));
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-  };
-
   const handleViewDetail = (project: Project) => {
-    setSelectedProject(project);
-    setIsDetailOpen(true);
+    if (onViewDetail) {
+      onViewDetail(project.id);
+    } else {
+      setSelectedProject(project);
+      setIsDetailOpen(true);
+    }
   };
 
   if (projects.length === 0) {
@@ -55,100 +53,99 @@ export function ProjectList({ projects, members, onDelete }: ProjectListProps) {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-      {projects.map((project) => {
-        const projectMembers = getProjectMembers(project.members);
+    <>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {projects.map((project) => {
+          const projectMembers = members.filter(m => project.members.includes(m.id));
+          // const status = statusConfig[project.status];
 
-        return (
-          <Card key={project.id} className="p-6 hover:shadow-md transition-shadow">
-            {/* Header */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-slate-900">{project.name}</h3>
+          return (
+            <Card key={project.id} className="p-6 hover:shadow-md transition-shadow">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-slate-900 mb-1 truncate">{project.name}</h3>
+                  <p className="text-sm text-slate-600 line-clamp-2">{project.description}</p>
                 </div>
-                <p className="text-slate-600 text-sm line-clamp-2">
-                  {project.description}
-                </p>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="inline-flex items-center justify-center h-8 w-8 -mt-1 -mr-2 rounded-md hover:bg-slate-100 transition-colors">
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleViewDetail(project)}>
+                      Lihat Detail
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>Edit Project</DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="text-red-600"
+                      onClick={() => onDelete(project.id)}
+                    >
+                      Hapus Project
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Edit Project</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleViewDetail(project)}>
-                    Lihat Detail
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>Arsipkan</DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="text-red-600"
-                    onClick={() => onDelete(project.id)}
-                  >
-                    Hapus Project
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
 
-            {/* Progress */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-600">Progress</span>
-                <span className="text-sm text-slate-900">{project.progress}%</span>
+              {/* Status Badge */}
+              {/* <div className="mb-4">
+                <Badge variant="outline" className={status.color}>
+                  {status.label}
+                </Badge>
+              </div> */}
+
+              {/* Progress */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-slate-600">Progress</span>
+                  <span className="text-sm text-slate-900">{project.progress}%</span>
+                </div>
+                <Progress value={project.progress} className="h-2" />
               </div>
-              <Progress value={project.progress} className="h-2" />
-            </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                <span className="text-slate-600">
-                  {project.tasksCompleted}/{project.tasksTotal} Tasks
-                </span>
-              </div>
-            </div>
-
-            {/* Members */}
-            <div className="flex items-center justify-between pt-4 border-t">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-slate-400" />
-                <div className="flex -space-x-2">
-                  {projectMembers.slice(0, 3).map((member) => (
-                    <Avatar key={member.id} className="h-8 w-8 border-2 border-white">
-                      <AvatarImage src={member.avatar} alt={member.name} />
-                      <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                  ))}
-                  {projectMembers.length > 3 && (
-                    <div className="h-8 w-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center">
-                      <span className="text-xs text-slate-600">
-                        +{projectMembers.length - 3}
-                      </span>
-                    </div>
-                  )}
+              {/* Stats */}
+              <div className="space-y-3 pt-4 border-t">
+                {/* <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Calendar className="h-4 w-4" />
+                    <span>Due Date</span>
+                  </div>
+                  <span className="text-slate-900">
+                    {new Date(project.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                </div> */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Users className="h-4 w-4" />
+                    <span>Team</span>
+                  </div>
+                  <div className="flex -space-x-2">
+                    {projectMembers.slice(0, 3).map((member) => (
+                      <Avatar key={member.id} className="h-6 w-6 border-2 border-white">
+                        <AvatarImage src={member.avatar} alt={member.name} />
+                        <AvatarFallback className="text-xs">{member.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                    ))}
+                    {projectMembers.length > 3 && (
+                      <div className="h-6 w-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center">
+                        <span className="text-xs text-slate-600">+{projectMembers.length - 3}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => handleViewDetail(project)}
-              >
-                Lihat Detail
-              </Button>
-            </div>
-          </Card>
-        );
-      })}
+            </Card>
+          );
+        })}
+      </div>
+
       <ProjectDetailDialog
         project={selectedProject}
         members={members}
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
       />
-    </div>
+    </>
   );
 }

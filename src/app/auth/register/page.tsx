@@ -1,21 +1,35 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function RegisterPage() {
-  const router = useRouter()
-  const [form, setForm] = useState({ username: "", email: "", password: "" })
+  const router = useRouter();
+  const { register, isAuthenticated } = useAuthStore();
+  const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
-    if (form.username && form.email && form.password) {
-      alert("Registered successfully (dummy)!")
-      router.push("/auth/login")
+  // Kalau sudah login, langsung redirect
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/member/dashboard");
     }
-  }
+  }, [isAuthenticated]);
+
+  const handleRegister = async () => {
+    if (!form.username || !form.email || !form.password)
+      return alert("Semua field wajib diisi!");
+
+    setLoading(true);
+    await register(form.username, form.email, form.password);
+    setLoading(false);
+
+    router.push("/member/dashboard");
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -48,8 +62,8 @@ export default function RegisterPage() {
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
           </div>
-          <Button className="w-full" onClick={handleRegister}>
-            Register
+          <Button className="w-full" onClick={handleRegister} disabled={loading}>
+            {loading ? "Registering..." : "Register"}
           </Button>
           <p className="text-center text-sm mt-4">
             Already have an account?{" "}
@@ -60,5 +74,5 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

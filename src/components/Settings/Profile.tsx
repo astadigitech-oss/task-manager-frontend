@@ -1,20 +1,46 @@
-"use client"
+"use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { User, Settings as SettingsIcon, Shield, Users, Camera, Bell } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Separator } from "../ui/separator";
+import { Switch } from "../ui/switch";
+import {
+  User,
+  Settings as SettingsIcon,
+  Shield,
+  Users,
+  Camera
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { divisionConfig } from "@/types";
 
 type SettingsTab = "profile" | "preferences" | "account" | "team";
+type DivisionKey = keyof typeof divisionConfig;
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
+
+  
   const [fullName, setFullName] = useState("Sarah Johnson");
   const [email, setEmail] = useState("sarah.j@company.com");
+  const [division, setDivision] = useState<DivisionKey>("frontend");
+
+  const [initialProfile, setInitialProfile] = useState({
+    fullName: "Sarah Johnson",
+    email: "sarah.j@company.com",
+    division: "frontend" as DivisionKey,
+  });
+
+  
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -22,37 +48,55 @@ export function SettingsPage() {
   const [pushNotifications, setPushNotifications] = useState(false);
   const [weeklyReports, setWeeklyReports] = useState(true);
 
+  
+  const [isDirty, setIsDirty] = useState(false);
+  useEffect(() => {
+    const changed =
+      fullName !== initialProfile.fullName ||
+      email !== initialProfile.email ||
+      division !== initialProfile.division;
+    setIsDirty(changed);
+  }, [fullName, email, division, initialProfile]);
+
   const handleSave = () => {
-    console.log("Saving changes...");
+    setInitialProfile({ fullName, email, division });
+    console.log("✅ Saved profile:", { fullName, email, division });
+    setIsDirty(false);
+  };
+
+  const handleCancel = () => {
+    setFullName(initialProfile.fullName);
+    setEmail(initialProfile.email);
+    setDivision(initialProfile.division);
+    setIsDirty(false);
   };
 
   const menuItems = [
     { id: "profile" as SettingsTab, label: "Profile Settings", icon: User },
     { id: "preferences" as SettingsTab, label: "Preferences", icon: SettingsIcon },
     { id: "account" as SettingsTab, label: "Account Management", icon: Shield },
-    { id: "team" as SettingsTab, label: "Team & Permissions", icon: Users },
+    // { id: "team" as SettingsTab, label: "Team & Permissions", icon: Users },
   ];
 
   return (
     <div className="flex h-screen">
-      {/* Sidebar */}
+      
       <div className="w-64 bg-slate-100 border-r p-6 space-y-2">
         <div className="mb-6">
           <h2 className="text-slate-900">Dashboard</h2>
           <p className="text-sm text-slate-600 mt-1">Pengaturan & Preferensi</p>
         </div>
-        
+
         {menuItems.map((item) => {
           const Icon = item.icon;
           return (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors ${
-                activeTab === item.id
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:bg-slate-200"
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors ${activeTab === item.id
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:bg-slate-200"
+                }`}
             >
               <Icon className="h-4 w-4" />
               {item.label}
@@ -61,7 +105,7 @@ export function SettingsPage() {
         })}
       </div>
 
-      {/* Main Content */}
+      
       <div className="flex-1 overflow-y-auto bg-white">
         <div className="p-8">
           {activeTab === "profile" && (
@@ -75,7 +119,7 @@ export function SettingsPage() {
 
               <Separator />
 
-              {/* Avatar Section */}
+              
               <div className="flex items-center gap-6">
                 <div className="relative">
                   <Avatar className="h-24 w-24">
@@ -100,7 +144,7 @@ export function SettingsPage() {
 
               <Separator />
 
-              {/* Form Fields */}
+              
               <div className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
@@ -124,49 +168,48 @@ export function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+62 812 3456 7890"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
-                  <Input
-                    id="bio"
-                    placeholder="Tell us about yourself"
-                  />
+                  <Label htmlFor="division">Division</Label>
+                  <Select value={division} onValueChange={(v) => setDivision(v as DivisionKey)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select division" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(divisionConfig).map(([key, config]) => (
+                        <SelectItem key={key} value={key}>
+                          <div className="flex items-center gap-2">
+                            <span>{config.emoji}</span>
+                            <span>{config.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <Separator />
 
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3">
-                <Button variant="outline">
-                  Cancel
-                </Button>
-                <Button onClick={handleSave}>
-                  Save Changes
-                </Button>
-              </div>
+              
+              {isDirty && (
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={handleCancel}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave}>Save Changes</Button>
+                </div>
+              )}
             </div>
           )}
 
+          
           {activeTab === "preferences" && (
             <div className="space-y-6 max-w-3xl">
-              <div>
-                <h2 className="text-slate-900 mb-1">Preferences</h2>
-                <p className="text-sm text-slate-600">
-                  Atur preferensi dan notifikasi Anda
-                </p>
-              </div>
-
+              <h2 className="text-slate-900 mb-1">Preferences</h2>
+              <p className="text-sm text-slate-600">
+                Atur preferensi dan notifikasi Anda
+              </p>
               <Separator />
-
-              {/* Notifications */}
+              
               <div className="space-y-6">
                 <div>
                   <h3 className="text-slate-900 mb-4">Email Notifications</h3>
@@ -255,30 +298,26 @@ export function SettingsPage() {
 
               <Separator />
 
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3">
-                <Button variant="outline">
-                  Cancel
-                </Button>
-                <Button onClick={handleSave}>
-                  Save Preferences
-                </Button>
-              </div>
+              
+              {isDirty && (
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={handleCancel}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave}>Save Changes</Button>
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === "account" && (
             <div className="space-y-6 max-w-3xl">
-              <div>
-                <h2 className="text-slate-900 mb-1">Account Management</h2>
-                <p className="text-sm text-slate-600">
-                  Kelola akun dan keamanan Anda
-                </p>
-              </div>
-
+              <h2 className="text-slate-900 mb-1">Account Management</h2>
+              <p className="text-sm text-slate-600">
+                Kelola akun dan keamanan Anda
+              </p>
               <Separator />
-
-              {/* Change Password */}
+              
               <div className="space-y-6">
                 <div>
                   <h3 className="text-slate-900 mb-4">Change Password</h3>
@@ -365,125 +404,27 @@ export function SettingsPage() {
 
               <Separator />
 
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3">
-                <Button variant="outline">
-                  Cancel
-                </Button>
-                <Button onClick={handleSave}>
-                  Update Password
-                </Button>
-              </div>
+              {isDirty && (
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={handleCancel}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave}>Save Changes</Button>
+                </div>
+              )}
             </div>
           )}
 
-          {activeTab === "team" && (
+          {/* {activeTab === "team" && (
             <div className="space-y-6 max-w-3xl">
-              <div>
-                <h2 className="text-slate-900 mb-1">Team & Permissions</h2>
-                <p className="text-sm text-slate-600">
-                  Kelola tim dan izin akses Anda
-                </p>
-              </div>
-
+              <h2 className="text-slate-900 mb-1">Team & Permissions</h2>
+              <p className="text-sm text-slate-600">
+                Kelola tim dan izin akses Anda
+              </p>
               <Separator />
-
-              {/* User Stats */}
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="bg-slate-50 p-4 rounded-lg">
-                  <h3 className="text-slate-900 mb-2">Role Anda</h3>
-                  <p className="text-sm text-slate-600 capitalize">
-                    Owner
-                  </p>
-                </div>
-                <div className="bg-slate-50 p-4 rounded-lg">
-                  <h3 className="text-slate-900 mb-2">Project Aktif</h3>
-                  <p className="text-sm text-slate-600">
-                    4 projects
-                  </p>
-                </div>
-                <div className="bg-slate-50 p-4 rounded-lg">
-                  <h3 className="text-slate-900 mb-2">Tasks Diselesaikan</h3>
-                  <p className="text-sm text-slate-600">
-                    42 tasks
-                  </p>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Team Permissions */}
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-slate-900 mb-4">Team Permissions</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-slate-900">Allow members to invite</p>
-                        <p className="text-xs text-slate-500">Members can invite new team members</p>
-                      </div>
-                      <Switch defaultChecked />
-                    </div>
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-slate-900">Allow members to create projects</p>
-                        <p className="text-xs text-slate-500">Members can create new projects</p>
-                      </div>
-                      <Switch defaultChecked />
-                    </div>
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-slate-900">Require approval for new members</p>
-                        <p className="text-xs text-slate-500">Admin approval needed for invitations</p>
-                      </div>
-                      <Switch />
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="text-slate-900 mb-4">Workspace Settings</h3>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="workspaceName">Workspace Name</Label>
-                      <Input
-                        id="workspaceName"
-                        defaultValue="My Workspace"
-                        placeholder="Enter workspace name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="workspaceUrl">Workspace URL</Label>
-                      <Input
-                        id="workspaceUrl"
-                        defaultValue="my-workspace"
-                        placeholder="workspace-url"
-                      />
-                      <p className="text-xs text-slate-500">
-                        https://yourapp.com/my-workspace
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3">
-                <Button variant="outline">
-                  Cancel
-                </Button>
-                <Button onClick={handleSave}>
-                  Save Changes
-                </Button>
-              </div>
+              
             </div>
-          )}
+          )} */}
         </div>
       </div>
     </div>

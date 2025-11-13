@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { SettingsPage } from "@/components/Settings/Profile";
 
