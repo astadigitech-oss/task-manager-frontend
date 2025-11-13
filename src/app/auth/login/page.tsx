@@ -1,22 +1,35 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuthStore } from "@/store/useAuthStore"; // ⬅️ pastikan path sesuai
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [role, setRole] = useState<"admin" | "member">("member")
-  const [form, setForm] = useState({ username: "", password: "" })
+  const router = useRouter();
+  const { login, isAuthenticated, user } = useAuthStore();
 
-  const handleLogin = () => {
-    if (form.username && form.password) {
-      localStorage.setItem("role", role)
-      router.push(`/${role}/dashboard`)
+  const [role, setRole] = useState<"admin" | "member">("member");
+  const [form, setForm] = useState({ username: "", password: "" });
+  const [loading, setLoading] = useState(false);
+
+  // Kalau sudah login, langsung ke dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace(`/${user?.role ?? role}/dashboard`);
     }
-  }
+  }, [isAuthenticated]);
+
+  const handleLogin = async () => {
+    if (!form.username || !form.password) return alert("Isi semua field dulu!");
+
+    setLoading(true);
+    await login(form.username, form.password);
+    setLoading(false);
+    router.push(`/${role}/dashboard`);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -57,8 +70,8 @@ export default function LoginPage() {
             </Button>
           </div>
 
-          <Button className="w-full" onClick={handleLogin}>
-            Login as {role}
+          <Button className="w-full" onClick={handleLogin} disabled={loading}>
+            {loading ? "Logging in..." : `Login as ${role}`}
           </Button>
 
           <p className="text-center text-sm mt-4">
@@ -70,5 +83,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

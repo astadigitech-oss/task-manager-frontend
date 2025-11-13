@@ -4,6 +4,9 @@ import { useState } from "react"
 import Footer from "@/components/layout/member/Footer"
 import Header from "@/components/layout/member/Header"
 import Sidebar from "@/components/layout/member/Sidebar"
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useEffect } from "react";
 
 export default function MemberLayout({
   children,
@@ -11,6 +14,19 @@ export default function MemberLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace("/auth/login");
+    } else if (user?.role !== "member") {
+      router.replace("/admin/dashboard"); // redirect kalau bukan member
+    }
+  }, [isAuthenticated, user, router]);
+
+  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">

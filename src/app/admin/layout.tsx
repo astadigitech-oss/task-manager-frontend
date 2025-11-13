@@ -1,10 +1,13 @@
-"use client"
+"use client";
 
 import { useState } from "react"
 import Footer from "@/components/layout/admin/Footer"
 import Header from "@/components/layout/admin/Header"
-import Sidebar from "@/components/layout/admin/Sidebar"
+import { Sidebar } from "@/components/layout/admin/Sidebar"
 import { WorkspaceProvider } from "@/context/WorkspaceContext"
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useEffect } from "react";
 // import { DashboardLayout } from "@/components/layout/admin/Dashboard Layout"
 
 export default function AdminLayout({
@@ -14,11 +17,39 @@ export default function AdminLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace("/auth/login");
+    } else if (user?.role !== "admin") {
+      router.replace("/member/dashboard"); // redirect kalau bukan admin
+    }
+  }, [isAuthenticated, user, router]);
+
+  if (!isAuthenticated) return null; // atau tampilkan loading skeleton
+
   return (
     <WorkspaceProvider>
       <div className="min-h-screen bg-gray-50 text-gray-900">
         {/* Sidebar (Fixed di desktop, Drawer di mobile) */}
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar
+          currentPage="dashboard"
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onNavigate={(page: string, projectId: any) => {
+            // custom behavior
+            console.log("navigate", page, projectId);
+            if (page === "project-detail" && projectId) {
+              router.push(`/admin/projects/${projectId}`);
+            } else {
+              // fallback
+              router.push(`/admin/${page}`);
+            }
+          }}
+        />
+
 
         {/* Overlay (untuk mobile mode) */}
         {sidebarOpen && (
@@ -41,6 +72,6 @@ export default function AdminLayout({
           <Footer />
         </div>
       </div>
-      </WorkspaceProvider>
+    </WorkspaceProvider>
   )
 }
