@@ -76,7 +76,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push("/admin/settings")}>
+            <DropdownMenuItem onClick={() => router.push("/member/settings")}>
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </DropdownMenuItem>

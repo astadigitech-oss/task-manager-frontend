@@ -11,7 +11,6 @@ import {
   User,
   Settings as SettingsIcon,
   Shield,
-  Users,
   Camera
 } from "lucide-react";
 import {

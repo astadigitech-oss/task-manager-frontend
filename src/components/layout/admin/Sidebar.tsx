@@ -1,26 +1,25 @@
+// components/layout/admin/Sidebar.tsx
+
 "use client";
 
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
-  Users,
   LogOut,
   ChevronDown,
   ChevronRight,
   FolderKanban,
   X,
   Folder,
-  Plus,
-  LayoutDashboard,
-  FolderArchive,
   Menu,
-  Settings,
+  Plus,
 } from "lucide-react";
 import { useState } from "react";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { CreateWorkspaceDialog } from "@/components/modals/CreateNewWorkspace";
 import { useModal } from "@/hooks/useModal";
 import { cn } from "@/lib/utils";
+import { getFilteredMenuItems } from "@/components/shared/sidebarConfig";
 import { useAuthStore } from "@/store/useAuthStore";
 
 interface SidebarProps {
@@ -28,49 +27,10 @@ interface SidebarProps {
   onClose?: () => void;
   currentPage: string;
   onNavigate?: (page: string, projectId?: string) => void;
-  children?: React.ReactNode;
 }
 
-interface MenuItem {
-  id: string;
-  title: string;
-  icon: any;
-}
-
-const menuItems: MenuItem[] = [
-  {
-    id: "dashboard",
-    title: "Dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    id: "projects",
-    title: "Projects",
-    icon: FolderKanban,
-  },
-  {
-    id: "team",
-    title: "Team",
-    icon: Users,
-  },
-  {
-    id: "files",
-    title: "Files",
-    icon: FolderArchive,
-  },
-  {
-    id: "settings",
-    title: "Settings",
-    icon: Settings,
-  },
-];
-
-export function Sidebar({
-  onNavigate,
-}: SidebarProps) {
+export function Sidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
   const pathname = usePathname();
-
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(
     new Set(["1"])
   );
@@ -87,11 +47,14 @@ export function Sidebar({
 
   const { createWorkspace } = useModal();
 
-  const isMenuActive = (menuId: string) => {
-    // Ambil segment terakhir dari pathname
-    const pathSegments = pathname.split('/').filter(Boolean);
-    const currentRoute = pathSegments[pathSegments.length - 1] || 'dashboard';
+  const { logout } = useAuthStore();
 
+  // Get menu items (admin gets all items)
+  const menuItems = getFilteredMenuItems(true);
+
+  const isMenuActive = (menuId: string) => {
+    const pathSegments = pathname.split("/").filter(Boolean);
+    const currentRoute = pathSegments[pathSegments.length - 1] || "dashboard";
     return currentRoute === menuId;
   };
 
@@ -111,7 +74,7 @@ export function Sidebar({
   };
 
   const handleProjectClick = (projectId: string) => {
-    onNavigate?.(`projects/${projectId}`);
+    onNavigate?.("project-detail", projectId);
   };
 
   const handleCreateWorkspace = (workspace: {
@@ -124,7 +87,6 @@ export function Sidebar({
 
   const handleMenuClick = (page: string) => {
     onNavigate?.(page);
-    setIsSidebarOpen(false);
   };
 
   return (
@@ -134,40 +96,39 @@ export function Sidebar({
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          onClick={onClose}
           className="hover:bg-slate-100"
         >
-          {isSidebarOpen ? (
+          {isOpen ? (
             <X className="h-5 w-5 text-slate-700" />
           ) : (
             <Menu className="h-5 w-5 text-slate-700" />
           )}
         </Button>
-        <h1 className="ml-4 text-lg font-semibold text-slate-900">Dashboard</h1>
+        <h1 className="ml-4 text-lg font-semibold text-slate-900">
+          Admin Dashboard
+        </h1>
       </div>
-
-      {/* Overlay untuk mobile */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
 
       {/* Sidebar */}
       <aside
         className={cn(
           "fixed top-0 left-0 z-50 w-64 h-screen bg-white border-r border-slate-200 flex flex-col transform transition-transform duration-300 ease-in-out",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+          isOpen ? "translate-x-0" : "-translate-x-full",
           "lg:translate-x-0"
         )}
       >
         {/* Header/Logo */}
         <div className="flex items-center gap-3 p-6 border-b border-slate-200">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">L</span>
+            <span className="text-white font-bold text-sm">A</span>
           </div>
-          <span className="text-xl font-bold text-slate-900">Logo</span>
+          <div className="flex flex-col">
+            <span className="text-xl font-bold text-slate-900">Admin</span>
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider">
+              Control Panel
+            </span>
+          </div>
         </div>
 
         {/* Scrollable Content */}
@@ -205,10 +166,10 @@ export function Sidebar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                  className="h-6 w-6 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                   onClick={createWorkspace.open}
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
 
@@ -220,7 +181,6 @@ export function Sidebar({
 
                   return (
                     <div key={workspace.id}>
-                      {/* Workspace Item */}
                       <div className="flex items-center">
                         <Button
                           variant="ghost"
@@ -245,16 +205,19 @@ export function Sidebar({
                         >
                           <Folder className="h-4 w-4 flex-shrink-0" />
                           <span className="truncate flex-1">{workspace.name}</span>
-                          <span className={cn(
-                            "text-xs px-1.5 py-0.5 rounded-full",
-                            isSelected ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"
-                          )}>
+                          <span
+                            className={cn(
+                              "text-xs px-1.5 py-0.5 rounded-full",
+                              isSelected
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-slate-100 text-slate-600"
+                            )}
+                          >
                             {projects.length}
                           </span>
                         </button>
                       </div>
 
-                      {/* Projects List */}
                       {isExpanded && projects.length > 0 && (
                         <div className="ml-8 mt-1 space-y-1">
                           {projects.map((project) => (
@@ -277,13 +240,14 @@ export function Sidebar({
           </div>
         </div>
 
+        {/* Logout Button */}
         <div className="p-4 border-t border-slate-200 bg-white">
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 font-medium"
             onClick={() => {
-              logout(); 
-              window.location.href = "/auth/login"; 
+              logout();
+              window.location.href = "/auth/login";
             }}
           >
             <LogOut className="h-5 w-5" />
@@ -293,7 +257,6 @@ export function Sidebar({
 
       </aside>
 
-      {/* Create Workspace Dialog */}
       <CreateWorkspaceDialog
         isOpen={createWorkspace.isOpen}
         onClose={createWorkspace.close}

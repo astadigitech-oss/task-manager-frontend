@@ -1,3 +1,5 @@
+// app/auth/login/page.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -5,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuthStore } from "@/store/useAuthStore"; // ⬅️ pastikan path sesuai
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,68 +17,104 @@ export default function LoginPage() {
   const [form, setForm] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
 
-  // Kalau sudah login, langsung ke dashboard
   useEffect(() => {
-    if (isAuthenticated) {
-      router.replace(`/${user?.role ?? role}/dashboard`);
+    if (isAuthenticated && user) {
+      // Redirect based on actual user role
+      router.replace(`/${user.role}/dashboard`);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user, router]);
 
   const handleLogin = async () => {
-    if (!form.username || !form.password) return alert("Isi semua field dulu!");
+    if (!form.username || !form.password) {
+      return alert("Isi semua field dulu!");
+    }
 
     setLoading(true);
-    await login(form.username, form.password);
-    setLoading(false);
-    router.push(`/${role}/dashboard`);
+    try {
+      // ✅ Pass role yang dipilih ke login function
+      await login(form.username, form.password, role);
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Login gagal!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Tambah handler untuk Enter key
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleLogin();
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-2xl shadow w-[400px]">
-        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-[400px]">
+        <h1 className="text-2xl font-bold mb-6 text-center text-gray-900">Login</h1>
 
         <div className="space-y-4">
+          {/* Username */}
           <div>
-            <Label>Username</Label>
+            <Label htmlFor="username">Username</Label>
             <Input
-              placeholder="username"
+              id="username"
+              placeholder="Enter your username"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
+              onKeyPress={handleKeyPress}
             />
           </div>
+
+          {/* Password */}
           <div>
-            <Label>Password</Label>
+            <Label htmlFor="password">Password</Label>
             <Input
+              id="password"
               type="password"
               placeholder="••••••••"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
+              onKeyPress={handleKeyPress}
             />
           </div>
 
-          <div className="flex gap-2 justify-center my-4">
-            <Button
-              variant={role === "admin" ? "default" : "outline"}
-              onClick={() => setRole("admin")}
-            >
-              Admin
-            </Button>
-            <Button
-              variant={role === "member" ? "default" : "outline"}
-              onClick={() => setRole("member")}
-            >
-              Member
-            </Button>
+          {/* Role Selection */}
+          <div>
+            <Label className="mb-2 block">Login as:</Label>
+            <div className="flex gap-2 justify-center">
+              <Button
+                type="button"
+                variant={role === "admin" ? "default" : "outline"}
+                onClick={() => setRole("admin")}
+                className={role === "admin" ? "bg-blue-600 hover:bg-blue-700" : ""}
+              >
+                👑 Admin
+              </Button>
+              <Button
+                type="button"
+                variant={role === "member" ? "default" : "outline"}
+                onClick={() => setRole("member")}
+                className={role === "member" ? "bg-green-600 hover:bg-green-700" : ""}
+              >
+                👤 Member
+              </Button>
+            </div>
           </div>
 
-          <Button className="w-full" onClick={handleLogin} disabled={loading}>
+          {/* Login Button */}
+          <Button 
+            className="w-full mt-6" 
+            onClick={handleLogin} 
+            disabled={loading}
+          >
             {loading ? "Logging in..." : `Login as ${role}`}
           </Button>
 
-          <p className="text-center text-sm mt-4">
-            Don’t have an account?{" "}
-            <a href="/auth/register" className="text-blue-600 hover:underline">
+          {/* Register Link */}
+          <p className="text-center text-sm mt-4 text-gray-600">
+            Don't have an account?{" "}
+            <a href="/auth/register" className="text-blue-600 hover:underline font-medium">
               Register
             </a>
           </p>

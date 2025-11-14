@@ -96,6 +96,7 @@ const initialMembers: User[] = [
     id: "1",
     name: "Sarah Johnson",
     email: "sarah.j@company.com",
+    password: "password123",
     role: "admin",
     division: "project-management", // ← Tambah
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
@@ -106,6 +107,7 @@ const initialMembers: User[] = [
     id: "2",
     name: "Michael Chen",
     email: "michael.c@company.com",
+    password: "password123",
     role: "admin",
     division: "backend", // ← Tambah
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop",
@@ -116,6 +118,7 @@ const initialMembers: User[] = [
     id: "3",
     name: "Emma Davis",
     email: "emma.d@company.com",
+    password: "password123",
     role: "member",
     division: "ui-ux", // ← Tambah
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
@@ -126,6 +129,7 @@ const initialMembers: User[] = [
     id: "4",
     name: "James Wilson",
     email: "james.w@company.com",
+    password: "password123",
     role: "member",
     division: "frontend", // ← Tambah
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop",
@@ -136,6 +140,7 @@ const initialMembers: User[] = [
     id: "5",
     name: "Lisa Anderson",
     email: "lisa.a@company.com",
+    password: "password123",
     role: "member",
     division: "qa", // ← Tambah
     avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop",
@@ -146,6 +151,7 @@ const initialMembers: User[] = [
     id: "6",
     name: "David Brown",
     email: "david.b@company.com",
+    password: "password123",
     role: "member",
     division: "devops", // ← Tambah
     avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop",
