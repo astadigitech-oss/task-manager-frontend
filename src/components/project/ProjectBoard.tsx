@@ -143,9 +143,6 @@ export default function ProjectBoardLayout({ projectId, onNavigate }: ProjectBoa
           <div>
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-sm font-semibold text-gray-700">Team Members</h2>
-              {/* <Button size="sm" variant="ghost" className="text-xs text-blue-600 hover:bg-blue-50">
-                + Add
-              </Button> */}
             </div>
 
             <div className="space-y-3 overflow-y-auto max-h-64 pr-1 scrollbar-thin scrollbar-thumb-gray-300">

@@ -8,7 +8,7 @@ import { WorkspaceProvider } from "@/context/WorkspaceContext"
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect } from "react";
-// import { DashboardLayout } from "@/components/layout/admin/Dashboard Layout"
+
 
 export default function AdminLayout({
   children,
@@ -33,25 +33,20 @@ export default function AdminLayout({
   return (
     <WorkspaceProvider>
       <div className="min-h-screen bg-gray-50 text-gray-900">
-        {/* Sidebar (Fixed di desktop, Drawer di mobile) */}
         <Sidebar
           currentPage="dashboard"
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           onNavigate={(page: string, projectId: any) => {
-            // custom behavior
             console.log("navigate", page, projectId);
             if (page === "project-detail" && projectId) {
               router.push(`/admin/projects/${projectId}`);
             } else {
-              // fallback
               router.push(`/admin/${page}`);
             }
           }}
         />
 
-
-        {/* Overlay (untuk mobile mode) */}
         {sidebarOpen && (
           <div
             className="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden"
@@ -59,7 +54,6 @@ export default function AdminLayout({
           />
         )}
 
-        {/* Main Content */}
         <div
           className={`
           flex flex-col min-h-screen transition-all duration-300

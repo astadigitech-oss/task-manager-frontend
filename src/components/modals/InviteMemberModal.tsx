@@ -43,8 +43,9 @@ export function CreateMemberDialog({ isOpen, onClose }: CreateMemberDialogProps)
     addMember({
       name,
       email,
+      password: "defaultPassword",
       role,
-      division, // ✅ wajib dikirim!
+      division,
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
       projectsCount: 0,
       tasksCompleted: 0,
