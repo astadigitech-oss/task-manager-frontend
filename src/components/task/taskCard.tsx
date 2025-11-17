@@ -15,6 +15,8 @@ import {
 import { useTask } from "@/hooks/useTask";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import type { Task, TaskStatus } from "@/types/index";
+import { useAuthStore } from "@/store/useAuthStore";
+import { cn } from "@/lib/utils";
 
 const priorityConfig: Record<string, string> = {
   low: "badge-low",
@@ -29,12 +31,14 @@ interface TaskCardProps {
   tasks: Task[];
   status: TaskStatus;
   projectId: string;
+  readOnly?: boolean;
 }
 
-export function TaskCard({ tasks, status, projectId }: TaskCardProps) {
+export function TaskCard({ tasks, status, projectId, readOnly }: TaskCardProps) {
   const { deleteTask } = useTask();
   const { members } = useWorkspace();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const { user } = useAuthStore(); // ← Add this
 
   const handleDelete = (taskId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -47,11 +51,15 @@ export function TaskCard({ tasks, status, projectId }: TaskCardProps) {
     <div className="flex flex-col gap-3">
       {tasks.map((task) => {
         const assignedMembers = members.filter((m) => task.assignTo.includes(m.id));
+        const isMyTask = user && task.assignTo.includes(user.id);
 
         return (
           <Card
             key={task.id}
-            className="bg-white border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all group relative"
+            className={cn(
+              "bg-white border shadow-sm hover:shadow-md cursor-pointer transition-all group relative",
+              isMyTask ? "border-green-300" : "border-gray-200" // ← Highlight my tasks
+            )}
             onClick={() => setSelectedTask(task)}
           >
             <CardContent className="p-3 flex flex-col gap-2">
@@ -60,36 +68,40 @@ export function TaskCard({ tasks, status, projectId }: TaskCardProps) {
                   {task.title}
                 </h3>
 
-                {/* Quick Actions Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreHorizontal className="w-4 h-4 text-gray-500" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedTask(task);
-                      }}
-                    >
-                      Edit Task
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(task.id, e as any);
-                      }}
-                    >
-                      Delete Task
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {/* Show dropdown only for admin or own tasks */}
+                {!readOnly && (user?.role === "admin" || isMyTask) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTask(task);
+                        }}
+                      >
+                        Edit Task
+                      </DropdownMenuItem>
+                      {user?.role === "admin" && ( // Only admin can delete
+                        <DropdownMenuItem
+                          className="text-red-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(task.id, e as any);
+                          }}
+                        >
+                          Delete Task
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
 
               {task.description && (
@@ -155,8 +167,9 @@ export function TaskCard({ tasks, status, projectId }: TaskCardProps) {
         );
       })}
 
-      {/* Quick Add Task */}
-      <QuickAddTask projectId={projectId} status={status} />
+      {!readOnly && user?.role === "admin" && (
+        <QuickAddTask projectId={projectId} status={status} />
+      )}
 
       {/* Task Detail Modal */}
       {selectedTask && (

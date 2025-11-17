@@ -10,12 +10,8 @@ interface ProjectPageProps {
 
 export default function ProjectPage({ params }: ProjectPageProps) {
   const router = useRouter();
-  
-  // Unwrap params menggunakan React.use()
   const { id } = use(params);
   const projectId = id.toString();
-  
-  console.log("📄 Project ID:", projectId);
   
   const handleNavigate = (page: string) => {
     router.push(`/admin/${page}`);
@@ -24,7 +20,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   return (
     <ProjectBoardLayout 
       projectId={projectId} 
-      onNavigate={handleNavigate} 
+      onNavigate={handleNavigate}
+      mode="admin" // ← Pass mode
     />
   );
 }
