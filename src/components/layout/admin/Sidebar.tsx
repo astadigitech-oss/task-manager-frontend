@@ -35,6 +35,8 @@ export function Sidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
     new Set(["1"])
   );
 
+  const { logout } = useAuthStore();
+
   const {
     workspaces,
     getWorkspaceProjects,
@@ -252,6 +254,7 @@ export function Sidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
             <span>Logout</span>
           </Button>
         </div>
+
       </aside>
 
       <CreateWorkspaceDialog

@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { WorkspaceProvider } from "@/context/WorkspaceContext";
-
-// 🧩 Komponen layout khusus member
 import { Sidebar } from "@/components/layout/member/Sidebar";
 import Header from "@/components/layout/member/Header";
 import Footer from "@/components/layout/member/Footer";
@@ -23,7 +21,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
     }
   }, [isAuthenticated, user, router]);
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated) return null; // atau tampilkan loading skeleton
 
   return (
     <WorkspaceProvider>
