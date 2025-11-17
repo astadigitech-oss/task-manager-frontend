@@ -1,33 +1,46 @@
 "use client"
 
 import { AddTaskModal } from "@/components/modals/AddTaskModal"
+import { UploadImageDialog } from "@/components/modals/UploadIMageDialog"
+import { ImageLightboxModal } from "@/components/modals/ImageLightBoxModal"
 import { TaskCard } from "@/components/task/TaskCard"
 import { TaskList } from "@/components/task/TaskList"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { divisionConfig, TaskStatus } from "@/types"
-import { Plus, LayoutGrid, List, ChevronLeft } from "lucide-react"
+import { LayoutGrid, List, ChevronLeft, Info } from "lucide-react"
 import { useState } from "react"
 import { useWorkspace } from "@/context/WorkspaceContext"
 import { useTask } from "@/hooks/useTask"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuthStore } from "@/store/useAuthStore"
+import { Alert, AlertDescription } from "../ui/alert"
 
 interface ProjectBoardLayoutProps {
   projectId: string;
   onNavigate: (page: string) => void;
+  mode?: "admin" | "member";
 }
 
-export default function ProjectBoardLayout({ projectId, onNavigate }: ProjectBoardLayoutProps) {
+export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admin" }: ProjectBoardLayoutProps) {
   const { projects, members } = useWorkspace();
+  const { user } = useAuthStore();
   const { getTasksByProject } = useTask();
   const [view, setView] = useState<"kanban" | "list">("kanban");
+  const [projectImages, setProjectImages] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  // Find project dengan toString untuk handle berbagai tipe
   const project = projects.find(p => p.id.toString() === projectId.toString());
 
   const tasks = project ? getTasksByProject(projectId) : [];
   const projectMembers = project ? members.filter(m => project.members.includes(m.id)) : [];
+
+  // 🔥 FIX: Hitung tasks untuk member yang login
+  const myTasksCount = user ? tasks.filter(task => task.assignTo?.includes(user.id)).length : 0;
+  const allTasksCount = tasks.length;
 
   const columns: { status: TaskStatus; label: string }[] = [
     { status: "on-board", label: "On Board" },
@@ -44,6 +57,43 @@ export default function ProjectBoardLayout({ projectId, onNavigate }: ProjectBoa
       </div>
     );
   }
+
+  const canCreateTask = mode === "admin";
+  const showAllTasks = mode === "admin";
+
+  // 🔥 FIX: Filter tasks berdasarkan mode
+  const displayedTasks = mode === "member" && user 
+    ? tasks.filter(task => task.assignTo?.includes(user.id))
+    : tasks;
+
+  // Handle image upload
+  const handleImageUpload = (images: string[]) => {
+    setProjectImages(prev => [...prev, ...images]);
+    setCurrentImageIndex(0);
+  };
+
+  // Navigate images
+  const handlePreviousImage = () => {
+    setCurrentImageIndex(prev => Math.max(0, prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex(prev => Math.min(projectImages.length - 1, prev + 1));
+  };
+
+  // Open lightbox
+  const handleOpenLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
+  // Delete image from lightbox
+  const handleDeleteImage = (index: number) => {
+    setProjectImages(prev => prev.filter((_, i) => i !== index));
+    if (currentImageIndex >= projectImages.length - 1) {
+      setCurrentImageIndex(Math.max(0, projectImages.length - 2));
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-800">
@@ -74,9 +124,13 @@ export default function ProjectBoardLayout({ projectId, onNavigate }: ProjectBoa
         </div>
 
         <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="outline" size="sm" className="gap-1">
-            <Plus className="w-4 h-4" /> Image
-          </Button>
+          {mode === "admin" && (
+            <UploadImageDialog 
+              projectId={projectId}
+              onUpload={handleImageUpload}
+              existingImages={projectImages}
+            />
+          )}
 
           <div className="flex">
             <Button
@@ -99,16 +153,43 @@ export default function ProjectBoardLayout({ projectId, onNavigate }: ProjectBoa
             </Button>
           </div>
 
-          <AddTaskModal projectId={projectId} />
+          {mode === "admin" && <AddTaskModal projectId={projectId} />}
+
+          {mode === "member" && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-green-50 border-green-200">
+              <span className="text-sm font-medium text-green-700">
+                My Tasks: {myTasksCount}
+              </span>
+            </div>
+          )}
+
+          {mode === "admin" && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-blue-50 border-blue-200">
+              <span className="text-sm font-medium text-blue-700">
+                All Tasks: {allTasksCount}
+              </span>
+            </div>
+          )}
         </div>
       </header>
+
+      {mode === "member" && (
+        <div className="p-4">
+          <Alert className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              You're viewing only tasks assigned to you. Total project tasks: {allTasksCount}
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         <section className="flex-1 overflow-x-auto overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-300">
           {view === "kanban" ? (
             <div className="flex gap-4 min-w-max h-full items-start">
               {columns.map((col) => {
-                const columnTasks = tasks.filter((t) => t.status === col.status);
+                const columnTasks = displayedTasks.filter((t) => t.status === col.status);
 
                 return (
                   <Card
@@ -126,6 +207,7 @@ export default function ProjectBoardLayout({ projectId, onNavigate }: ProjectBoa
                         tasks={columnTasks}
                         status={col.status}
                         projectId={projectId}
+                        readOnly={!canCreateTask}
                       />
                     </div>
                   </Card>
@@ -134,7 +216,7 @@ export default function ProjectBoardLayout({ projectId, onNavigate }: ProjectBoa
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <TaskList tasks={tasks} projectId={projectId} />
+              <TaskList tasks={displayedTasks} projectId={projectId} />
             </div>
           )}
         </section>
@@ -143,6 +225,11 @@ export default function ProjectBoardLayout({ projectId, onNavigate }: ProjectBoa
           <div>
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-sm font-semibold text-gray-700">Team Members</h2>
+              {mode === "admin" && (
+                <Button size="sm" variant="ghost" className="text-xs text-blue-600 hover:bg-blue-50">
+                  + Add
+                </Button>
+              )}
             </div>
 
             <div className="space-y-3 overflow-y-auto max-h-64 pr-1 scrollbar-thin scrollbar-thumb-gray-300">
@@ -163,7 +250,6 @@ export default function ProjectBoardLayout({ projectId, onNavigate }: ProjectBoa
                       <p className="text-xs text-gray-500 truncate">
                         {member.role} • {divisionConfig[member.division as keyof typeof divisionConfig]?.emoji} {divisionConfig[member.division as keyof typeof divisionConfig]?.label}
                       </p>
-
                     </div>
                     <div className="w-2 h-2 rounded-full bg-green-400" />
                   </div>
@@ -175,23 +261,77 @@ export default function ProjectBoardLayout({ projectId, onNavigate }: ProjectBoa
           </div>
 
           <div className="mt-6 border-t pt-4">
-            <h3 className="text-sm font-semibold mb-3 text-gray-700">Project Images</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">Project Images</h3>
+              {projectImages.length > 0 && (
+                <span className="text-xs text-gray-500">
+                  {currentImageIndex + 1} / {projectImages.length}
+                </span>
+              )}
+            </div>
             <div className="relative">
-              <div className="w-full h-36 bg-gray-300 rounded-lg flex items-center justify-center">
-                <p className="text-gray-600 text-sm">No Image</p>
-              </div>
-              <div className="flex justify-between mt-2">
-                <Button variant="ghost" size="sm" className="text-xs px-2 hover:bg-gray-200">
-                  ← Prev
-                </Button>
-                <Button variant="ghost" size="sm" className="text-xs px-2 hover:bg-gray-200">
-                  Next →
-                </Button>
-              </div>
+              {projectImages.length > 0 ? (
+                <>
+                  <div 
+                    className="w-full h-36 bg-gray-200 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => handleOpenLightbox(currentImageIndex)}
+                  >
+                    <img
+                      src={projectImages[currentImageIndex]}
+                      alt={`Project image ${currentImageIndex + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs px-2 hover:bg-gray-200"
+                      onClick={handlePreviousImage}
+                      disabled={currentImageIndex === 0}
+                    >
+                      ← Prev
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs px-2 hover:bg-gray-200"
+                      onClick={handleNextImage}
+                      disabled={currentImageIndex >= projectImages.length - 1}
+                    >
+                      Next →
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-full h-36 bg-gray-300 rounded-lg flex items-center justify-center">
+                    <p className="text-gray-600 text-sm">No Image</p>
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <Button variant="ghost" size="sm" className="text-xs px-2 hover:bg-gray-200" disabled>
+                      ← Prev
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-xs px-2 hover:bg-gray-200" disabled>
+                      Next →
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </aside>
       </div>
+
+      {/* Image Lightbox Modal */}
+      <ImageLightboxModal
+        images={projectImages}
+        initialIndex={lightboxIndex}
+        open={lightboxOpen}
+        onOpenChange={setLightboxOpen}
+        onDelete={handleDeleteImage}
+        canDelete={mode === "admin"}
+      />
     </div>
   );
 }

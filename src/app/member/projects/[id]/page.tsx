@@ -1,3 +1,5 @@
+// app/member/projects/[id]/page.tsx
+
 "use client";
 
 import { use } from "react";
@@ -8,23 +10,20 @@ interface ProjectPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function ProjectPage({ params }: ProjectPageProps) {
+export default function MemberProjectPage({ params }: ProjectPageProps) {
   const router = useRouter();
-  
-  // Unwrap params menggunakan React.use()
   const { id } = use(params);
   const projectId = id.toString();
   
-  console.log("📄 Project ID:", projectId);
-  
   const handleNavigate = (page: string) => {
-    router.push(`/admin/${page}`);
+    router.push(`/member/${page}`);
   };
 
   return (
     <ProjectBoardLayout 
       projectId={projectId} 
-      onNavigate={handleNavigate} 
+      onNavigate={handleNavigate}
+      mode="member" // ← Pass mode
     />
   );
 }
