@@ -50,7 +50,7 @@ export function TeamActivity({ members, projects }: TeamActivityProps) {
 
   return (
     <Card className="p-6">
-      <h3 className="text-slate-900 mb-4">Team Activity</h3>
+      <h3 className="text-foreground mb-4">Team Activity</h3>
       <div className="space-y-4">
         {activities.map((activity) => (
           <div key={activity.id} className="flex items-start gap-3">
@@ -59,17 +59,17 @@ export function TeamActivity({ members, projects }: TeamActivityProps) {
               <AvatarFallback>{activity.member?.name?.charAt(0) || "U"}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-slate-900">
+              <p className="text-sm text-foreground">
                 <span className="font-medium">{activity.member?.name || "User"}</span>{" "}
-                <span className="text-slate-600">{activity.action}</span>{" "}
+                <span className="text-muted">{activity.action}</span>{" "}
                 <span className="font-medium">{activity.project}</span>
               </p>
-              <p className="text-xs text-slate-500 mt-0.5">{activity.time}</p>
+              <p className="text-xs text-muted mt-0.5">{activity.time}</p>
             </div>
             <div className={`p-2 rounded-lg ${
               activity.type === "task" 
-                ? "bg-emerald-50" 
-                : "bg-blue-50"
+                ? "badge-low" 
+                : "badge-normal"
             }`}>
               {activity.type === "task" ? (
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />

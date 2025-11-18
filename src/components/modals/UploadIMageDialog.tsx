@@ -98,7 +98,7 @@ export function UploadImageDialog({ projectId, onUpload, existingImages = [] }: 
           </Button>
         </DialogTrigger>
 
-        <DialogContent className="sm:max-w-[1200px] h-[720px] p-2 gap-0 flex flex-col">
+        <DialogContent className="sm:max-w-[1200px] h-[720px] p-2 gap-0 flex flex-col dialog">
           <DialogHeader className="px-6 py-4 border-b">
             <DialogTitle className="text-xl">Upload Project Images</DialogTitle>
           </DialogHeader>
@@ -122,7 +122,7 @@ export function UploadImageDialog({ projectId, onUpload, existingImages = [] }: 
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute -left-4 z-10 h-12 w-12 rounded-full bg-white shadow-md hover:bg-gray-100"
+                  className="absolute -left-4 z-10 h-12 w-12 rounded-full surface-elevated shadow-md hover:surface-hover"
                   onClick={handlePrevious}
                   disabled={currentIndex === 0}
                 >
@@ -134,7 +134,7 @@ export function UploadImageDialog({ projectId, onUpload, existingImages = [] }: 
                   {visibleImages.map((img, idx) => (
                     <div
                       key={currentIndex + idx}
-                      className="relative aspect-video bg-gray-200 rounded-lg overflow-hidden group cursor-pointer"
+                      className="relative aspect-video surface rounded-lg overflow-hidden group cursor-pointer"
                       onClick={() => handleOpenLightbox(idx)}
                     >
                       <img
@@ -160,7 +160,7 @@ export function UploadImageDialog({ projectId, onUpload, existingImages = [] }: 
                   {Array.from({ length: Math.max(0, 4 - visibleImages.length) }).map((_, idx) => (
                     <div
                       key={`empty-${idx}`}
-                      className="aspect-video bg-gray-200 rounded-lg"
+                      className="aspect-video surface rounded-lg"
                     />
                   ))}
                 </div>
@@ -169,7 +169,7 @@ export function UploadImageDialog({ projectId, onUpload, existingImages = [] }: 
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute -right-4 z-10 h-12 w-12 rounded-full bg-white shadow-md hover:bg-gray-100"
+                  className="absolute -right-4 z-10 h-12 w-12 rounded-full surface-elevated shadow-md hover:surface-hover"
                   onClick={handleNext}
                   disabled={currentIndex + 4 >= images.length}
                 >
@@ -183,18 +183,18 @@ export function UploadImageDialog({ projectId, onUpload, existingImages = [] }: 
               <h3 className="text-lg font-semibold mb-4">Attachments</h3>
               
               <div
-                className="w-full h-full border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-4 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="w-full h-full border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-4 surface hover:surface-hover transition-colors cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Upload className="h-12 w-12 text-gray-400" />
+                <Upload className="h-12 w-12 text-muted" />
                 <div className="text-center">
-                  <p className="text-lg font-medium text-gray-700 underline">Upload</p>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-lg font-medium text-foreground underline">Upload</p>
+                  <p className="text-sm text-muted mt-1">
                     Click to browse or drag and drop your images
                   </p>
                 </div>
                 {images.length > 0 && (
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted">
                     {images.length} image{images.length > 1 ? 's' : ''} selected
                   </p>
                 )}
@@ -202,7 +202,7 @@ export function UploadImageDialog({ projectId, onUpload, existingImages = [] }: 
             </div>
 
             {/* Footer Actions */}
-            <div className="border-t px-6 py-4 flex justify-end gap-3">
+            <div className="border-t px-6 py-4 flex justify-end gap-3 divider">
               <Button
                 variant="outline"
                 onClick={() => setOpen(false)}
@@ -212,7 +212,7 @@ export function UploadImageDialog({ projectId, onUpload, existingImages = [] }: 
               <Button
                 onClick={handleUpload}
                 disabled={images.length === 0}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="button-primary"
               >
                 Upload {images.length > 0 && `(${images.length})`}
               </Button>

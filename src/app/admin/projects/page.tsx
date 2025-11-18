@@ -44,22 +44,22 @@ export default function ProjectsPage({ onNavigate }: ProjectsPageProps) {
   return (
     <div className="flex-1">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b border-border bg-card">
         <div className="px-6 py-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-slate-900">Projects</h1>
-              <p className="text-slate-600 mt-1">
+              <h1 className="text-foreground font-bold">Projects</h1>
+              <p className="text-muted-foreground mt-1">
                 Kelola dan pantau semua project Anda
               </p>
             </div>
-            <span className="text-sm text-slate-500">Admin Mode</span>
+            <span className="text-sm text-muted-foreground">Admin Mode</span>
           </div>
 
           {/* Search and Actions */}
           <div className="flex items-center gap-3">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder="Cari project..."

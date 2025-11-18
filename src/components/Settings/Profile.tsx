@@ -7,6 +7,7 @@ import { Label } from "../ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Separator } from "../ui/separator";
 import { Switch } from "../ui/switch";
+import { useTheme } from "@/components/providers/ThemeProvider";
 import {
   User,
   Settings as SettingsIcon,
@@ -27,6 +28,7 @@ type DivisionKey = keyof typeof divisionConfig;
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
+  const { theme, toggleTheme } = useTheme();
 
   
   const [fullName, setFullName] = useState("Sarah Johnson");
@@ -78,12 +80,12 @@ export function SettingsPage() {
   ];
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-background text-foreground">
       
-      <div className="w-64 bg-slate-100 border-r p-6 space-y-2">
+      <div className="w-64 bg-sidebar border-r border-sidebar-border p-6 space-y-2">
         <div className="mb-6">
-          <h2 className="text-slate-900">Dashboard</h2>
-          <p className="text-sm text-slate-600 mt-1">Pengaturan & Preferensi</p>
+          <h2 className="text-sidebar-foreground font-semibold">Dashboard</h2>
+          <p className="text-sm text-muted-foreground mt-1">Pengaturan & Preferensi</p>
         </div>
 
         {menuItems.map((item) => {
@@ -93,8 +95,8 @@ export function SettingsPage() {
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors ${activeTab === item.id
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-600 hover:bg-slate-200"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
                 }`}
             >
               <Icon className="h-4 w-4" />
@@ -105,13 +107,13 @@ export function SettingsPage() {
       </div>
 
       
-      <div className="flex-1 overflow-y-auto bg-white">
+      <div className="flex-1 overflow-y-auto bg-background">
         <div className="p-8">
           {activeTab === "profile" && (
             <div className="space-y-6 max-w-3xl">
               <div>
-                <h2 className="text-slate-900 mb-1">Profile Settings</h2>
-                <p className="text-sm text-slate-600">
+                <h2 className="text-foreground font-bold mb-1">Profile Settings</h2>
+                <p className="text-sm text-muted-foreground">
                   Kelola informasi profil dan pengaturan akun Anda
                 </p>
               </div>
@@ -127,7 +129,7 @@ export function SettingsPage() {
                       SJ
                     </AvatarFallback>
                   </Avatar>
-                  <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-slate-800 transition-colors">
+                  <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors">
                     <Camera className="h-4 w-4" />
                   </button>
                 </div>
@@ -135,7 +137,7 @@ export function SettingsPage() {
                   <Button variant="outline" size="sm">
                     Change Photo
                   </Button>
-                  <p className="text-xs text-slate-500 mt-2">
+                  <p className="text-xs text-muted-foreground mt-2">
                     JPG, PNG or GIF. Max size 2MB
                   </p>
                 </div>
@@ -203,20 +205,20 @@ export function SettingsPage() {
           
           {activeTab === "preferences" && (
             <div className="space-y-6 max-w-3xl">
-              <h2 className="text-slate-900 mb-1">Preferences</h2>
-              <p className="text-sm text-slate-600">
+              <h2 className="text-foreground font-bold mb-1">Preferences</h2>
+              <p className="text-sm text-muted-foreground">
                 Atur preferensi dan notifikasi Anda
               </p>
               <Separator />
               
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-slate-900 mb-4">Email Notifications</h3>
+                  <h3 className="text-foreground font-semibold mb-4">Email Notifications</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-slate-900">Email Notifications</p>
-                        <p className="text-xs text-slate-500">Receive email about workspace activity</p>
+                        <p className="text-sm font-medium text-foreground">Email Notifications</p>
+                        <p className="text-xs text-muted-foreground">Receive email about workspace activity</p>
                       </div>
                       <Switch
                         checked={emailNotifications}
@@ -226,8 +228,8 @@ export function SettingsPage() {
                     <Separator />
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-slate-900">Weekly Reports</p>
-                        <p className="text-xs text-slate-500">Receive weekly summary of activities</p>
+                        <p className="text-sm font-medium text-foreground">Weekly Reports</p>
+                        <p className="text-xs text-muted-foreground">Receive weekly summary of activities</p>
                       </div>
                       <Switch
                         checked={weeklyReports}
@@ -237,8 +239,8 @@ export function SettingsPage() {
                     <Separator />
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-slate-900">Project Updates</p>
-                        <p className="text-xs text-slate-500">Get notified about project changes</p>
+                        <p className="text-sm font-medium text-foreground">Project Updates</p>
+                        <p className="text-xs text-muted-foreground">Get notified about project changes</p>
                       </div>
                       <Switch defaultChecked />
                     </div>
@@ -248,12 +250,12 @@ export function SettingsPage() {
                 <Separator />
 
                 <div>
-                  <h3 className="text-slate-900 mb-4">Push Notifications</h3>
+                  <h3 className="text-foreground font-semibold mb-4">Push Notifications</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-slate-900">Push Notifications</p>
-                        <p className="text-xs text-slate-500">Receive push notifications in browser</p>
+                        <p className="text-sm font-medium text-foreground">Push Notifications</p>
+                        <p className="text-xs text-muted-foreground">Receive push notifications in browser</p>
                       </div>
                       <Switch
                         checked={pushNotifications}
@@ -263,8 +265,8 @@ export function SettingsPage() {
                     <Separator />
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-slate-900">Task Reminders</p>
-                        <p className="text-xs text-slate-500">Get reminded about upcoming tasks</p>
+                        <p className="text-sm font-medium text-foreground">Task Reminders</p>
+                        <p className="text-xs text-muted-foreground">Get reminded about upcoming tasks</p>
                       </div>
                       <Switch />
                     </div>
@@ -274,20 +276,23 @@ export function SettingsPage() {
                 <Separator />
 
                 <div>
-                  <h3 className="text-slate-900 mb-4">Appearance</h3>
+                  <h3 className="text-foreground font-semibold mb-4">Appearance</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-slate-900">Dark Mode</p>
-                        <p className="text-xs text-slate-500">Enable dark mode theme</p>
+                        <p className="text-sm font-medium text-foreground">Dark Mode</p>
+                        <p className="text-xs text-muted-foreground">Enable dark mode theme</p>
                       </div>
-                      <Switch />
+                      <Switch 
+                        checked={theme === "dark"}
+                        onCheckedChange={toggleTheme}
+                      />
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-slate-900">Compact View</p>
-                        <p className="text-xs text-slate-500">Use compact layout for lists</p>
+                        <p className="text-sm font-medium text-foreground">Compact View</p>
+                        <p className="text-xs text-muted-foreground">Use compact layout for lists</p>
                       </div>
                       <Switch />
                     </div>
@@ -311,15 +316,15 @@ export function SettingsPage() {
 
           {activeTab === "account" && (
             <div className="space-y-6 max-w-3xl">
-              <h2 className="text-slate-900 mb-1">Account Management</h2>
-              <p className="text-sm text-slate-600">
+              <h2 className="text-foreground font-bold mb-1">Account Management</h2>
+              <p className="text-sm text-muted-foreground">
                 Kelola akun dan keamanan Anda
               </p>
               <Separator />
               
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-slate-900 mb-4">Change Password</h3>
+                  <h3 className="text-foreground font-semibold mb-4">Change Password</h3>
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="currentPassword">Current Password</Label>

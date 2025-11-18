@@ -13,6 +13,7 @@ import { LayoutGrid, List, ChevronLeft, Info } from "lucide-react"
 import { useState } from "react"
 import { useWorkspace } from "@/context/WorkspaceContext"
 import { useTask } from "@/hooks/useTask"
+import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuthStore } from "@/store/useAuthStore"
 import { Alert, AlertDescription } from "../ui/alert"
@@ -26,7 +27,9 @@ interface ProjectBoardLayoutProps {
 export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admin" }: ProjectBoardLayoutProps) {
   const { projects, members } = useWorkspace();
   const { user } = useAuthStore();
-  const { getTasksByProject } = useTask();
+  const { getTasksByProject, updateTask } = useTask();
+  // hovered status for drop indicator
+  const [hoveredStatus, setHoveredStatus] = useState<string | null>(null);
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [projectImages, setProjectImages] = useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -96,30 +99,30 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 text-gray-800">
-      <header className="flex flex-col md:flex-row md:justify-between md:items-center bg-white border-b border-gray-200 p-4 gap-3 shadow-sm">
+    <div className="flex flex-col h-screen bg-background text-foreground">
+      <header className="flex flex-col md:flex-row md:justify-between md:items-center bg-card border-b border-border p-4 gap-3 shadow-sm">
         <div className="flex flex-col flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <Button
               variant="ghost"
               size="sm"
-              className="p-0 text-gray-600 hover:text-gray-900"
+              className="p-0 text-muted hover:text-foreground"
               onClick={() => onNavigate("projects")}
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <h1 className="text-xl md:text-2xl font-bold">{project.name}</h1>
           </div>
-          <p className="text-sm text-gray-500 mb-2">
+          <p className="text-sm text-muted-foreground mb-2">
             {project.description}
           </p>
 
-          <div className="flex flex-col w-full max-w-md">
-            <div className="flex items-center justify-between mb-1 text-xs font-medium text-gray-600">
+            <div className="flex flex-col w-full max-w-md">
+            <div className="flex items-center justify-between mb-1 text-xs font-medium text-muted-foreground">
               <span>Progress</span>
               <span>{project.progress}% Complete</span>
             </div>
-            <Progress value={project.progress} className="h-2 bg-gray-200" />
+            <Progress value={project.progress} className="h-2" />
           </div>
         </div>
 
@@ -136,7 +139,7 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
             <Button
               variant={view === "kanban" ? "default" : "outline"}
               size="sm"
-              className={`gap-1 px-4 rounded-r-none ${view === "kanban" ? "bg-blue-500 text-white hover:bg-blue-600" : "text-gray-700"}`}
+              className={`gap-1 px-4 rounded-r-none ${view === "kanban" ? "button-primary" : "text-foreground"}`}
               onClick={() => setView("kanban")}
             >
               <LayoutGrid className="w-4 h-4" />
@@ -145,7 +148,7 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
             <Button
               variant={view === "list" ? "default" : "outline"}
               size="sm"
-              className={`gap-1 px-4 rounded-l-none ${view === "list" ? "bg-blue-500 text-white hover:bg-blue-600" : "text-gray-700"}`}
+              className={`gap-1 px-4 rounded-l-none ${view === "list" ? "button-primary" : "text-foreground"}`}
               onClick={() => setView("list")}
             >
               <List className="w-4 h-4" />
@@ -156,16 +159,16 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
           {mode === "admin" && <AddTaskModal projectId={projectId} />}
 
           {mode === "member" && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-green-50 border-green-200">
-              <span className="text-sm font-medium text-green-700">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border badge-low">
+              <span className="text-sm font-medium text-foreground">
                 My Tasks: {myTasksCount}
               </span>
             </div>
           )}
 
           {mode === "admin" && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-blue-50 border-blue-200">
-              <span className="text-sm font-medium text-blue-700">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border badge-normal">
+              <span className="text-sm font-medium text-foreground">
                 All Tasks: {allTasksCount}
               </span>
             </div>
@@ -175,9 +178,9 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
 
       {mode === "member" && (
         <div className="p-4">
-          <Alert className="bg-blue-50 border-blue-200">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-800">
+          <Alert className="surface-elevated border-border">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-foreground">
               You're viewing only tasks assigned to you. Total project tasks: {allTasksCount}
             </AlertDescription>
           </Alert>
@@ -185,7 +188,7 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
       )}
 
       <div className="flex flex-1 overflow-hidden">
-        <section className="flex-1 overflow-x-auto overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-300">
+        <section className="flex-1 overflow-x-auto overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-sidebar-ring">
           {view === "kanban" ? (
             <div className="flex gap-4 min-w-max h-full items-start">
               {columns.map((col) => {
@@ -194,15 +197,39 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
                 return (
                   <Card
                     key={col.status}
-                    className="w-72 flex-shrink-0 bg-white p-3 border border-gray-200 shadow-sm flex flex-col"
+                    className={cn(
+                      "w-72 flex-shrink-0 bg-card p-3 border border-border shadow-sm flex flex-col",
+                      hoveredStatus === col.status ? "ring-2 ring-dashed ring-primary/40 bg-primary/10" : ""
+                    )}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDragEnter={(e) => {
+                      const dragging = document.body?.dataset?.dragging;
+                      if (dragging) setHoveredStatus(col.status);
+                    }}
+                    onDragLeave={() => setHoveredStatus(null)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const taskId = e.dataTransfer.getData("text/plain");
+                      if (taskId) {
+                        try {
+                          updateTask(taskId, { status: col.status } as any);
+                        } catch (err) {
+                          console.error("Failed to update task status:", err);
+                        }
+                      }
+                      setHoveredStatus(null);
+                      try {
+                        delete document.body.dataset.dragging;
+                      } catch (err) {}
+                    }}
                   >
                     <div className="flex justify-between items-center mb-3">
-                      <span className="font-semibold text-gray-700 text-sm">
+                      <span className="font-semibold text-foreground text-sm">
                         {col.label} ({columnTasks.length})
                       </span>
                     </div>
 
-                    <div className="flex-1 space-y-3 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
+                    <div className="flex-1 space-y-3 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-ring">
                       <TaskCard
                         tasks={columnTasks}
                         status={col.status}
@@ -215,29 +242,29 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
               })}
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="bg-card rounded-lg shadow-sm border border-border p-4">
               <TaskList tasks={displayedTasks} projectId={projectId} />
             </div>
           )}
         </section>
 
-        <aside className="hidden md:flex flex-col w-72 bg-gray-100 border-l border-gray-200 p-4">
+        <aside className="hidden md:flex flex-col w-72 bg-surface border-l border-border p-4">
           <div>
             <div className="flex justify-between items-center mb-3">
-              <h2 className="text-sm font-semibold text-gray-700">Team Members</h2>
+              <h2 className="text-sm font-semibold text-foreground">Team Members</h2>
               {mode === "admin" && (
-                <Button size="sm" variant="ghost" className="text-xs text-blue-600 hover:bg-blue-50">
+                <Button size="sm" variant="ghost" className="text-xs button-primary/80 hover:button-primary/90">
                   + Add
                 </Button>
               )}
             </div>
 
-            <div className="space-y-3 overflow-y-auto max-h-64 pr-1 scrollbar-thin scrollbar-thumb-gray-300">
+            <div className="space-y-3 overflow-y-auto max-h-64 pr-1 scrollbar-thin scrollbar-thumb-sidebar-ring">
               {projectMembers.length > 0 ? (
                 projectMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="flex items-center gap-2 bg-white rounded-md p-2 shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 bg-card rounded-md p-2 shadow-sm border border-border hover:surface-hover transition-colors"
                   >
                     <Avatar className="w-10 h-10">
                       <AvatarImage src={member.avatar} alt={member.name} />
@@ -246,8 +273,8 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{member.name}</p>
-                      <p className="text-xs text-gray-500 truncate">
+                      <p className="font-medium text-sm truncate text-foreground">{member.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
                         {member.role} • {divisionConfig[member.division as keyof typeof divisionConfig]?.emoji} {divisionConfig[member.division as keyof typeof divisionConfig]?.label}
                       </p>
                     </div>
@@ -255,7 +282,7 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-500 text-center py-4">No team members</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No team members</p>
               )}
             </div>
           </div>

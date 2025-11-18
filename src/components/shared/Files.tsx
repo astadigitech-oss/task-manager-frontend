@@ -113,13 +113,13 @@ export function FilesPage() {
   return (
     <div className="flex-1">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b border-border bg-card">
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon">
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5 text-foreground" />
             </Button>
-            <h1 className="text-slate-900">File Management</h1>
+            <h1 className="text-foreground">File Management</h1>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline">
@@ -143,8 +143,8 @@ export function FilesPage() {
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <Folder className="h-5 w-5 text-slate-700" />
-                  <h2 className="text-slate-900">All Files</h2>
+                  <Folder className="h-5 w-5 text-muted-foreground" />
+                  <h2 className="text-foreground">All Files</h2>
                 </div>
                 <Badge variant="outline" className="text-xs">
                   Show All
@@ -155,16 +155,16 @@ export function FilesPage() {
                 {folders.map((folder) => (
                   <button
                     key={folder.id}
-                    className="bg-slate-100 hover:bg-slate-200 transition-colors rounded-lg p-4 text-left group"
+                    className="surface rounded-lg p-4 text-left group hover:surface-hover transition-colors"
                   >
                     <div className="flex items-start justify-between mb-8">
-                      <div className="p-2 bg-white rounded-lg shadow-sm">
-                        <Folder className="h-5 w-5 text-slate-700" />
+                      <div className="p-2 bg-card rounded-lg shadow-sm">
+                        <Folder className="h-5 w-5 text-muted-foreground" />
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-slate-900 mb-1">{folder.name}</h3>
-                      <p className="text-xs text-slate-500">
+                      <h3 className="text-foreground mb-1">{folder.name}</h3>
+                      <p className="text-xs text-muted-foreground">
                         {folder.filesCount} files
                       </p>
                     </div>
@@ -175,31 +175,31 @@ export function FilesPage() {
 
             {/* Recent Files Table */}
             <Card className="p-6">
-              <h2 className="text-slate-900 mb-4">Recent File</h2>
+              <h2 className="text-foreground mb-4">Recent File</h2>
               <div className="border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50">
+                    <TableRow className="bg-surface-elevated">
                       <TableHead>
-                        <button className="flex items-center gap-1 hover:text-slate-900">
+                        <button className="flex items-center gap-1 hover:text-foreground">
                           Name
                           <ArrowUpDown className="h-3 w-3" />
                         </button>
                       </TableHead>
                       <TableHead>
-                        <button className="flex items-center gap-1 hover:text-slate-900">
+                        <button className="flex items-center gap-1 hover:text-foreground">
                           Size
                           <ArrowUpDown className="h-3 w-3" />
                         </button>
                       </TableHead>
                       <TableHead>
-                        <button className="flex items-center gap-1 hover:text-slate-900">
+                        <button className="flex items-center gap-1 hover:text-foreground">
                           Last Modified
                           <ArrowUpDown className="h-3 w-3" />
                         </button>
                       </TableHead>
                       <TableHead>
-                        <button className="flex items-center gap-1 hover:text-slate-900">
+                        <button className="flex items-center gap-1 hover:text-foreground">
                           Member
                           <ArrowUpDown className="h-3 w-3" />
                         </button>
@@ -213,19 +213,19 @@ export function FilesPage() {
                       );
 
                       return (
-                        <TableRow key={file.id} className="hover:bg-slate-50">
+                        <TableRow key={file.id} className="hover:surface-hover">
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className="p-2 bg-slate-900 rounded-lg text-white">
+                              <div className="p-2 bg-muted-foreground rounded-lg text-white">
                                 {getFileIcon(file.type)}
                               </div>
-                              <span className="text-slate-900">{file.name}</span>
+                              <span className="text-foreground">{file.name}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-slate-600">
+                          <TableCell className="text-muted-foreground">
                             {file.size}
                           </TableCell>
-                          <TableCell className="text-slate-600">
+                          <TableCell className="text-muted-foreground">
                             {file.lastModified}
                           </TableCell>
                           <TableCell>
@@ -233,7 +233,7 @@ export function FilesPage() {
                               {fileMembers.map((member) => (
                                 <Avatar
                                   key={member.id}
-                                  className="h-8 w-8 border-2 border-white"
+                                  className="h-8 w-8 border-2 border-card"
                                 >
                                   <AvatarImage
                                     src={member.avatar}
@@ -259,18 +259,18 @@ export function FilesPage() {
           <div className="space-y-6">
             {/* Storage Graph */}
             <Card className="p-6">
-              <h3 className="text-slate-900 mb-6">Storage Graph</h3>
+              <h3 className="text-foreground mb-6">Storage Graph</h3>
               <div className="space-y-4">
                 {storageData.map((item, index) => (
                   <div key={index}>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 ${item.color} rounded-lg flex items-center justify-center text-white`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${item.color}`}>
                           {getFileIcon(item.label.toLowerCase())}
                         </div>
-                        <span className="text-sm text-slate-600">{item.label}</span>
+                        <span className="text-sm text-muted-foreground">{item.label}</span>
                       </div>
-                      <span className="text-sm text-slate-900">{item.used} GB</span>
+                      <span className="text-sm text-foreground">{item.used} GB</span>
                     </div>
                     <Progress 
                       value={item.used} 
@@ -283,9 +283,9 @@ export function FilesPage() {
 
             {/* Activity Chart Placeholder */}
             <Card className="p-6">
-              <h3 className="text-slate-900 mb-4">Activity Chart</h3>
-              <div className="h-64 flex items-center justify-center bg-slate-50 rounded-lg">
-                <p className="text-slate-500 text-sm">Chart will be displayed here</p>
+              <h3 className="text-foreground mb-4">Activity Chart</h3>
+              <div className="h-64 flex items-center justify-center bg-surface-elevated rounded-lg">
+                <p className="text-muted-foreground text-sm">Chart will be displayed here</p>
               </div>
             </Card>
           </div>

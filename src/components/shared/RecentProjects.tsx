@@ -26,7 +26,7 @@ export function RecentProjects({
 
   return (
     <Card className="p-6">
-      <h3 className="text-slate-900 mb-4">Recent Projects</h3>
+      <h3 className="text-foreground mb-4">Recent Projects</h3>
       <div className="space-y-4">
         {recentProjects.map((project) => {
           const projectMembers = members.filter((m) =>
@@ -36,14 +36,14 @@ export function RecentProjects({
           return (
             <div
               key={project.id}
-              className="p-4 border rounded-lg hover:bg-slate-50 transition-colors"
+              className="p-4 border border-border rounded-lg hover:surface-hover transition-colors"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
-                  <h4 className="text-slate-900 mb-1">
+                  <h4 className="text-foreground mb-1">
                     {project.name}
                   </h4>
-                  <p className="text-sm text-slate-600 line-clamp-1">
+                  <p className="text-sm text-muted line-clamp-1">
                     {project.description}
                   </p>
                 </div>
@@ -56,10 +56,10 @@ export function RecentProjects({
               <div className="space-y-3">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs text-slate-600">
+                    <span className="text-xs text-muted">
                       Progress
                     </span>
-                    <span className="text-xs text-slate-900">
+                    <span className="text-xs text-foreground">
                       {project.progress}%
                     </span>
                   </div>
@@ -69,7 +69,7 @@ export function RecentProjects({
                   />
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-600">
+                <div className="flex items-center justify-between text-xs text-muted">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5" />
                   </div>
@@ -81,7 +81,7 @@ export function RecentProjects({
                         .map((member) => (
                           <Avatar
                             key={member.id}
-                            className="h-6 w-6 border-2 border-white"
+                            className="h-6 w-6 border-2 border-border"
                           >
                             <AvatarImage
                               src={member.avatar}
@@ -93,8 +93,8 @@ export function RecentProjects({
                           </Avatar>
                         ))}
                       {projectMembers.length > 3 && (
-                        <div className="h-6 w-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center">
-                          <span className="text-xs text-slate-600">
+                        <div className="h-6 w-6 rounded-full surface text-muted-foreground border-2 border-border flex items-center justify-center">
+                          <span className="text-xs">
                             +{projectMembers.length - 3}
                           </span>
                         </div>

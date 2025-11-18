@@ -26,18 +26,18 @@ export function TeamPage() {
   return (
     <div className="flex-1">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b surface-elevated">
         <div className="px-6 py-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-xl font-semibold text-slate-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 Team Members
               </h1>
-              <p className="text-slate-600 mt-1">
+              <p className="text-muted mt-1">
                 Kelola anggota tim dan lihat divisi serta perannya
               </p>
             </div>
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-muted">
               {members.length} Members
             </span>
           </div>
@@ -45,7 +45,7 @@ export function TeamPage() {
           {/* Search & Actions */}
           <div className="flex items-center gap-3">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted" />
               <Input
                 type="text"
                 placeholder="Cari anggota tim..."
@@ -54,7 +54,7 @@ export function TeamPage() {
                 className="pl-10"
               />
             </div>
-            <Button onClick={createMember.open}>
+            <Button onClick={createMember.open} className="button-primary">
               <Plus className="h-4 w-4 mr-2" />
               Tambah Anggota
             </Button>
@@ -73,7 +73,7 @@ export function TeamPage() {
             return (
               <Card
                 key={member.id}
-                className="flex items-center gap-4 p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                className="flex items-center gap-4 p-4 border border-border surface-elevated shadow-sm hover:shadow-md transition-shadow"
               >
                 {/* Avatar */}
                 <Avatar className="w-12 h-12">
@@ -83,10 +83,10 @@ export function TeamPage() {
 
                 {/* Member Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-gray-900 truncate">
+                  <p className="font-medium text-sm text-foreground truncate">
                     {member.name}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-muted truncate">
                     {member.email}
                   </p>
 
@@ -96,8 +96,8 @@ export function TeamPage() {
                       variant="outline"
                       className={`capitalize text-[10px] px-2 py-0.5 ${
                         member.role === "admin"
-                          ? "border-blue-300 bg-blue-50 text-blue-700"
-                          : "border-gray-300 bg-gray-100 text-gray-700"
+                          ? "badge-normal"
+                          : "badge-tbd"
                       }`}
                     >
                       {member.role}
@@ -116,7 +116,7 @@ export function TeamPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-gray-400 hover:text-red-600"
+                  className="text-muted hover:text-destructive"
                   onClick={() => deleteMember(member.id)}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -125,7 +125,7 @@ export function TeamPage() {
             );
           })
         ) : (
-          <p className="text-sm text-gray-500 col-span-full text-center py-10">
+          <p className="text-sm text-muted col-span-full text-center py-10">
             Tidak ada anggota tim ditemukan.
           </p>
         )}

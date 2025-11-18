@@ -14,7 +14,7 @@ interface TeamMembersProps {
 export function TeamMembers({ members, onDelete }: TeamMembersProps) {
   if (!members || members.length === 0) {
     return (
-      <p className="text-center text-sm text-slate-500 py-8">
+      <p className="text-center text-sm text-muted py-8">
         No team members found.
       </p>
     );
@@ -31,7 +31,7 @@ export function TeamMembers({ members, onDelete }: TeamMembersProps) {
         return (
           <div
             key={member.id}
-            className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all"
+            className="flex items-center gap-4 surface-elevated p-4 rounded-xl border border-border shadow-sm hover:shadow-md transition-all"
           >
             {/* Avatar */}
             <Avatar className="h-12 w-12">
@@ -44,16 +44,14 @@ export function TeamMembers({ members, onDelete }: TeamMembersProps) {
             {/* Info */}
             <div className="flex flex-col justify-center">
               {/* Name */}
-              <h4 className="font-medium text-slate-900">{member.name}</h4>
+              <h4 className="font-medium text-foreground">{member.name}</h4>
 
               {/* Role + Division */}
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 <Badge
                   variant="outline"
                   className={`capitalize text-[11px] ${
-                    member.role === "admin"
-                      ? "border-blue-300 text-blue-600 bg-blue-50"
-                      : "border-gray-200 text-gray-600 bg-gray-50"
+                    member.role === "admin" ? "badge-normal" : "badge-tbd"
                   }`}
                 >
                   {member.role}
@@ -77,7 +75,7 @@ export function TeamMembers({ members, onDelete }: TeamMembersProps) {
                 size="icon"
                 variant="ghost"
                 onClick={() => onDelete(member.id)}
-                className="ml-auto text-slate-400 hover:text-red-600"
+                className="ml-auto text-muted hover:text-destructive"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>

@@ -28,7 +28,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="flex items-center justify-between bg-white shadow px-6 py-4">
+    <header className="flex items-center justify-between bg-background border-b border-border shadow-sm px-6 py-4">
       {/* Menu button visible only on mobile */}
       <Button
         variant="ghost"
@@ -40,12 +40,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
       </Button>
 
       {/* Title */}
-      <h1 className="text-lg font-semibold text-gray-800"></h1>
+      <h1 className="text-lg font-semibold text-foreground"></h1>
 
       {/* Right Section */}
       <div className="flex items-center gap-4">
         {/* Role info */}
-        <span className="hidden md:inline text-sm text-gray-500">
+        <span className="hidden md:inline text-sm text-muted-foreground">
           {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "Guest"} Mode
         </span>
 
@@ -53,7 +53,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="focus:outline-none">
-              <Avatar className="h-9 w-9 cursor-pointer ring-2 ring-transparent hover:ring-slate-200 transition-all">
+              <Avatar className="h-9 w-9 cursor-pointer ring-2 ring-transparent hover:ring-input transition-all">
                 <AvatarImage src={user?.avatar} alt={user?.name || "User"} />
                 <AvatarFallback>
                   {user?.name
@@ -71,8 +71,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel>
               <div className="flex flex-col">
-                <span className="font-medium">{user?.name || "Unknown User"}</span>
-                <span className="text-xs text-gray-500">{user?.email || "No email"}</span>
+                <span className="font-medium text-foreground">{user?.name || "Unknown User"}</span>
+                <span className="text-xs text-muted-foreground">{user?.email || "No email"}</span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -83,7 +83,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}
-              className="text-red-600 focus:text-red-600"
+              className="text-destructive focus:text-destructive"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Logout
