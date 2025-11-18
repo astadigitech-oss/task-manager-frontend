@@ -30,13 +30,13 @@ interface QuickAddTaskProps {
   onComplete?: () => void;
 }
 
-const priorityConfig: Record<TaskPriority, { label: string; className: string; color: string }> = {
-  low: { label: "Low", className: "badge-low", color: "bg-green-50 text-green-700" },
-  normal: { label: "Normal", className: "badge-normal", color: "bg-gray-50 text-blue-700" },
-  high: { label: "High", className: "badge-high", color: "bg-yellow-50 text-yellow-700" },
-  urgent: { label: "Urgent", className: "badge-urgent", color: "bg-orange-50 text-orange-700" },
-  critical: { label: "Critical", className: "badge-critical", color: "bg-red-50 text-red-700" },
-  tbd: { label: "TBD", className: "badge-tbd", color: "bg-gray-100 text-gray-500" },
+const priorityConfig: Record<TaskPriority, { label: string; className: string }> = {
+  low: { label: "Low", className: "badge-low" },
+  normal: { label: "Normal", className: "badge-normal" },
+  high: { label: "High", className: "badge-high" },
+  urgent: { label: "Urgent", className: "badge-urgent" },
+  critical: { label: "Critical", className: "badge-critical" },
+  tbd: { label: "TBD", className: "badge-tbd" },
 };
 
 
@@ -98,7 +98,7 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full text-left px-3 py-2 text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+        className="w-full text-left px-3 py-2 text-sm text-muted hover:text-foreground hover:surface-hover rounded-md transition-colors"
       >
         + Add task
       </button>
@@ -108,7 +108,7 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
   const selectedMembers = members.filter((m) => assignees.includes(m.id));
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 space-y-3">
+    <div className="surface-elevated border border-border rounded-lg shadow-lg p-3 space-y-3">
       {/* Task Name Input */}
       <Input
         ref={inputRef}
@@ -122,7 +122,7 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
             handleCancel();
           }
         }}
-        className="border-0 border-b border-gray-200 rounded-none px-0 focus-visible:ring-0 focus-visible:border-blue-500"
+        className="border-0 border-b border-border rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary"
       />
 
       {/* Quick Actions */}
@@ -135,7 +135,7 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
               size="sm"
               className={cn(
                 "h-8 gap-1.5 text-xs",
-                selectedMembers.length > 0 ? "bg-blue-50 text-blue-700" : "text-gray-600"
+                selectedMembers.length > 0 ? "button-secondary" : "text-muted"
               )}
             >
               <UserPlus className="w-3.5 h-3.5" />
@@ -153,8 +153,8 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
                   key={member.id}
                   onClick={() => toggleAssignee(member.id)}
                   className={cn(
-                    "w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 transition-colors",
-                    assignees.includes(member.id) && "bg-blue-50"
+                    "w-full flex items-center gap-2 px-2 py-1.5 rounded transition-colors",
+                    assignees.includes(member.id) ? "button-secondary" : "hover:surface-hover"
                   )}
                 >
                   <Avatar className="w-6 h-6">
@@ -165,7 +165,7 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
                   </Avatar>
                   <span className="text-sm flex-1 text-left">{member.name}</span>
                   {assignees.includes(member.id) && (
-                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                    <CheckCircle2 className="w-4 h-4 text-primary" />
                   )}
                 </button>
               ))}
@@ -181,7 +181,7 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
               size="sm"
               className={cn(
                 "h-8 gap-1.5 text-xs",
-                dueDate ? "bg-blue-50 text-blue-700" : "text-gray-600"
+                dueDate ? "button-secondary" : "text-muted"
               )}
             >
               <CalendarIcon className="w-3.5 h-3.5" />
@@ -202,8 +202,8 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
               className={cn(
                 "h-8 gap-1.5 text-xs",
                 priority !== "normal"
-                  ? priorityConfig[priority].color
-                  : "text-gray-600"
+                  ? priorityConfig[priority].className
+                  : "text-muted"
               )}
             >
               <Flag className="w-3.5 h-3.5" />
@@ -220,8 +220,8 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
                   className={cn(
                     "w-full flex items-center gap-2 px-3 py-2 rounded text-sm transition-colors",
                     priority === p
-                      ? priorityConfig[p].color
-                      : "hover:bg-gray-100 text-gray-700"
+                      ? priorityConfig[p].className
+                      : "hover:surface-hover text-muted"
                   )}
                 >
                   <Flag className="w-3.5 h-3.5" />
@@ -241,7 +241,7 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
             <Badge
               key={member.id}
               variant="secondary"
-              className="gap-1.5 pr-1 bg-blue-50 text-blue-700 hover:bg-blue-100"
+              className="gap-1.5 pr-1 badge-normal"
             >
               <Avatar className="w-4 h-4">
                 <AvatarImage src={member.avatar} alt={member.name} />
@@ -252,7 +252,7 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
               <span className="text-xs">{member.name}</span>
               <button
                 onClick={() => toggleAssignee(member.id)}
-                className="hover:bg-blue-200 rounded-full p-0.5"
+                className="hover:surface-hover rounded-full p-0.5"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -262,7 +262,7 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
       )}
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between pt-2 border-t">
+      <div className="flex items-center justify-between pt-2 border-t divider">
         <Button
           variant="ghost"
           size="sm"
@@ -275,7 +275,7 @@ export function QuickAddTask({ projectId, status, onComplete }: QuickAddTaskProp
           size="sm"
           onClick={handleSave}
           disabled={!taskName.trim()}
-          className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
+          className="h-7 text-xs button-primary"
         >
           Save
         </Button>

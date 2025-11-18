@@ -5,23 +5,23 @@ import { Users, Clock } from "lucide-react"
 
 export default function ProjectCard({ title, description, members, progress, status }: any) {
   const statusColor: Record<string, string> = {
-    "on progress": "bg-blue-500",
-    "pending": "bg-yellow-500",
-    "done": "bg-green-500",
+    "on progress": "badge-normal",
+    "pending": "badge-high",
+    "done": "badge-low",
   }
 
   return (
     <Card className="w-[250px]">
       <CardContent className="p-4 space-y-2">
         <div className="flex justify-between items-center">
-          <div className={`text-xs text-white px-2 py-1 rounded ${statusColor[status]}`}>
+          <div className={`text-xs px-2 py-1 rounded ${statusColor[status]}`}>
             {status}
           </div>
-          <span className="text-sm font-semibold">{title[0]}</span>
+          <span className="text-sm font-semibold text-foreground">{title[0]}</span>
         </div>
-        <h2 className="text-sm font-semibold">{title}</h2>
-        <p className="text-xs text-gray-500">{description}</p>
-        <div className="flex justify-between items-center text-xs text-gray-600 mt-2">
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        <p className="text-xs text-muted">{description}</p>
+        <div className="flex justify-between items-center text-xs text-muted mt-2">
           <div className="flex items-center gap-1">
             <Users className="w-3 h-3" /> {members} Member
           </div>

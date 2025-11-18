@@ -24,18 +24,18 @@ export default function TeamPage() {
   return (
     <div className="flex-1">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b border-border bg-card">
         <div className="px-6 py-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-xl font-semibold text-slate-900">
+              <h1 className="text-xl font-bold text-foreground">
                 Team Members
               </h1>
-              <p className="text-slate-600 mt-1">
+              <p className="text-muted-foreground mt-1">
                 Kelola anggota tim, role, dan divisinya
               </p>
             </div>
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-muted-foreground">
               {members.length} Members
             </span>
           </div>
@@ -43,7 +43,7 @@ export default function TeamPage() {
           {/* Search & Action */}
           <div className="flex items-center gap-3">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder="Cari anggota tim..."

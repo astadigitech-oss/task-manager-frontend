@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 
 import { useState, useEffect } from "react"
+import { cn } from "@/lib/utils"
 
 interface ImageLightboxModalProps {
   images: string[];
@@ -128,16 +129,16 @@ export function ImageLightboxModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-none !w-screen !h-screen p-0 bg-black/50 border-none !m-0 !rounded-none">
+      <DialogContent className="!max-w-none !w-screen !h-screen p-0 overlay border-none !m-0 !rounded-none">
 
         <DialogTitle className="sr-only">
           Image Preview - {currentIndex + 1} of {images.length}
         </DialogTitle>
 
         {/* HEADER */}
-        <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-6 bg-gradient-to-b from-black/80 to-transparent">
+        <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-6 overlay-strong">
 
-          <p className="text-white text-base font-medium">
+          <p className="text-card-foreground text-base font-medium">
             {currentIndex + 1} / {images.length}
           </p>
 
@@ -147,7 +148,7 @@ export function ImageLightboxModal({
             <Button 
               variant="ghost" 
               size="icon"
-              className="text-white hover:bg-white/20 h-9 w-9"
+              className="overlay-btn"
               onClick={handleZoomOut}
               disabled={zoom <= 0.5}
             >
@@ -162,7 +163,7 @@ export function ImageLightboxModal({
             <Button 
               variant="ghost" 
               size="icon"
-              className="text-white hover:bg-white/20 h-9 w-9"
+              className="overlay-btn"
               onClick={handleZoomIn}
               disabled={zoom >= 3}
             >
@@ -174,7 +175,7 @@ export function ImageLightboxModal({
             <Button
               variant="ghost"
               size="icon"
-              className="text-white hover:bg-white/20 h-9 w-9"
+              className="overlay-btn"
               onClick={toggleFullscreen}
             >
               {isFullscreen 
@@ -188,11 +189,7 @@ export function ImageLightboxModal({
               variant="ghost"
               size="icon"
               disabled={!allowDownload}
-              className={`h-9 w-9 ${
-                allowDownload
-                  ? "text-white hover:bg-white/20"
-                  : "text-gray-500 cursor-not-allowed opacity-50"
-              }`}
+              className={allowDownload ? "overlay-btn" : "text-muted cursor-not-allowed opacity-50 h-9 w-9"}
               onClick={allowDownload ? handleDownload : undefined}
             >
               <Download className="h-4 w-4" />
@@ -203,7 +200,7 @@ export function ImageLightboxModal({
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-red-500/20 h-9 w-9"
+                className="overlay-btn text-destructive"
                 onClick={handleDelete}
               >
                 <Trash2 className="h-4 w-4" />
@@ -214,7 +211,7 @@ export function ImageLightboxModal({
             <Button
               variant="ghost"
               size="icon"
-              className="text-white hover:bg-white/20 h-9 w-9"
+              className="overlay-btn"
               onClick={() => onOpenChange(false)}
             >
               <X className="h-5 w-5" />
@@ -231,7 +228,7 @@ export function ImageLightboxModal({
             <Button
               variant="ghost"
               size="icon"
-              className="absolute left-4 z-40 h-12 w-12 rounded-full bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
+              className="absolute left-4 z-40 h-12 w-12 overlay-circle"
               onClick={handlePrevious}
             >
               <ChevronLeft className="h-8 w-8" />
@@ -243,7 +240,7 @@ export function ImageLightboxModal({
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-4 z-40 h-12 w-12 rounded-full bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
+              className="absolute right-4 z-40 h-12 w-12 overlay-circle"
               onClick={handleNext}
             >
               <ChevronRight className="h-8 w-8" />
@@ -268,17 +265,17 @@ export function ImageLightboxModal({
 
         {/* THUMBNAILS */}
         {images.length > 1 && (
-          <div className="absolute bottom-0 left-0 right-0 z-50 p-6 bg-gradient-to-t from-black/80 to-transparent">
+          <div className="absolute bottom-0 left-0 right-0 z-50 p-6 overlay-strong">
             <div className="flex gap-3 justify-center items-center overflow-x-auto scrollbar-thin scrollbar-thumb-white/30 pb-2 px-4">
 
               {images.map((img, idx) => (
                 <button
                   key={idx}
-                  className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                  className={cn("w-20 h-20 rounded-lg overflow-hidden border-2 transition-all",
                     idx === currentIndex
                       ? "border-white scale-110 shadow-lg shadow-white/30"
                       : "border-white/30 hover:border-white/60 opacity-60 hover:opacity-100"
-                  }`}
+                  )}
                   onClick={() => {
                     setCurrentIndex(idx);
                     setZoom(1);

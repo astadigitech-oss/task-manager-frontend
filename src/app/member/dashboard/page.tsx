@@ -14,8 +14,8 @@ export default function MemberDashboard() {
     <ProtectedRoute>
       <div className="flex-1 p-6 space-y-6">
       <div>
-        <h1 className="text-slate-900 mb-2">Dashboard</h1>
-        <p className="text-slate-600">Welcome back! Here's what's happening with your projects.</p>
+        <h1 className="text-foreground font-bold mb-2">Dashboard</h1>
+        <p className="text-muted-foreground">Welcome back! Here's what's happening with your projects.</p>
       </div>
 
       <DashboardStats projects={projects} members={members} />

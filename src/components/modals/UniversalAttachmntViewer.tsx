@@ -104,7 +104,7 @@ export function UniversalAttachmentViewer({
       return (
         <iframe
           src={officeUrl}
-          className="w-full h-[80vh] rounded border border-gray-700 bg-white"
+          className="w-full h-[80vh] rounded border border-border surface-elevated"
           title={fileName}
         />
       );
@@ -114,15 +114,15 @@ export function UniversalAttachmentViewer({
     if (["zip", "rar", "7z"].includes(ext)) {
       return (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6">
-          <div className="w-24 h-24 rounded-full bg-gray-800 flex items-center justify-center mb-4">
+          <div className="w-24 h-24 rounded-full surface-elevated flex items-center justify-center mb-4">
             <span className="text-5xl">🗜️</span>
           </div>
-          <p className="text-xl font-semibold text-white mb-2">{fileName}</p>
-          <p className="text-gray-400 mb-4">
+          <p className="text-xl font-semibold text-foreground mb-2">{fileName}</p>
+          <p className="text-muted mb-4">
             Preview tidak tersedia untuk file arsip.
           </p>
           {allowDownload && (
-            <Button onClick={handleDownload} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={handleDownload} className="button-primary">
               <Download className="w-4 h-4 mr-2" />
               Download File
             </Button>
@@ -134,18 +134,18 @@ export function UniversalAttachmentViewer({
     // FALLBACK for unknown file types
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6">
-        <div className="w-24 h-24 rounded-full bg-gray-800 flex items-center justify-center mb-4">
+        <div className="w-24 h-24 rounded-full surface-elevated flex items-center justify-center mb-4">
           <span className="text-5xl">📎</span>
         </div>
-        <p className="text-xl font-semibold text-white mb-2">{fileName}</p>
-        <p className="text-gray-400 mb-1">
+        <p className="text-xl font-semibold text-foreground mb-2">{fileName}</p>
+        <p className="text-muted mb-1">
           No preview available for this file type.
         </p>
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-muted mb-4">
           File type: {ext.toUpperCase()}
         </p>
         {allowDownload && (
-          <Button onClick={handleDownload} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={handleDownload} className="button-primary">
             <Download className="w-4 h-4 mr-2" />
             Download File
           </Button>
@@ -156,14 +156,14 @@ export function UniversalAttachmentViewer({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-none !w-screen !h-screen p-0 overflow-hidden bg-[#0a0a0a] text-white !m-0 !rounded-none">
+      <DialogContent className="!max-w-none !w-screen !h-screen p-0 overflow-hidden overlay !m-0 !rounded-none">
         <DialogTitle className="sr-only">{fileName}</DialogTitle>
         
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-6 bg-gradient-to-b from-black/80 to-transparent">
-          <div className="text-white">
+        <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-6 overlay-strong">
+          <div className="text-card-foreground">
             <h3 className="font-semibold text-lg">{fileName}</h3>
-            <p className="text-sm text-gray-400">File type: {ext.toUpperCase()}</p>
+            <p className="text-sm text-muted">File type: {ext.toUpperCase()}</p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -173,7 +173,7 @@ export function UniversalAttachmentViewer({
                 variant="secondary"
                 size="icon"
                 onClick={handleDownload}
-                className="bg-gray-800/80 hover:bg-gray-700 backdrop-blur-sm"
+                className="overlay-btn"
                 title="Download"
               >
                 <Download className="w-5 h-5" />
@@ -190,7 +190,7 @@ export function UniversalAttachmentViewer({
                     onDelete();
                   }
                 }}
-                className="bg-red-900/80 hover:bg-red-800 backdrop-blur-sm"
+                className="overlay-btn text-destructive"
                 title="Delete"
               >
                 <Trash2 className="w-5 h-5" />
@@ -202,7 +202,7 @@ export function UniversalAttachmentViewer({
               variant="ghost" 
               size="icon" 
               onClick={() => onOpenChange(false)}
-              className="text-white hover:bg-white/20"
+              className="overlay-btn"
               title="Close"
             >
               <X className="w-6 h-6" />
@@ -217,7 +217,7 @@ export function UniversalAttachmentViewer({
 
         {/* Keyboard Hint */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 opacity-50 hover:opacity-100 transition-opacity">
-          <p className="text-white text-xs bg-black/60 px-4 py-2 rounded-full backdrop-blur-sm border border-white/10">
+          <p className="text-card-foreground text-xs overlay-strong px-4 py-2 rounded-full backdrop-blur-sm border border-white/10">
             ESC to close
           </p>
         </div>

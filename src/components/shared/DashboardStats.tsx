@@ -22,32 +22,32 @@ export function DashboardStats({ projects, members }: DashboardStatsProps) {
       value: projects.length,
     //   description: `${activeProjects} aktif`,
       icon: FolderKanban,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100",
+      color: "text-primary",
+      bgColor: "badge-normal",
     },
     {
       title: "Team Members",
       value: members.length,
       description: "Anggota aktif",
       icon: Users,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-100",
+      color: "text-primary",
+      bgColor: "badge-low",
     },
     {
       title: "Tasks Selesai",
       value: completedTasks,
       description: `dari ${totalTasks} total tasks`,
       icon: CheckCircle2,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
+      color: "text-primary",
+      bgColor: "badge-high",
     },
     {
       title: "Completion Rate",
       value: `${taskCompletionRate}%`,
       description: "Rata-rata penyelesaian",
       icon: Clock,
-      color: "text-amber-600",
-      bgColor: "bg-amber-100",
+      color: "text-primary",
+      bgColor: "badge-normal",
     },
   ];
 
@@ -59,11 +59,11 @@ export function DashboardStats({ projects, members }: DashboardStatsProps) {
           <Card key={stat.title} className="p-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-slate-600 mb-1">{stat.title}</p>
-                <p className="text-slate-900 mb-1">
+                <p className="text-sm text-muted mb-1">{stat.title}</p>
+                <p className="text-foreground mb-1">
                   {stat.value}
                 </p>
-                <p className="text-xs text-slate-500">{stat.description}</p>
+                <p className="text-xs text-muted">{stat.description}</p>
               </div>
               <div className={`p-3 rounded-lg ${stat.bgColor}`}>
                 <Icon className={`h-5 w-5 ${stat.color}`} />

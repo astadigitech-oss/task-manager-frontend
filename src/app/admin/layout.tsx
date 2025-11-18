@@ -32,7 +32,7 @@ export default function AdminLayout({
 
   return (
     <WorkspaceProvider>
-      <div className="min-h-screen bg-gray-50 text-gray-900">
+      <div className="min-h-screen bg-background text-foreground">
         <Sidebar
           currentPage="dashboard"
           isOpen={sidebarOpen}

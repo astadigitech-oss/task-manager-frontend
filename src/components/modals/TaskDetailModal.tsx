@@ -306,14 +306,14 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                     className="text-xl font-semibold border-0 px-0 focus-visible:ring-0 focus-visible:border-b"
                     placeholder="Task name"
                   />
-                  {project && <p className="text-sm text-gray-500 mt-1">in {project.name}</p>}
+                  {project && <p className="text-sm text-muted mt-1">in {project.name}</p>}
                 </div>
 
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowActivity(!showActivity)}
-                  className={cn("gap-2 transition-colors", showActivity && "bg-blue-50 text-blue-600")}
+                  className={cn("gap-2 transition-colors", showActivity && "button-secondary")}
                 >
                   <Activity className="w-4 h-4" />
                   Activity
@@ -373,7 +373,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               {/* Assignees Section */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 text-gray-700">
+                  <div className="flex items-center gap-2 text-muted">
                     <User className="h-4 w-4" />
                     <h4 className="text-sm font-semibold">Assigned To</h4>
                   </div>
@@ -391,8 +391,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                             key={member.id}
                             onClick={() => toggleAssignee(member.id)}
                             className={cn(
-                              "w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 transition-colors",
-                              editedTask.assignTo.includes(member.id) && "bg-blue-50"
+                              "w-full flex items-center gap-2 px-2 py-1.5 rounded transition-colors",
+                              editedTask.assignTo.includes(member.id) ? "button-secondary" : "hover:surface-hover"
                             )}
                           >
                             <Avatar className="w-6 h-6">
@@ -401,7 +401,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                             </Avatar>
                             <span className="text-sm flex-1 text-left">{member.name}</span>
                             {editedTask.assignTo.includes(member.id) && (
-                              <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                              <CheckCircle2 className="w-4 h-4 text-primary" />
                             )}
                           </button>
                         ))}
@@ -415,19 +415,19 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                     assignedMembers.map((member) => {
                       const division = divisionConfig[member.division as keyof typeof divisionConfig];
                       return (
-                        <div key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 group">
+                        <div key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:surface-hover group">
                           <Avatar className="h-9 w-9">
                             <AvatarImage src={member.avatar} alt={member.name} />
                             <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                           </Avatar>
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{member.name}</p>
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <p className="text-sm font-medium text-foreground truncate">{member.name}</p>
+                            <div className="flex items-center gap-1 text-xs text-muted">
                               <span>{member.role}</span>
                               {division && (
                                 <>
-                                  <span className="text-gray-400">•</span>
+                                  <span className="text-muted">•</span>
                                   <span>
                                     {division.emoji} {division.label}
                                   </span>
@@ -438,15 +438,15 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
                           <button
                             onClick={() => toggleAssignee(member.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:surface-hover rounded"
                           >
-                            <X className="w-3.5 h-3.5 text-gray-500" />
+                            <X className="w-3.5 h-3.5 text-muted" />
                           </button>
                         </div>
                       );
                     })
                   ) : (
-                    <p className="text-sm text-gray-500 py-2">No one assigned</p>
+                    <p className="text-sm text-muted py-2">No one assigned</p>
                   )}
                 </div>
               </div>
@@ -456,7 +456,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               {/* Dates Section */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-2">
                     <CalendarIcon className="h-4 w-4" />
                     Start Date
                   </label>
@@ -464,7 +464,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={cn("w-full justify-start text-left font-normal", !editedTask.startDate && "text-gray-500")}
+                        className={cn("w-full justify-start text-left font-normal", !editedTask.startDate && "text-muted")}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {editedTask.startDate ? format(new Date(editedTask.startDate), "PPP") : "Pick a date"}
@@ -482,7 +482,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 </div>
 
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-2">
                     <CalendarIcon className="h-4 w-4" />
                     Due Date
                   </label>
@@ -490,7 +490,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={cn("w-full justify-start text-left font-normal", !editedTask.dueDate && "text-gray-500")}
+                        className={cn("w-full justify-start text-left font-normal", !editedTask.dueDate && "text-muted")}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {editedTask.dueDate ? format(new Date(editedTask.dueDate), "PPP") : "Pick a date"}
@@ -512,7 +512,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
               {/* Description Section */}
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 block">Description</label>
+                <label className="text-sm font-semibold text-foreground mb-2 block">Description</label>
                 <Textarea
                   value={editedTask.description || ""}
                   onChange={(e) => handleUpdate({ description: e.target.value })}
@@ -525,10 +525,10 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
               {/* Attachments Section */}
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2 text-gray-700">
+                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-foreground">
                     <h4 className="text-base font-semibold">Attachments</h4>
-                    {attachments.length > 0 && <span className="text-sm text-gray-500">{attachments.length}</span>}
+                    {attachments.length > 0 && <span className="text-sm text-muted">{attachments.length}</span>}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" className="h-8 w-8" title="Download all">
@@ -568,10 +568,10 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
                 {/* Upload Drop Zone */}
                 <div
-                  className="mb-4 p-8 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-colors text-center cursor-pointer"
+                  className="mb-4 p-8 border-2 border-dashed border-border rounded-lg surface hover:surface-hover transition-colors text-center cursor-pointer"
                   onClick={() => document.getElementById("file-upload")?.click()}
                 >
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted">
                     Drop your files here to <span className="underline">upload</span>
                   </p>
                 </div>
@@ -579,7 +579,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 {/* Restrict Download Toggle */}
                 <div className="flex items-center gap-2 mb-3">
                   <Switch checked={restrictDownload} onCheckedChange={setRestrictDownload} />
-                  <span className="text-sm text-gray-700">Restrict Download</span>
+                  <span className="text-sm text-muted">Restrict Download</span>
                 </div>
 
                 {/* Attachments Grid */}
@@ -593,17 +593,17 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                       const timeAgo = "Just now"; // You can implement proper time calculation
 
                       return (
-                        <div key={index} className="relative group bg-black rounded-lg overflow-hidden border border-gray-800 hover:border-gray-600 transition-all">
+                        <div key={index} className="relative group surface-elevated rounded-lg overflow-hidden border border-border hover:border-border transition-all">
                           {/* Preview Image/Icon */}
-                          <div className="aspect-video bg-gradient-to-br from-gray-900 to-black flex items-center justify-center relative">
+                          <div className="aspect-video bg-surface flex items-center justify-center relative">
                             {isImage ? (
                               <img src={fileUrl} alt={file.name} className="w-full h-full object-cover" />
                             ) : (
                               <div className="flex flex-col items-center justify-center">
-                                <div className="w-16 h-16 rounded-lg bg-red-900/50 flex items-center justify-center mb-2">
+                                <div className="w-16 h-16 rounded-lg bg-destructive/20 flex items-center justify-center mb-2">
                                   <span className="text-3xl">{isPDF ? "📄" : getFileIcon(file.name)}</span>
                                 </div>
-                                <span className="text-white text-xs font-semibold uppercase">{fileExt}</span>
+                                <span className="text-foreground text-xs font-semibold uppercase">{fileExt}</span>
                               </div>
                             )}
 
@@ -612,13 +612,13 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                               <Button
                                 size="icon"
                                 variant="secondary"
-                                className="h-7 w-7 rounded-md bg-gray-800/80 hover:bg-gray-700 backdrop-blur-sm"
+                                className="h-7 w-7 rounded-md button-secondary"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   // Open menu (placeholder)
                                 }}
                               >
-                                <MoreVertical className="h-4 w-4 text-white" />
+                                <MoreVertical className="h-4 w-4 text-foreground" />
                               </Button>
                             </div>
 
@@ -627,15 +627,15 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                               className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40"
                               onClick={() => handlePreviewAttachment(index)}
                             >
-                              <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                                <Maximize2 className="w-5 h-5 text-gray-900" />
+                              <div className="w-10 h-10 rounded-full bg-card/90 flex items-center justify-center">
+                                <Maximize2 className="w-5 h-5 text-foreground" />
                               </div>
                             </button>
 
                             {/* File Type Badge (for non-images) */}
                             {!isImage && (
                               <div className="absolute bottom-2 right-2">
-                                <div className="bg-gray-800/80 text-white text-xs px-2 py-1 rounded backdrop-blur-sm flex items-center gap-1">
+                                <div className="bg-card text-card-foreground text-xs px-2 py-1 rounded flex items-center gap-1">
                                   <File className="w-3 h-3" />
                                   <span className="uppercase font-semibold">{fileExt}</span>
                                 </div>
@@ -644,10 +644,10 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                           </div>
 
                           {/* File Info */}
-                          <div className="p-3 bg-gray-900 flex items-center justify-between gap-2">
+                          <div className="p-3 surface-elevated flex items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <h4 className="text-sm font-medium text-white truncate mb-1">{file.name}</h4>
-                              <p className="text-xs text-gray-400">{timeAgo}</p>
+                              <h4 className="text-sm font-medium text-foreground truncate mb-1">{file.name}</h4>
+                              <p className="text-xs text-muted">{timeAgo}</p>
                             </div>
 
                             <div className="flex items-center gap-2">
@@ -656,7 +656,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                                 variant="ghost"
                                 size="icon"
                                 disabled={restrictDownload}
-                                className={restrictDownload ? "opacity-40 cursor-not-allowed" : "hover:bg-gray-800/80"}
+                                className={restrictDownload ? "opacity-40 cursor-not-allowed" : "hover:surface-hover"}
                                 onClick={() => !restrictDownload && handleDownloadAttachment(file)}
                                 title={restrictDownload ? "Download restricted" : "Download"}
                               >
@@ -667,7 +667,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="hover:bg-gray-800/80"
+                                className="hover:surface-hover"
                                 onClick={() => removeAttachment(index)}
                                 title="Remove"
                               >
@@ -686,9 +686,9 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
             </div>
 
             {/* Action Buttons */}
-            <div className="sticky bottom-0 bg-white border-t p-6">
+            <div className="sticky bottom-0 surface-elevated border-t p-6">
               <div className="flex justify-between items-center">
-                <Button variant="ghost" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleDelete}>
+                <Button variant="ghost" className="text-destructive hover:text-destructive/90 hover:surface-hover" onClick={handleDelete}>
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete Task
                 </Button>
@@ -697,7 +697,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                     {hasChanges ? "Cancel" : "Close"}
                   </Button>
                   {hasChanges && (
-                    <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+                    <Button onClick={handleSave} className="button-primary">
                       Save Changes
                     </Button>
                   )}

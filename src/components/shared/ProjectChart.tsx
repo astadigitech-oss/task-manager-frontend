@@ -33,28 +33,29 @@ export function ProjectChart({ projects }: ProjectChartProps) {
   ];
 
   return (
-    <Card className="p-6 bg-white border border-slate-200 shadow-sm">
-      <h3 className="text-lg font-semibold text-slate-900 mb-6">Status Progress Project</h3>
+    <Card className="p-6 surface-elevated border divider">
+      <h3 className="text-lg font-semibold text-foreground mb-6">Status Progress Project</h3>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
           <XAxis 
             dataKey="name" 
-            tick={{ fill: '#64748b', fontSize: 12 }}
-            axisLine={{ stroke: '#e2e8f0' }}
+            tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }}
+            axisLine={{ stroke: 'var(--color-border)' }}
           />
           <YAxis 
-            tick={{ fill: '#64748b', fontSize: 12 }}
-            axisLine={{ stroke: '#e2e8f0' }}
+            tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }}
+            axisLine={{ stroke: 'var(--color-border)' }}
             allowDecimals={false}
           />
           <Tooltip 
             contentStyle={{ 
-              backgroundColor: '#fff',
-              border: '1px solid #e2e8f0',
+              backgroundColor: 'var(--color-card)',
+              border: '1px solid var(--color-border)',
               borderRadius: '8px',
               padding: '8px 12px',
-              fontSize: '14px'
+              fontSize: '14px',
+              color: 'var(--color-card-foreground)'
             }}
             cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
             formatter={(value: number) => [`${value} Project${value !== 1 ? 's' : ''}`, 'Jumlah']}

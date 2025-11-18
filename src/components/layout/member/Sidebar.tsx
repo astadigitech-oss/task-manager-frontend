@@ -78,20 +78,20 @@ export function Sidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
   return (
     <>
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-50 flex items-center px-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b border-border z-50 flex items-center px-4">
         <Button
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="hover:bg-slate-100"
+          className="hover:bg-muted"
         >
           {isOpen ? (
-            <X className="h-5 w-5 text-slate-700" />
+            <X className="h-5 w-5 text-foreground" />
           ) : (
-            <Menu className="h-5 w-5 text-slate-700" />
+            <Menu className="h-5 w-5 text-foreground" />
           )}
         </Button>
-        <h1 className="ml-4 text-lg font-semibold text-slate-900">
+        <h1 className="ml-4 text-lg font-semibold text-foreground">
           My Workspace
         </h1>
       </div>
@@ -99,26 +99,26 @@ export function Sidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 w-64 h-screen bg-white border-r border-slate-200 flex flex-col transform transition-transform duration-300 ease-in-out",
+          "fixed top-0 left-0 z-50 w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col transform transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "-translate-x-full",
           "lg:translate-x-0"
         )}
       >
         {/* Header/Logo */}
-        <div className="flex items-center gap-3 p-6 border-b border-slate-200">
-          <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">M</span>
+        <div className="flex items-center gap-3 p-6 border-b border-sidebar-border">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">M</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-xl font-bold text-slate-900">Member</span>
-            <span className="text-[10px] text-slate-500 uppercase tracking-wider">
+            <span className="text-xl font-bold text-sidebar-foreground">Member</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
               Workspace
             </span>
           </div>
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-ring scrollbar-track-transparent">
           <div className="p-4 space-y-6">
             {/* Main Navigation */}
             <nav className="space-y-1">
@@ -132,8 +132,8 @@ export function Sidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium",
                       isActive
-                        ? "bg-green-50 text-green-600 shadow-sm"
-                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                        ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     )}
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -144,9 +144,9 @@ export function Sidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
             </nav>
 
             {/* Workspace Section */}
-            <div className="border-t border-slate-200 pt-4">
+            <div className="border-t border-sidebar-border pt-4">
               <div className="flex items-center justify-between px-2 mb-3">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   My Workspaces
                 </span>
               </div>
@@ -163,13 +163,13 @@ export function Sidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 flex-shrink-0 hover:bg-slate-100"
+                          className="h-8 w-8 flex-shrink-0 hover:bg-sidebar-accent"
                           onClick={() => toggleWorkspace(workspace.id)}
                         >
                           {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-slate-600" />
+                            <ChevronDown className="h-4 w-4 text-sidebar-foreground" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 text-slate-600" />
+                            <ChevronRight className="h-4 w-4 text-sidebar-foreground" />
                           )}
                         </Button>
                         <button
@@ -177,8 +177,8 @@ export function Sidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
                           className={cn(
                             "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-left",
                             isSelected
-                              ? "bg-green-50 text-green-600"
-                              : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                              ? "bg-primary/10 text-primary dark:bg-primary/20"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                           )}
                         >
                           <Folder className="h-4 w-4 flex-shrink-0" />
@@ -187,8 +187,8 @@ export function Sidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
                             className={cn(
                               "text-xs px-1.5 py-0.5 rounded-full",
                               isSelected
-                                ? "bg-green-100 text-green-700"
-                                : "bg-slate-100 text-slate-600"
+                                ? "bg-primary/20 text-primary dark:bg-primary/30"
+                                : "bg-sidebar-accent text-sidebar-accent-foreground"
                             )}
                           >
                             {projects.length}
@@ -202,7 +202,7 @@ export function Sidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
                             <button
                               key={project.id}
                               onClick={() => handleProjectClick(project.id)}
-                              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200 text-left"
+                              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 text-left"
                             >
                               <FolderKanban className="h-4 w-4 flex-shrink-0" />
                               <span className="truncate">{project.name}</span>
@@ -219,10 +219,10 @@ export function Sidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
         </div>
 
         {/* Logout Button */}
-        <div className="p-4 border-t border-slate-200 bg-white">
+        <div className="p-4 border-t border-sidebar-border bg-sidebar">
           <Button
             variant="ghost"
-            className="w-full justify-start gap-3 text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 font-medium"
+            className="w-full justify-start gap-3 text-destructive hover:bg-destructive/10 hover:text-destructive transition-all duration-200 font-medium"
             onClick={() => {
               logout();
               window.location.href = "/auth/login";

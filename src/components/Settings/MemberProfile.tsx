@@ -20,11 +20,13 @@ import { User, Bell, Shield, Camera } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { divisionConfig, type Division } from "@/types";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 type SettingsTab = "profile" | "preferences" | "security";
 
 export default function MemberSettingsPage() {
   const { user } = useAuthStore();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
 
   // Profile State
@@ -313,7 +315,10 @@ export default function MemberSettingsPage() {
                           Enable dark mode theme
                         </p>
                       </div>
-                      <Switch />
+                      <Switch 
+                        checked={theme === "dark"}
+                        onCheckedChange={toggleTheme}
+                      />
                     </div>
                   </div>
                 </div>
