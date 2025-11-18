@@ -309,7 +309,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                   {project && <p className="text-sm text-muted mt-1">in {project.name}</p>}
                 </div>
 
-                <Button
+                {/* <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowActivity(!showActivity)}
@@ -320,7 +320,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                   <ChevronRight
                     className={cn("w-4 h-4 transition-transform", showActivity && "rotate-180")}
                   />
-                </Button>
+                </Button> */}
               </div>
 
               {/* Status and Priority Row */}
@@ -707,10 +707,10 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
           </div>
 
           {/* Activity Drawer */}
-          {showActivity && (
-            <div className="w-[400px] bg-gray-50 flex flex-col">
+          {/* {showActivity && (
+            <div className="w-[400px] bg-gray-50 flex flex-col"> */}
               {/* Activity Header */}
-              <div className="p-6 border-b bg-white">
+              {/* <div className="p-6 border-b bg-white">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <Activity className="w-5 h-5" />
@@ -720,13 +720,13 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
-              </div>
+              </div> */}
 
               {/* Activity List */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 {mockActivities.map((activity) => (
                   <div key={activity.id} className="flex gap-3">
-                    {/* <Avatar className="h-8 w-8 flex-shrink-0">
+                    <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarFallback className="text-xs bg-blue-100 text-blue-600">{activity.user.charAt(0)}</AvatarFallback>
                     </Avatar>
 
@@ -755,13 +755,13 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                           {activity.timestamp}
                         </div>
                       </div>
-                    </div> */}
+                    </div>
                   </div>
                 ))}
-              </div>
+              </div> */}
 
               {/* Comment Input */}
-              <div className="p-4 border-t bg-white">
+              {/* <div className="p-4 border-t bg-white">
                 <div className="flex gap-2">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="text-xs">U</AvatarFallback>
@@ -782,8 +782,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            </div> */}
+          {/* )} */}
         </div>
 
         {/* Integrasi Lightbox & PDF Modal */}
