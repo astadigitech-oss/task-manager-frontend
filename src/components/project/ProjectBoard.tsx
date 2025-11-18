@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuthStore } from "@/store/useAuthStore"
 import { Alert, AlertDescription } from "../ui/alert"
+import { Badge } from "../ui/badge"
+
 
 interface ProjectBoardLayoutProps {
   projectId: string;
@@ -28,7 +30,7 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
   const { projects, members } = useWorkspace();
   const { user } = useAuthStore();
   const { getTasksByProject, updateTask } = useTask();
-  // hovered status for drop indicator
+
   const [hoveredStatus, setHoveredStatus] = useState<string | null>(null);
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [projectImages, setProjectImages] = useState<string[]>([]);
@@ -41,7 +43,6 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
   const tasks = project ? getTasksByProject(projectId) : [];
   const projectMembers = project ? members.filter(m => project.members.includes(m.id)) : [];
 
-  // 🔥 FIX: Hitung tasks untuk member yang login
   const myTasksCount = user ? tasks.filter(task => task.assignTo?.includes(user.id)).length : 0;
   const allTasksCount = tasks.length;
 
@@ -61,11 +62,22 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
     );
   }
 
+  const getStatusColor = (status: TaskStatus): string => {
+    const statusMap: Record<TaskStatus, string> = {
+      "on-board": "status-on-board",
+      "on-progress": "status-on-progress",
+      "pending": "status-pending",
+      "canceled": "status-canceled",
+      "done": "status-done",
+    };
+    return statusMap[status] || "status-on-board";
+  };
+
   const canCreateTask = mode === "admin";
   const showAllTasks = mode === "admin";
 
   // 🔥 FIX: Filter tasks berdasarkan mode
-  const displayedTasks = mode === "member" && user 
+  const displayedTasks = mode === "member" && user
     ? tasks.filter(task => task.assignTo?.includes(user.id))
     : tasks;
 
@@ -117,7 +129,7 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
             {project.description}
           </p>
 
-            <div className="flex flex-col w-full max-w-md">
+          <div className="flex flex-col w-full max-w-md">
             <div className="flex items-center justify-between mb-1 text-xs font-medium text-muted-foreground">
               <span>Progress</span>
               <span>{project.progress}% Complete</span>
@@ -128,7 +140,7 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
 
         <div className="flex flex-wrap justify-end gap-2">
           {mode === "admin" && (
-            <UploadImageDialog 
+            <UploadImageDialog
               projectId={projectId}
               onUpload={handleImageUpload}
               existingImages={projectImages}
@@ -191,6 +203,7 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
         <section className="flex-1 overflow-x-auto overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-sidebar-ring">
           {view === "kanban" ? (
             <div className="flex gap-4 min-w-max h-full items-start">
+
               {columns.map((col) => {
                 const columnTasks = displayedTasks.filter((t) => t.status === col.status);
 
@@ -220,12 +233,19 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
                       setHoveredStatus(null);
                       try {
                         delete document.body.dataset.dragging;
-                      } catch (err) {}
+                      } catch (err) { }
                     }}
                   >
                     <div className="flex justify-between items-center mb-3">
                       <span className="font-semibold text-foreground text-sm">
-                        {col.label} ({columnTasks.length})
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            "font-semibold text-xs px-2.5 py-1",
+                            getStatusColor(col.status)
+                          )}
+                        >{col.label} ({columnTasks.length})</Badge>
+
                       </span>
                     </div>
 
@@ -241,6 +261,7 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
                 );
               })}
             </div>
+
           ) : (
             <div className="bg-card rounded-lg shadow-sm border border-border p-4">
               <TaskList tasks={displayedTasks} projectId={projectId} />
@@ -299,7 +320,7 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
             <div className="relative">
               {projectImages.length > 0 ? (
                 <>
-                  <div 
+                  <div
                     className="w-full h-36 bg-gray-200 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
                     onClick={() => handleOpenLightbox(currentImageIndex)}
                   >
@@ -310,18 +331,18 @@ export default function ProjectBoardLayout({ projectId, onNavigate, mode = "admi
                     />
                   </div>
                   <div className="flex justify-between mt-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="text-xs px-2 hover:bg-gray-200"
                       onClick={handlePreviousImage}
                       disabled={currentImageIndex === 0}
                     >
                       ← Prev
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="text-xs px-2 hover:bg-gray-200"
                       onClick={handleNextImage}
                       disabled={currentImageIndex >= projectImages.length - 1}
