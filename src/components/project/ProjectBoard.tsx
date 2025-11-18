@@ -1,7 +1,7 @@
 "use client"
 
 import { AddTaskModal } from "@/components/modals/AddTaskModal"
-import { UploadImageDialog } from "@/components/modals/UploadIMageDialog"
+import { UploadImageDialog } from "@/components/modals/UploadImageDialog"
 import { ImageLightboxModal } from "@/components/modals/ImageLightBoxModal"
 import { TaskCard } from "@/components/task/TaskCard"
 import { TaskList } from "@/components/task/TaskList"
