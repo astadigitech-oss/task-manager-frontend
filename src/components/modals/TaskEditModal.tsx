@@ -1,0 +1,580 @@
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { format } from "date-fns";
+import { Flag, Activity, ChevronRight, Layout, Clock } from "lucide-react";
+import { resolveImageUrl } from "@/lib/helpers/imageUrlHelper";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { AssigneesSection } from "@/components/task/task-detail/AssigneesSection";
+import { DateSection } from "@/components/task/task-detail/DateSection";
+import { AttachmentsSection } from "@/components/task/task-detail/AttachmentsSection";
+import { useProject } from "@/context/ProjectContext";
+import { useAuthStore } from "@/store/useAuthStore";
+import {
+    useUpdateTask,
+    useDeleteTask,
+    useTaskMembers,
+    useAddTaskMember,
+    useRemoveTaskMember,
+    useTaskImages,
+    useUploadMultipleTaskImages,
+    useDeleteTaskImage
+} from "@/context/TaskContext";
+import { useQuery } from "@tanstack/react-query";
+import { projectMembersService } from "@/services/projects/projectMember.service";
+import type { TaskApi } from "@/types/api/task.api";
+import type { TaskStatus } from "@/types/shared/status";
+import type { TaskPriority } from "@/types/shared/priority";
+import { cn } from "@/lib/utils/utils";
+import { showSuccessToast, showErrorToast, showWarningToast, showConfirmToast } from "@/lib/helpers/toast-helpers";
+import { statusConfig, priorityConfig } from "@/constants/task";
+import { ImageLightBoxModal } from "./ImageLightBoxModal";
+import { buildTaskPayload } from "@/lib/mapper/task.mapper";
+
+interface TaskEditModalProps {
+    task: TaskApi;
+    onClose: () => void;
+    workspace_id: number;
+}
+
+export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProps) {
+    const { projects } = useProject();
+    const { user } = useAuthStore();
+
+    // Mutations
+    const updateMutation = useUpdateTask();
+    const deleteMutation = useDeleteTask();
+    const addMemberMutation = useAddTaskMember();
+    const removeMemberMutation = useRemoveTaskMember();
+    const uploadImagesMutation = useUploadMultipleTaskImages();
+    const deleteImageMutation = useDeleteTaskImage();
+
+    // Queries
+    const { data: taskMembers = [] } = useTaskMembers(workspace_id, task.project_id, task.id);
+    const { data: taskImages = [] } = useTaskImages(workspace_id, task.project_id, task.id);
+    
+    function useProjectMembers(projectId: number) {
+        return useQuery({
+            queryKey: ['project-members', projectId],
+            queryFn: () => projectMembersService.getAll(projectId).then(r => r.data ?? []),
+            enabled: !!projectId,
+            staleTime: 2 * 60 * 1000,
+        });
+    }
+    const { data: projectMembers = [] } = useProjectMembers(task.project_id);
+
+    // Form state
+    const [title, setTitle] = useState(task.title);
+    const [description, setDescription] = useState(task.description || "");
+    const [notes, setNotes] = useState(task.notes || "");
+    const [status, setStatus] = useState<TaskStatus>(task.status);
+    const [priority, setPriority] = useState<TaskPriority>(task.priority);
+    const [startDate, setStartDate] = useState<string | undefined>(task.start_date);
+    const [dueDate, setDueDate] = useState<string | undefined>(task.due_date);
+    const [dueTime, setDueTime] = useState(task.due_time || "");
+    const [hasChanges, setHasChanges] = useState(false);
+    const [showActivity, setShowActivity] = useState(false);
+
+    useEffect(() => {
+        setTitle(task.title);
+        setDescription(task.description || "");
+        setNotes(task.notes || "");
+        setStatus(task.status);
+        setPriority(task.priority);
+        setStartDate(task.start_date);
+        setDueDate(task.due_date);
+        setDueTime(task.due_time || "");
+        setHasChanges(false);
+    }, [task.id]);
+
+    // Image upload state
+    const [restrictDownload, setRestrictDownload] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [lightboxIndex, setLightboxIndex] = useState(0);
+
+    const imageUrls = useMemo(
+        () => taskImages.map(img => resolveImageUrl(img.url)).filter(Boolean),
+        [taskImages]
+    );
+
+    const project = useMemo(
+        () => projects.find((p) => p.id === task.project_id),
+        [projects, task.project_id]
+    );
+
+    const handleSave = async () => {
+        if (!title.trim()) {
+            showErrorToast("Nama task wajib diisi!", "Silakan masukkan nama task.");
+            return;
+        }
+
+        if (title.trim().length < 3) {
+            showErrorToast("Nama task terlalu pendek!", "Nama task minimal 3 karakter.");
+            return;
+        }
+
+        if (taskMembers.length === 0) {
+            showWarningToast("Task belum di-assign", "Task akan disimpan tanpa assignee.");
+        }
+
+        // ✅ Use buildTaskPayload helper
+        const payload = buildTaskPayload({
+            title: title.trim(),
+            description: description.trim(),
+            notes: notes.trim(),
+            status,
+            priority,
+            startDate: startDate,
+            dueDate: dueDate,
+            dueTime: dueTime || undefined, // ✅ Include time
+        });
+
+        try {
+            await updateMutation.mutateAsync({
+                workspaceId: workspace_id,
+                projectId: task.project_id,
+                taskId: task.id,
+                payload // ✅ Payload has combined datetime
+            });
+            setHasChanges(false);
+            onClose();
+        } catch (err) {
+            console.error("Failed to update task:", err);
+        }
+    };
+
+    const handleDelete = () => {
+        showConfirmToast(
+            `Hapus task "${task.title}"?`,
+            "Task yang dihapus tidak dapat dikembalikan.",
+            async () => {
+                try {
+                    await deleteMutation.mutateAsync({
+                        workspaceId: workspace_id,
+                        projectId: task.project_id,
+                        taskId: task.id
+                    });
+                    onClose();
+                } catch (err) {
+                    console.error("Failed to delete task:", err);
+                }
+            }
+        );
+    };
+
+    const toggleAssignee = async (userId: number | undefined) => {
+        if (!userId) return;
+
+        const existingMember = taskMembers.find(m => m.user_id === userId);
+
+        try {
+            if (existingMember) {
+                await removeMemberMutation.mutateAsync({
+                    workspaceId: workspace_id,
+                    projectId: task.project_id,
+                    taskId: task.id,
+                    memberId: existingMember.user_id
+                });
+            } else {
+                await addMemberMutation.mutateAsync({
+                    workspaceId: workspace_id,
+                    projectId: task.project_id,
+                    taskId: task.id,
+                    userId,
+                    role: "member"
+                });
+            }
+
+            setHasChanges(true);
+        } catch (err) {
+            console.error("Failed to toggle assignee:", err);
+        }
+    };
+
+    const membersForSection = useMemo(
+        () => projectMembers.map(pm => ({
+            id: pm.user_id ?? pm.id,
+            name: pm.name,
+            avatar: pm.avatar || "",
+            role: pm.role || "member",
+            position: pm.position || "",
+        })),
+        [projectMembers]
+    );
+
+    const assignedMemberIds = useMemo(
+        () => taskMembers.map(m => m.user_id),
+        [taskMembers]
+    );
+
+    const handleDateChange = (date: Date | undefined, field: "startDate" | "dueDate") => {
+        const formattedDate = date ? format(date, "yyyy-MM-dd") : undefined;
+        if (field === "startDate") {
+            setStartDate(formattedDate);
+        } else {
+            setDueDate(formattedDate);
+        }
+        setHasChanges(true);
+    };
+
+    const handleImageUpload = async (files: File[]) => {
+        if (files.length === 0) return;
+
+        try {
+            await uploadImagesMutation.mutateAsync({
+                workspaceId: workspace_id,
+                projectId: task.project_id,
+                taskId: task.id,
+                files,
+                options: {
+                    onProgress: (progress) => setUploadProgress(progress)
+                }
+            });
+            setUploadProgress(0);
+        } catch (err) {
+            console.error('Upload failed:', err);
+            setUploadProgress(0);
+        }
+    };
+
+    const handlePreviewImage = (index: number) => {
+        setLightboxIndex(index);
+        setLightboxOpen(true);
+    };
+
+    const handleDownloadImage = (image: any) => {
+        const imageUrlRaw = image.image_url || image.url;
+        const imageUrl = resolveImageUrl(imageUrlRaw);
+        const a = document.createElement("a");
+        a.href = imageUrl;
+        a.download = image.title || `image-${image.id}.jpg`;
+        a.target = "_blank";
+        a.click();
+    };
+
+    const handleRemoveImage = async (imageId: number) => {
+        showConfirmToast(
+            "Hapus gambar?",
+            "Gambar yang dihapus tidak dapat dikembalikan.",
+            async () => {
+                try {
+                    await deleteImageMutation.mutateAsync({
+                        workspaceId: workspace_id,
+                        projectId: task.project_id,
+                        taskId: task.id,
+                        imageId
+                    });
+                } catch (err) {
+                    console.error("Failed to delete image:", err);
+                }
+            }
+        );
+    };
+
+    const handlePointerDownOutside = (e: Event) => {
+        const target = e.target as HTMLElement;
+        const isToastClick = target.closest('[data-sonner-toast]') !== null;
+        const isToastContainer = target.closest('[data-sonner-toaster]') !== null;
+
+        if (isToastClick || isToastContainer) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
+
+    return (
+        <Dialog open={true} onOpenChange={onClose}>
+            <DialogContent
+                className="p-0 gap-0 overflow-hidden sm:max-w-[1200px]"
+                onPointerDownOutside={handlePointerDownOutside}
+            >
+                <DialogHeader className="px-6 pt-6 pb-4 border-b">
+                    <DialogTitle>Edit Task</DialogTitle>
+                </DialogHeader>
+
+                <div className="flex flex-col h-[80vh] max-h-[800px]">
+                    <div className="flex-1 overflow-y-auto">
+                        <div className="p-6 space-y-6">
+                            {/* TITLE SECTION */}
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                    <Input
+                                        value={title}
+                                        onChange={(e) => {
+                                            setTitle(e.target.value);
+                                            setHasChanges(true);
+                                        }}
+                                        className="text-xl font-semibold border-0 px-0 focus-visible:ring-0"
+                                        placeholder="Task name"
+                                    />
+                                    {project && (
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <Layout className="w-4 h-4 text-foreground" />
+                                            <p className="text-sm text-muted-foreground">in {project.name}</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setShowActivity(!showActivity)}
+                                    className={cn("gap-2", showActivity && "bg-muted")}
+                                >
+                                    <Activity className="w-4 h-4" />
+                                    Activity
+                                    <ChevronRight
+                                        className={cn("w-4 h-4 transition-transform", showActivity && "rotate-180")}
+                                    />
+                                </Button>
+                            </div>
+
+                            {/* STATUS AND PRIORITY */}
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <Select
+                                    value={status}
+                                    onValueChange={(value: string) => {
+                                        setStatus(value as TaskStatus);
+                                        setHasChanges(true);
+                                    }}
+                                >
+                                    <SelectTrigger className="w-40 h-8">
+                                        <Badge variant="outline" className={statusConfig[status].className}>
+                                            {statusConfig[status].label}
+                                        </Badge>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(statusConfig).map(([key, config]) => (
+                                            <SelectItem key={key} value={key}>
+                                                <Badge variant="outline" className={config.className}>
+                                                    {config.label}
+                                                </Badge>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                <Select
+                                    value={priority}
+                                    onValueChange={(value: string) => {
+                                        setPriority(value as TaskPriority);
+                                        setHasChanges(true);
+                                    }}
+                                >
+                                    <SelectTrigger className="w-[140px] h-8">
+                                        <div className="flex items-center gap-1.5">
+                                            <Flag
+                                                className="w-3.5 h-3.5"
+                                                style={{ color: priorityConfig[priority].color }}
+                                                fill={priorityConfig[priority].color}
+                                            />
+                                            <span className="text-sm">{priorityConfig[priority].label}</span>
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(priorityConfig).map(([key, config]) => (
+                                            <SelectItem key={key} value={key}>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Flag
+                                                        className="w-3.5 h-3.5"
+                                                        style={{ color: config.color }}
+                                                        fill={config.color}
+                                                    />
+                                                    <span>{config.label}</span>
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <Separator />
+
+                            {/* ASSIGNEE SECTION */}
+                            <AssigneesSection
+                                member={membersForSection}
+                                assignedMemberIds={assignedMemberIds}
+                                onToggleAssignee={toggleAssignee}
+                                readOnly={false}
+                            />
+
+                            <Separator />
+
+                            {/* START DATES SECTION */}
+                            <DateSection
+                                startDate={startDate}
+                                dueDate={dueDate}
+                                onDateChange={handleDateChange}
+                                readOnly={false}
+                            />
+
+                            <Separator />
+
+                            {/* DUE TIME SECTION*/}
+                            {dueDate && (
+                                <>
+                                    <div className="space-y-2">
+                                        <Label>Due Time (Optional)</Label>
+                                        <div className="flex gap-2 items-center">
+                                            <Input
+                                                type="time"
+                                                value={dueTime}
+                                                onChange={(e) => {
+                                                    setDueTime(e.target.value);
+                                                    setHasChanges(true);
+                                                }}
+                                                className="w-40"
+                                                placeholder="HH:MM"
+                                            />
+                                            
+                                            <div className="flex gap-1">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setDueTime("09:00");
+                                                        setHasChanges(true);
+                                                    }}
+                                                >
+                                                    9 AM
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setDueTime("17:00");
+                                                        setHasChanges(true);
+                                                    }}
+                                                >
+                                                    5 PM
+                                                </Button>
+                                            </div>
+                                            
+                                            {dueTime && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setDueTime("");
+                                                        setHasChanges(true);
+                                                    }}
+                                                >
+                                                    Clear
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Set specific deadline time. If empty, deadline is end of day (23:59).
+                                        </p>
+                                    </div>
+
+                                    <Separator />
+                                </>
+                            )}
+
+                            {/* DESCRIPTION SECTION */}
+                            <div className="space-y-2">
+                                <Label>Description</Label>
+                                <Textarea
+                                    value={description}
+                                    onChange={(e) => {
+                                        setDescription(e.target.value);
+                                        setHasChanges(true);
+                                    }}
+                                    className="min-h-[120px] resize-none"
+                                    placeholder="Add a description..."
+                                />
+                            </div>
+
+                            <Separator />
+
+                            {/* NOTES SECTION */}
+                            <div className="space-y-2">
+                                <Label>Notes</Label>
+                                <Textarea
+                                    value={notes}
+                                    onChange={(e) => {
+                                        setNotes(e.target.value);
+                                        setHasChanges(true);
+                                    }}
+                                    className="min-h-[120px] resize-none"
+                                    placeholder="Add some notes..."
+                                />
+                            </div>
+
+                            <Separator />
+
+                            {/* IMAGES SECTION */}
+                            {workspace_id > 0 && (
+                                <AttachmentsSection
+                                    images={taskImages || []}
+                                    restrictDownload={restrictDownload}
+                                    onRestrictDownloadChange={setRestrictDownload}
+                                    onFileUpload={handleImageUpload}
+                                    onPreviewImage={handlePreviewImage}
+                                    onDownloadImage={handleDownloadImage}
+                                    onRemoveImage={handleRemoveImage}
+                                    readOnly={false}
+                                    isUploading={uploadImagesMutation.isPending}
+                                    uploadProgress={uploadProgress}
+                                />
+                            )}
+
+                            {/* ACTIVITY SECTION */}
+                            {showActivity && (
+                                <>
+                                    <Separator />
+                                    <div className="space-y-3">
+                                        <Label>Activity</Label>
+                                        <p className="text-sm text-muted-foreground">Activity log coming soon...</p>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* FOOTER SECTION */}
+                    <div className="border-t px-6 py-4">
+                        <div className="flex justify-between items-center">
+                            <Button
+                                variant="destructive"
+                                onClick={handleDelete}
+                                disabled={deleteMutation.isPending}
+                            >
+                                {deleteMutation.isPending ? "Deleting..." : "Delete Task"}
+                            </Button>
+                            <div className="flex gap-2">
+                                <Button variant="outline" onClick={onClose}>
+                                    {hasChanges ? "Cancel" : "Close"}
+                                </Button>
+                                {hasChanges && (
+                                    <Button
+                                        onClick={handleSave}
+                                        disabled={updateMutation.isPending}
+                                    >
+                                        {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </DialogContent>
+            <ImageLightBoxModal
+                images={imageUrls}
+                initialIndex={lightboxIndex}
+                open={lightboxOpen}
+                onOpenChange={setLightboxOpen}
+                canDelete={false}
+            />
+        </Dialog>
+    );
+}

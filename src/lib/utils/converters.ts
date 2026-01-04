@@ -1,0 +1,58 @@
+import { ProfileApiResponse } from "@/types/api/profile.api";
+import { UserProfile, UserApi } from "@/types/api/user.api";
+import { Role } from "@/types/shared/role";
+
+function normalizeProfileImage(path?: string | null): string | null {
+  if (!path) return null;
+
+  if (!path.includes("/")) return null;
+
+  if (path.includes("/uploads/")) {
+    return path.substring(path.indexOf("/uploads/"));
+  }
+
+  return path;
+}
+
+export function apiProfileToUserProfile(api: ProfileApiResponse): UserProfile {
+  return {
+    id: Number(api.id),
+    name: api.name,
+    email: api.email,
+    role: api.role,
+    avatar: normalizeProfileImage(api.profile_image),
+    position: api.position ?? null,
+    is_online: Boolean(api.is_online),
+    last_seen: api.last_seen ?? null,
+    created_at: api.CreatedAt ?? "",
+    updated_at: api.UpdatedAt ?? "",
+    projectsCount: Number(api.projects ?? 0),
+    tasksCompleted: Number(api.tasks ?? 0),
+  };
+}
+
+export function apiUserToUserApi(apiUser: any): UserApi {
+
+  function normalizeProfileImage(path?: string | null): string | null {
+    if (!path) return null;
+
+    if (path.includes("/uploads/")) {
+      return path.substring(path.indexOf("/uploads/"));
+    }
+
+    return path;
+  }
+
+  return {
+    id: Number(apiUser.id),
+    name: apiUser.name,
+    email: apiUser.email,
+    role: apiUser.role as Role,
+    avatar: normalizeProfileImage(apiUser.profile_image),
+
+    is_online: apiUser.is_online ?? false,
+    last_seen: apiUser.last_seen ?? null,
+    created_at: apiUser.created_at,
+    updated_at: apiUser.updated_at,
+  };
+}
