@@ -7,9 +7,7 @@ import { TaskPriority } from "@/types/shared/priority";
  * Backend mengirim datetime gabungan, kita split jadi date + time
  */
 export function mapTask(api: any): TaskApi {
-    // 🔍 Debug: Log raw data from backend
 
-    // Helper: Parse datetime to ISO string
     const parseDateTime = (dateStr: string | undefined | null): string | undefined => {
         if (!dateStr) return undefined;
         try {
@@ -20,7 +18,6 @@ export function mapTask(api: any): TaskApi {
         }
     };
 
-    // Helper: Split datetime into date and time
     const splitDateTime = (dateTimeStr: string | undefined | null): {
         date: string | undefined;
         time: string | undefined;
@@ -31,19 +28,15 @@ export function mapTask(api: any): TaskApi {
             const dt = new Date(dateTimeStr);
             if (isNaN(dt.getTime())) return { date: undefined, time: undefined };
             
-            // Extract date (YYYY-MM-DD)
             const date = dt.toISOString().split('T')[0];
             
-            // Extract time (HH:MM)
             const hours = dt.getHours();
             const minutes = dt.getMinutes();
             
-            // If midnight (00:00), treat as no specific time
             if (hours === 0 && minutes === 0) {
                 return { date, time: undefined };
             }
             
-            // Otherwise, extract time
             const time = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
             return { date, time };
         } catch {
@@ -51,7 +44,6 @@ export function mapTask(api: any): TaskApi {
         }
     };
 
-    // Split start_date and due_date
     const startDateTime = splitDateTime(api.start_date);
     const dueDateTime = splitDateTime(api.due_date);
 
@@ -67,12 +59,10 @@ export function mapTask(api: any): TaskApi {
         member_count: api.member_count ?? 0,
         images: api.images || null,
 
-        // Extracted date and time
         start_date: startDateTime.date,
         due_date: dueDateTime.date,
         due_time: dueDateTime.time,
         
-        // Completion tracking
         finished_at: parseDateTime(api.finished_at),
         is_overdue: api.is_overdue ?? false,
 
@@ -101,19 +91,15 @@ export function mapTask(api: any): TaskApi {
 // 2. BUILD PAYLOAD FOR CREATE/UPDATE
 // ============================================
 
-/**
- * Build task payload untuk dikirim ke backend
- * Frontend punya date + time terpisah, backend butuh datetime gabungan
- */
 export function buildTaskPayload(formData: {
     title: string;
     description?: string;
     notes?: string;
     status?: TaskStatus | null;
     priority?: TaskPriority | null;
-    startDate?: string;      // "2025-12-29"
-    dueDate?: string;        // "2025-12-29"
-    dueTime?: string;        // "17:00"
+    startDate?: string;     
+    dueDate?: string;        
+    dueTime?: string;       
 }): TaskRequest {
     const payload: TaskRequest = {
         title: formData.title,
@@ -142,9 +128,6 @@ export function buildTaskPayload(formData: {
 // 3. DISPLAY & FORMATTING HELPERS
 // ============================================
 
-/**
- * Format deadline dengan time untuk display
- */
 export function formatDeadline(date: string, time?: string | null): string {
     const d = new Date(date);
     const dateStr = d.toLocaleDateString('id-ID', {
@@ -163,10 +146,6 @@ export function formatDeadline(date: string, time?: string | null): string {
 // 4. VALIDATION HELPERS - FIXED LOGIC
 // ============================================
 
-/**
- * Check if task is currently overdue (only for active tasks)
- * Returns false if task is already completed or canceled
- */
 export function isTaskOverdue(task: TaskApi): boolean {
     if (task.status === "done" || task.status === "canceled") {
         return false;
@@ -189,10 +168,6 @@ export function isTaskOverdue(task: TaskApi): boolean {
     return now > dueDate;
 }
 
-/**
- * Check if completed task was finished late
- * Only relevant for tasks with status "done"
- */
 export function isCompletedLate(task: TaskApi): boolean {
     if (task.status !== "done") return false;
     
@@ -215,10 +190,6 @@ export function isCompletedLate(task: TaskApi): boolean {
     return finishedDate > dueDate;
 }
 
-/**
- * Get comprehensive task deadline status
- * Returns different status based on task state
- */
 export function getTaskDeadlineStatus(task: TaskApi): {
     status: 'completed-on-time' | 'completed-late' | 'overdue' | 'upcoming' | 'no-deadline';
     message: string;
@@ -249,7 +220,6 @@ export function getTaskDeadlineStatus(task: TaskApi): {
         };
     }
 
-    // Task dibatalkan - tidak perlu status overdue
     if (task.status === "canceled") {
         return {
             status: 'no-deadline',
@@ -258,7 +228,6 @@ export function getTaskDeadlineStatus(task: TaskApi): {
         };
     }
 
-    // Task masih aktif - cek overdue
     if (isTaskOverdue(task)) {
         return {
             status: 'overdue',
@@ -274,10 +243,6 @@ export function getTaskDeadlineStatus(task: TaskApi): {
     };
 }
 
-/**
- * Get time remaining until deadline (untuk UI badges/indicators)
- * Only relevant for active tasks (not done/canceled)
- */
 export function getTimeRemaining(task: TaskApi): {
     isOverdue: boolean;
     isPastDue: boolean;
@@ -295,7 +260,6 @@ export function getTimeRemaining(task: TaskApi): {
         };
     }
 
-    // Jika task sudah selesai atau dibatalkan, tidak tampilkan countdown
     if (task.status === "done" || task.status === "canceled") {
         return {
             isOverdue: false,

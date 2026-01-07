@@ -1,4 +1,3 @@
-// src/components/shared/AvatarCropDialog.tsx
 "use client";
 
 import { useState, useCallback } from "react";

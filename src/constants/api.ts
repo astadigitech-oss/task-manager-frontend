@@ -1,18 +1,12 @@
-// src/constants/api.ts
 
-// Base URL untuk API
 export const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL ||
     'https://dev-taskmanager.anassyihabuddin.com';
 
-// WebSocket Base URL
-// Convert https:// ke wss:// atau http:// ke ws://
 export const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
 
-// Timeout untuk request
-export const API_TIMEOUT = 30000; // 30 detik
+export const API_TIMEOUT = 30000;
 
-// HTTP Status Codes
 export const HTTP_STATUS = {
     OK: 200,
     CREATED: 201,
@@ -32,7 +26,6 @@ export const ERROR_MESSAGES = {
     SERVER_ERROR: 'Terjadi kesalahan pada server. Silakan coba lagi nanti.',
     VALIDATION_ERROR: 'Data yang Anda masukkan tidak valid.',
     TIMEOUT: 'Request timeout. Silakan coba lagi.',
-    // WebSocket specific errors
     WS_CONNECTION_FAILED: 'Gagal terhubung ke server realtime.',
     WS_DISCONNECTED: 'Koneksi realtime terputus.',
 } as const;
@@ -51,5 +44,5 @@ export const SUCCESS_MESSAGES = {
 export const WS_CONFIG = {
     MAX_RECONNECT_ATTEMPTS: 5,
     RECONNECT_DELAY_MS: 3000,
-    PING_INTERVAL_MS: 30000, // 30 seconds
+    PING_INTERVAL_MS: 30000,
 } as const;

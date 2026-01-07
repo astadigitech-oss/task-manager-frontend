@@ -1,4 +1,3 @@
-// lib/utils/projectProgress.ts
 import { TaskApi } from "@/types/api/task.api";
 import { TaskStatus } from "@/types/shared/status";
 
