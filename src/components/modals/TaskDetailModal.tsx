@@ -103,7 +103,7 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent
-        className="p-0 gap-0 overflow-hidden sm:max-w-[1200px]"
+        className="p-0 gap-0 overflow-hidden sm:max-w-300"
         onPointerDownOutside={handlePointerDownOutside}
       >
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
@@ -114,7 +114,7 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col h-[80vh] max-h-[800px]">
+        <div className="flex flex-col h-[80vh] max-h-200">
           <div className="flex-1 overflow-y-auto">
             <div className="p-6 space-y-6">
               {/* TITLE SECTION */}

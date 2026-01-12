@@ -179,7 +179,7 @@ export function OnlineUserProvider({
                 onOpen: () => {
                     console.log(" WebSocket connected");
                     reconnectAttemptsRef.current = 0;
-                    //  Invalidate query untuk refresh data
+
                     queryClient.invalidateQueries({ queryKey: ["online-users"] });
                 },
                 onMessage: (message: UserWsEvent) => {

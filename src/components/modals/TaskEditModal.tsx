@@ -125,7 +125,6 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
             showWarningToast("Task belum di-assign", "Task akan disimpan tanpa assignee.");
         }
 
-        // ✅ Use buildTaskPayload helper
         const payload = buildTaskPayload({
             title: title.trim(),
             description: description.trim(),
@@ -134,7 +133,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
             priority,
             startDate: startDate,
             dueDate: dueDate,
-            dueTime: dueTime || undefined, // ✅ Include time
+            dueTime: dueTime || undefined,
         });
 
         try {
@@ -142,7 +141,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                 workspaceId: workspace_id,
                 projectId: task.project_id,
                 taskId: task.id,
-                payload // ✅ Payload has combined datetime
+                payload 
             });
             setHasChanges(false);
             onClose();
@@ -293,14 +292,14 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
     return (
         <Dialog open={true} onOpenChange={onClose}>
             <DialogContent
-                className="p-0 gap-0 overflow-hidden sm:max-w-[1200px]"
+                className="p-0 gap-0 overflow-hidden sm:max-w-300"
                 onPointerDownOutside={handlePointerDownOutside}
             >
                 <DialogHeader className="px-6 pt-6 pb-4 border-b">
                     <DialogTitle>Edit Task</DialogTitle>
                 </DialogHeader>
 
-                <div className="flex flex-col h-[80vh] max-h-[800px]">
+                <div className="flex flex-col h-[80vh] max-h-200">
                     <div className="flex-1 overflow-y-auto">
                         <div className="p-6 space-y-6">
                             {/* TITLE SECTION */}
@@ -369,7 +368,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                         setHasChanges(true);
                                     }}
                                 >
-                                    <SelectTrigger className="w-[140px] h-8">
+                                    <SelectTrigger className="w-35 h-8">
                                         <div className="flex items-center gap-1.5">
                                             <Flag
                                                 className="w-3.5 h-3.5"
@@ -489,7 +488,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                         setDescription(e.target.value);
                                         setHasChanges(true);
                                     }}
-                                    className="min-h-[120px] resize-none"
+                                    className="min-h-30 resize-none"
                                     placeholder="Add a description..."
                                 />
                             </div>
@@ -505,7 +504,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                         setNotes(e.target.value);
                                         setHasChanges(true);
                                     }}
-                                    className="min-h-[120px] resize-none"
+                                    className="min-h-30 resize-none"
                                     placeholder="Add some notes..."
                                 />
                             </div>

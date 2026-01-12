@@ -41,7 +41,6 @@ export function useTasks(
                         return [];
                     }
 
-                    // 🔹 Kalau error lain, baru throw
                     throw new ApiError(
                         403,
                         `Anda tidak memiliki akses ke project ini`,
@@ -140,15 +139,8 @@ export function useCreateTask() {
             payload: TaskRequest;
         }) => {
 
-            const normalizeDate = (date?: string) =>
-                date && !date.includes("T")
-                    ? new Date(`${date}T00:00:00Z`).toISOString()
-                    : date;
-
             const res = await tasksService.create(workspaceId, projectId, {
                 ...payload,
-                start_date: normalizeDate(payload.start_date),
-                due_date: normalizeDate(payload.due_date),
             });
 
             if (!res.success || !res.data) {

@@ -148,7 +148,6 @@ export function CreateProjectDialog({
         workspace_id: Number(workspaceId),
       };
 
-      console.log("Step 1: Creating project (without members):", createPayload);
 
       const createdProject = await projectsService.create(createPayload);
 
@@ -157,7 +156,6 @@ export function CreateProjectDialog({
       }
 
       const projectId = createdProject.data.id;
-      console.log("Project created with ID:", projectId);
 
       if (selectedUserIds.length > 0) {
         await projectMembersService.addBulk(projectId, selectedUserIds);
@@ -223,7 +221,7 @@ export function CreateProjectDialog({
                 placeholder="Deskripsikan project Anda"
                 rows={3}
                 disabled={isSubmitting}
-                className="min-h-[120px] resize-none"
+                className="min-h-30 resize-none"
               />
             </div>
 

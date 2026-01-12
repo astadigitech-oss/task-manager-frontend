@@ -405,7 +405,7 @@ function ProjectBoardLayout({
                   <Card
                     key={col.status}
                     className={cn(
-                      "w-72 shrink-0 p-3 flex flex-col",
+                      "w-72 shrink-0 p-3 flex flex-col h-full",
                       hoveredStatus === col.status ? "ring-2 ring-dashed ring-primary/40" : ""
                     )}
                     onDragOver={(e) => e.preventDefault()}
@@ -422,14 +422,16 @@ function ProjectBoardLayout({
                       </Badge>
                     </div>
 
-                    <div className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-ring">
-                      <TaskCard
-                        tasks={columnTasks}
-                        status={col.status}
-                        projectId={project_id}
-                        workspaceId={validWorkspaceId}
-                        readOnly={!canCreateTask}
-                      />
+                    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-ring">
+                      <div className="space-y-3 p-2">
+                        <TaskCard
+                          tasks={columnTasks}
+                          status={col.status}
+                          projectId={project_id}
+                          workspaceId={validWorkspaceId}
+                          readOnly={!canCreateTask}
+                        />
+                      </div>
                     </div>
                   </Card>
                 );

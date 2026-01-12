@@ -1,9 +1,10 @@
 
 export const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    'https://dev-taskmanager.anassyihabuddin.com';
+    process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 
-export const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
+export const WS_BASE_URL = 
+    process.env.NEXT_PUBLIC_WS_BASE_URL || 
+    'ws://localhost:3000';
 
 export const API_TIMEOUT = 30000;
 
@@ -40,7 +41,6 @@ export const SUCCESS_MESSAGES = {
     CREATE: 'Data berhasil dibuat!',
 } as const;
 
-// WebSocket Configuration
 export const WS_CONFIG = {
     MAX_RECONNECT_ATTEMPTS: 5,
     RECONNECT_DELAY_MS: 3000,

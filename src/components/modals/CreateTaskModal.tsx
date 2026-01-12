@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { priorityConfig, statusConfig } from "@/constants/task";
 import { showErrorToast } from "@/lib/helpers/toast-helpers";
 import { ScrollArea } from "../ui/scroll-area";
-import { useQuery } from "@tanstack/react-query";
+import { focusManager, useQuery } from "@tanstack/react-query";
 import { projectMembersService } from "@/services/projects/projectMember.service";
 import { buildTaskPayload } from "@/lib/mapper/task.mapper";
 import { Badge } from "../ui/badge";
@@ -44,8 +44,8 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState<TaskStatus>("on-board");
   const [assignees, setAssignees] = useState<number[]>([]);
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [dueDate, setDueDate] = useState<Date | undefined>();
+  const [startDate, setStartDate] = useState<string | undefined>();
+  const [dueDate, setDueDate] = useState<string | undefined>();
   const [dueTime, setDueTime] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("normal");
 
@@ -89,8 +89,8 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
       notes: notes.trim(),
       status,
       priority,
-      startDate: startDate ? format(startDate, "yyyy-MM-dd") : undefined,
-      dueDate: dueDate ? format(dueDate, "yyyy-MM-dd") : undefined,
+      startDate: startDate,
+      dueDate: dueDate,
       dueTime: dueTime || undefined,
     });
 
@@ -139,6 +139,16 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
     );
   };
 
+  const handleDateSelect = (date: Date | undefined, field: 'start' | 'due') => {
+    const formattedDate = date ? format(date, "yyyy-MM-dd") : undefined;
+    if (field === 'start') {
+      setStartDate(formattedDate)
+    }
+    else {
+      setDueDate(formattedDate)
+    }
+  }
+
   const assignedMembers = projectMembers.filter(member => {
     const uid = member.user_id ?? member.id;
     return assignees.includes(uid);
@@ -150,7 +160,7 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
         <Button>+ New Task</Button>
       </DialogTrigger>
 
-      <DialogContent className="p-0 gap-0 sm:max-w-[900px] overflow-hidden">
+      <DialogContent className="p-0 gap-0 sm:max-w-225 overflow-hidden">
 
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle>Add Task</DialogTitle>
@@ -159,7 +169,7 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col h-[80vh] max-h-[700px]">
+        <div className="flex flex-col h-[80vh] max-h-175">
           <div className="flex-1 overflow-y-auto">
             <div className="p-6 space-y-6">
               <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
@@ -180,11 +190,11 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
               <Label htmlFor="description">Deskripsi</Label>
               <Textarea
                 id="description"
-                placeholder="Add a more detailed description..."
+                placeholder="Tambahkan deskripsi Pada Task"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="min-h-[120px] resize-none"
+                className="min-h-30 resize-none break-all whitespace-pre-wrap"
               />
 
               <Label htmlFor="notes">Notes</Label>
@@ -193,7 +203,7 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
                 placeholder="Add some notes..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="min-h-[120px] resize-none"
+                className="min-h-30 resize-none break-all whitespace-pre-wrap"
                 rows={3}
               />
 
@@ -315,11 +325,13 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-auto px-3 text-sm">
                       <CalendarIcon className="w-4 h-4 mr-2" />
-                      {startDate ? format(startDate, "MMM d, yyyy") : "Start Date"}
+                      {startDate ? format(new Date(startDate), "MMM d, yyyy") : "Start Date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-2">
-                    <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
+                    <Calendar mode="single"
+                      selected={startDate ? new Date(startDate) : undefined}
+                      onSelect={(date) => handleDateSelect(date, 'start')} />
                   </PopoverContent>
                 </Popover>
 
@@ -328,11 +340,13 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-auto px-3 text-sm">
                       <CalendarIcon className="w-4 h-4 mr-2" />
-                      {dueDate ? format(dueDate, "MMM d, yyyy") : "Due Date"}
+                      {dueDate ? format(new Date(dueDate), "MMM d, yyyy") : "Due Date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-2">
-                    <Calendar mode="single" selected={dueDate} onSelect={setDueDate} initialFocus />
+                    <Calendar mode="single"
+                      selected={dueDate ? new Date(dueDate) : undefined}
+                      onSelect={(date) => handleDateSelect(date, 'due')} />
                   </PopoverContent>
                 </Popover>
 

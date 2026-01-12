@@ -1,7 +1,6 @@
-// src/store/useAuthStore.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { UserApi, UserProfile } from "@/types/api/user.api";
+import type { UserProfile } from "@/types/api/user.api";
 
 export interface AuthState {
   user: UserProfile | null;
@@ -32,7 +31,7 @@ export const useAuthStore = create<AuthState>()(
         });
 
         if (typeof window !== "undefined") {
-          document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
+          document.cookie = `token=Bearer ${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
           document.cookie = `role=${user.role}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
         }
       },
@@ -44,8 +43,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        console.log("🚪 useAuthStore: Logging out user");
-
         if (typeof window !== "undefined") {
           document.cookie = `token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`;
           document.cookie = `role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`;
@@ -70,7 +67,14 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "auth-storage",
       onRehydrateStorage: () => (state) => {
-        if (state) state.setHydrated(true);
+        if (state) {
+          state.setHydrated(true);
+          
+          // Sync token to cookie after rehydration
+          if (state.token && typeof window !== "undefined") {
+            document.cookie = `token=Bearer ${state.token}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
+          }
+        }
       },
     }
   )

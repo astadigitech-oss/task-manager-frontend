@@ -2,10 +2,10 @@ import { TaskApi, TaskRequest } from "@/types/api/task.api";
 import { TaskStatus } from "@/types/shared/status";
 import { TaskPriority } from "@/types/shared/priority";
 
-/**
- * Map task dari backend ke format frontend
- * Backend mengirim datetime gabungan, kita split jadi date + time
- */
+// ============================================
+// 1. Task Mapper 
+// ============================================
+
 export function mapTask(api: any): TaskApi {
 
     const parseDateTime = (dateStr: string | undefined | null): string | undefined => {
@@ -110,15 +110,19 @@ export function buildTaskPayload(formData: {
     };
 
     if (formData.startDate) {
-        payload.start_date = formData.startDate;
+        const startDateTime = `${formData.startDate}T00:00:00+07:00`;
+        payload.start_date = startDateTime;
     }
 
     if (formData.dueDate) {
+        let dueDateTime: string;
+
         if (formData.dueTime) {
-            payload.due_date = `${formData.dueDate}T${formData.dueTime}:00`;
+            dueDateTime = `${formData.dueDate}T${formData.dueTime}:00+07:00`;
         } else {
-            payload.due_date = `${formData.dueDate}T00:00:00`;
+            dueDateTime = `${formData.dueDate}T00:00:00+07:00`
         }
+        payload.due_date = dueDateTime;
     }
 
     return payload;

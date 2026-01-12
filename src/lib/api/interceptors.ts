@@ -14,9 +14,6 @@ export class ApiError extends Error {
     }
 }
 
-// ==========================================
-// FLAG UNTUK PREVENT DUPLICATE TOAST
-// ==========================================
 let isHandling503 = false;
 let isHandlingNetworkError = false;
 
@@ -39,11 +36,9 @@ export const setupRequestInterceptor = (axiosInstance: AxiosInstance) => {
         (config: InternalAxiosRequestConfig) => {
             const token = useAuthStore.getState().token;
             
-            
             if (token) {
                 config.headers = config.headers ?? {};
                 config.headers["Authorization"] = `Bearer ${token}`;
-            } else {
             }
 
             if (config.data instanceof FormData) {
@@ -52,23 +47,6 @@ export const setupRequestInterceptor = (axiosInstance: AxiosInstance) => {
                 }
             }
 
-            if (process.env.NODE_ENV === "development") {
-                console.log("Request:", {
-                    method: config.method?.toUpperCase(),
-                    url: config.url,
-                    hasToken: !!config.headers["Authorization"],
-                    data: config.data instanceof FormData
-                        ? "FormData (cannot display)"
-                        : config.data,
-                });
-
-                if (config.data instanceof FormData) {
-                    console.log("FormData entries:");
-                    for (let pair of config.data.entries()) {
-                        console.log(`  ${pair[0]}:`, pair[1]);
-                    }
-                }
-            }
             return config;
         },
         (error: AxiosError) => {
@@ -80,17 +58,13 @@ export const setupRequestInterceptor = (axiosInstance: AxiosInstance) => {
 export const setupResponseInterceptor = (axiosInstance: AxiosInstance) => {
     axiosInstance.interceptors.response.use(
         (response) => {
-            if (process.env.NODE_ENV === "development") {
-                console.log(" Response:", {
-                    status: response.status,
-                    url: response.config.url,
-                    data: response.data,
-                });
-            }
             return response;
         },
         (error: AxiosError<any>) => {
 
+            // ==========================================
+            // HTML 503 RESPONSE
+            // ==========================================
             if (error.response) {
                 const responseData = error.response.data;
                 const isHTMLResponse = typeof responseData === 'string' &&
@@ -116,8 +90,6 @@ export const setupResponseInterceptor = (axiosInstance: AxiosInstance) => {
             // NETWORK ERROR
             // ==========================================
             if (!error.response) {
-                console.error("Network Error:", error.message);
-
                 if (!isHandlingNetworkError) {
                     isHandlingNetworkError = true;
                     showErrorToast(ERROR_MESSAGES.NETWORK_ERROR);
@@ -137,34 +109,22 @@ export const setupResponseInterceptor = (axiosInstance: AxiosInstance) => {
                 error.message ||
                 "Terjadi kesalahan";
 
-            if (process.env.NODE_ENV === "development") {
-                console.error(" Error Response:", {
-                    status,
-                    url: error.config?.url,
-                    message,
-                    data: error.response.data,
-                });
-            }
-
             // ==========================================
-            // 401 UNAUTHORIZED - Logout & Redirect
+            // 401 UNAUTHORIZED
             // ==========================================
             if (status === 401) {
-                const isLoginRequest =
-                    error.config?.url?.includes("/auth/login");
+                const isLoginRequest = error.config?.url?.includes("/auth/login");
 
                 if (isLoginRequest) {
                     return Promise.reject(
                         new ApiError(
                             status,
-                            error.response.data?.message ||
-                            "Email atau password salah",
+                            error.response.data?.message || "Email atau password salah",
                             error.response.data
                         )
                     );
                 }
 
-                console.warn(" 401 Unauthorized - Logging out...");
                 useAuthStore.getState().logout();
 
                 if (typeof window !== "undefined") {
@@ -177,16 +137,9 @@ export const setupResponseInterceptor = (axiosInstance: AxiosInstance) => {
             }
 
             // ==========================================
-            // 403 FORBIDDEN - Access Denied
+            // 403 FORBIDDEN
             // ==========================================
             if (status === 403) {
-                console.error(" 403 Forbidden:", {
-                    url: error.config?.url,
-                    message: error.response.data?.message,
-                    error: error.response.data?.error,
-                    data: error.response.data
-                });
-
                 const forbiddenMessage = 
                     error.response.data?.error ||
                     error.response.data?.message || 
@@ -240,8 +193,6 @@ export const setupResponseInterceptor = (axiosInstance: AxiosInstance) => {
         }
     );
 };
-
-
 
 export const setupInterceptors = (axiosInstance: AxiosInstance) => {
     setupRequestInterceptor(axiosInstance);

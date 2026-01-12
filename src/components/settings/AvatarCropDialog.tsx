@@ -112,12 +112,12 @@ export function AvatarCropDialog({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[1080px]">
+            <DialogContent className="sm:max-w-270">
                 <DialogHeader>
                     <DialogTitle>Crop Avatar</DialogTitle>
                 </DialogHeader>
 
-                <div className="relative h-[720px] bg-muted rounded-lg overflow-hidden">
+                <div className="relative h-120 bg-muted rounded-lg overflow-hidden">
                     <Cropper
                         image={imageSrc}
                         crop={crop}

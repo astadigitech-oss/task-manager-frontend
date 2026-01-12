@@ -261,7 +261,7 @@ export function EditProjectDialog({
                 onChange={(e) => setDesc(e.target.value)}
                 placeholder="Deskripsikan project Anda"
                 rows={3}
-                className="text-gray-900 dark:text-gray-100 bg-white dark:bg-neutral-800 min-h-[120px] resize-none"
+                className="text-gray-900 dark:text-gray-100 bg-white dark:bg-neutral-800 min-h-30 resize-none"
               />
             </div>
 
