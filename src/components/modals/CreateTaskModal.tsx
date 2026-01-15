@@ -42,7 +42,7 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
-  const [status, setStatus] = useState<TaskStatus>("on-board");
+  const [status, setStatus] = useState<TaskStatus>("on_board");
   const [assignees, setAssignees] = useState<number[]>([]);
   const [startDate, setStartDate] = useState<string | undefined>();
   const [dueDate, setDueDate] = useState<string | undefined>();
@@ -69,7 +69,7 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
     setTitle("");
     setDescription("");
     setNotes("");
-    setStatus("on-board");
+    setStatus("on_board");
     setAssignees([]);
     setStartDate(undefined);
     setDueDate(undefined);
@@ -254,7 +254,7 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
                                   <div>
                                     <UserAvatar
                                       name={member.name}
-                                      avatar={member.avatar}
+                                      avatar={member.avatar || member.profile_img || member.profile_image || ""}
                                       size="sm"
                                       className="h-7 w-7 border-2"
                                     />
@@ -302,7 +302,7 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
                               >
                                 <UserAvatar
                                   name={member.name}
-                                  avatar={member.avatar}
+                                  avatar={member.avatar || member.profile_img || member.profile_image || ""}
                                   size="sm"
                                   className="w-6 h-6"
                                 />

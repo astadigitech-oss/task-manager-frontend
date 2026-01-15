@@ -12,27 +12,26 @@ export const positionConfig: Record<
 > = {
     "frontend": {
         label: "Frontend Developer",
-        color: "division-frontend",
+        color: "position-frontend",
     },
     "backend": {
         label: "Backend Developer",
-        color: "division-backend",
+        color: "position-backend",
     },
     "fullstack": {
         label: "Full Stack Developer",
-        color: "division-fullstack",
+        color: "position-fullstack",
     },
     "ui_ux": {
         label: "UI/UX Designer",
-        color: "division-ui-ux",
+        color: "position-ui-ux",
     },
     "project_management": {
         label: "Project Manager",
-        color: "division-project-management",
-
+        color: "position-project-management",
     },
     "devops": {
         label: "DevOps Engineer",
-        color: "division-devops",
+        color: "position-devops",
     },
 };

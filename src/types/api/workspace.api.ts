@@ -22,6 +22,7 @@ export interface WorkspaceMemberApi {
     user_id: number;
     project_id: number;
     avatar?: string | null;
+    profile_img?: string | null;
     role: string;
     user_email: string;
     joinedAt: string;

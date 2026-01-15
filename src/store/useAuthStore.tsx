@@ -7,6 +7,7 @@ export interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isHydrated: boolean;
+  profileBootstrapped?: boolean;
   login: (data: { user: UserProfile; token: string }) => void;
   logout: () => void;
   updateUser: (user: Partial<UserProfile>) => void;
@@ -33,6 +34,8 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== "undefined") {
           document.cookie = `token=Bearer ${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
           document.cookie = `role=${user.role}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
+
+          window.dispatchEvent(new Event('user-logged-in'));
         }
       },
 
@@ -69,8 +72,7 @@ export const useAuthStore = create<AuthState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHydrated(true);
-          
-          // Sync token to cookie after rehydration
+
           if (state.token && typeof window !== "undefined") {
             document.cookie = `token=Bearer ${state.token}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
           }

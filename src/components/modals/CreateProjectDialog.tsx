@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { projectKeys } from "@/context/ProjectContext";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectTrigger,
@@ -29,8 +28,9 @@ import { projectMembersService } from "@/services/projects/projectMember.service
 import { projectsService } from "@/services/projects/project.service";
 import { WorkspaceMemberApi } from "@/types/api/workspace.api";
 import { ScrollArea } from "../ui/scroll-area";
-import { FolderSearch, Loader2 } from "lucide-react";
+import { FolderSearch, Loader2, User } from "lucide-react";
 import { showInfoToast, showSuccessToast } from "@/lib/helpers/toast-helpers";
+import { UserAvatar } from "../shared/UserAvatar";
 
 interface CreateProjectDialogProps {
   isOpen: boolean;
@@ -293,10 +293,12 @@ export function CreateProjectDialog({
                         className="flex items-center justify-between p-2 rounded-md hover:bg-muted"
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={m.avatar || ""} />
-                            <AvatarFallback>{m.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
+                          <UserAvatar
+                            name={m.name}
+                            avatar={m.avatar || m.profile_img || ""}
+                            size="sm"
+                            className="w-6 h-6"
+                          />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{m.name}</p>
                             <p className="text-xs text-muted-foreground truncate">

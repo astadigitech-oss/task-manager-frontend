@@ -8,8 +8,8 @@ export type ActivityType =
     | "edit";
 
 export type TaskStatus =
-    | "on-board"
-    | "on-progress"
+    | "on_board"
+    | "on_progress"
     | "pending"
     | "canceled"
     | "done";

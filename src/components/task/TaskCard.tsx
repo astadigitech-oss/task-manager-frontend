@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDeleteTask } from "@/context/TaskContext";
+import { useTaskMembers } from "@/hooks/task/useTaskMember";
 import type { TaskStatus } from "@/types/shared/status";
 import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils/utils";
@@ -35,6 +36,8 @@ const SingleTaskCard = memo(({
   isMyTask,
   readOnly,
   user,
+  workspaceId,
+  projectId,
   onDelete,
   onSelectTask,
   onEditTask
@@ -43,11 +46,17 @@ const SingleTaskCard = memo(({
   isMyTask: boolean;
   readOnly?: boolean;
   user: any;
+  workspaceId: number;
+  projectId: number;
   onDelete: (taskId: number, taskTitle: string, e: React.MouseEvent) => void;
   onSelectTask: (task: TaskApi) => void;
   onEditTask: (task: TaskApi) => void;
 }) => {
-  const assignedMembers = task.task_members || [];
+  // Fetch task members dengan profile image
+  const { data: fetchedMembers = [] } = useTaskMembers(workspaceId, projectId, task.id);
+  
+  // Gunakan fetched members jika ada, fallback ke task.task_members
+  const assignedMembers = fetchedMembers.length > 0 ? fetchedMembers : (task.task_members || []);
 
   const handleDragStart = useCallback((e: React.DragEvent) => {
     (e.currentTarget as HTMLElement).style.opacity = '1';
@@ -172,15 +181,15 @@ const SingleTaskCard = memo(({
           </p>
         )}
 
-        <div className="flex items-center justify-between text-foreground text-xs mt-1">
+        <div className="flex items-center justify-between text-foreground text-xs mt-4">
           <div className="flex items-center gap-2">
             {assignedMembers.length > 0 ? (
-              <div className="flex -space-x-2">
-                {assignedMembers.slice(0, 3).map((member) => (
+              <div className="flex space-x-2">
+                {assignedMembers.slice(0, 3).map((member, index) => (
                   <UserAvatar
-                    key={member.user_id}
+                    key={`${member.user_id || member.id}-${index}`}
                     name={member.name}
-                    avatar={member.avatar}
+                    avatar={member.profile_img || member.profile_image || member.avatar}
                     size="sm"
                     className="w-7 h-7 border-2 border-border text-foreground shadow-sm hover:scale-105 transition-transform"
                   />
@@ -307,6 +316,8 @@ const TaskCardComponent = ({
             isMyTask={!!isMyTask}
             readOnly={readOnly}
             user={user}
+            workspaceId={workspace_id}
+            projectId={projectId}
             onDelete={handleDelete}
             onSelectTask={handleSelectTask}
             onEditTask={handleEditTask}

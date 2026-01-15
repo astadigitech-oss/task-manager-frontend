@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { TaskStatus } from "@/types/shared/status";
 import { useDeleteTask, useUpdateTask } from "@/context/TaskContext";
+import { useTaskMembers } from "@/hooks/task/useTaskMember";
 import { cn } from "@/lib/utils/utils";
 import { priorityConfig } from "@/constants/task";
 import { showConfirmToast } from "@/lib/helpers/toast-helpers";
@@ -28,8 +29,8 @@ interface TaskListProps {
 }
 
 const statusGroups: { status: TaskStatus; label: string }[] = [
-  { status: "on-board", label: "On Board" },
-  { status: "on-progress", label: "On Progress" },
+  { status: "on_board", label: "On Board" },
+  { status: "on_progress", label: "On Progress" },
   { status: "pending", label: "Pending" },
   { status: "canceled", label: "Canceled" },
   { status: "done", label: "Complete" },
@@ -42,8 +43,8 @@ const getStatusLabel = (status: TaskStatus): string => {
 
 const getStatusColor = (status: TaskStatus): string => {
   const statusMap: Record<TaskStatus, string> = {
-    "on-board": "status-on-board",
-    "on-progress": "status-on-progress",
+    "on_board": "status-on-board",
+    "on_progress": "status-on-progress",
     "pending": "status-pending",
     "canceled": "status-canceled",
     "done": "status-done",
@@ -53,8 +54,8 @@ const getStatusColor = (status: TaskStatus): string => {
 
 export function TaskList({ tasks, project_id, readOnly, workspace_id: propWorkspaceId }: TaskListProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
-    "on-board": true,
-    "on-progress": true,
+    "on_board": true,
+    "on_progress": true,
     "pending": true,
     "canceled": true,
     "done": true,
@@ -231,7 +232,11 @@ export function TaskList({ tasks, project_id, readOnly, workspace_id: propWorksp
 
                   <tbody>
                     {groupTasks.map((task) => {
-                      const assignedMembers = task.task_members || [];
+                      // Fetch task members dengan profile image
+                      const { data: fetchedMembers = [] } = useTaskMembers(workspace_id, project_id, task.id);
+                      
+                      // Gunakan fetched members jika ada, fallback ke task.task_members
+                      const assignedMembers = fetchedMembers.length > 0 ? fetchedMembers : (task.task_members || []);
 
                       return (
                         <tr
@@ -264,15 +269,15 @@ export function TaskList({ tasks, project_id, readOnly, workspace_id: propWorksp
                           </td>
 
                           <td className="py-3 px-4">
-                            {assignedMembers.slice(0, 3).map((member) => (
+                            {assignedMembers.slice(0, 3).map((member , index) => (
                               <div
-                                key={member.user_id}
+                                key={`${task.id}-${member.user_id ?? index}`}
                                 title={member.name}
                                 className="relative group/avatar"
                               >
                                 <UserAvatar
                                   name={member.name}
-                                  avatar={member.avatar}
+                                  avatar={member.profile_img || member.profile_image || member.avatar}
                                   size="sm"
                                   className="w-7 h-7 border-2 border-border shadow-sm hover:scale-105 transition-transform"
                                 />

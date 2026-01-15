@@ -1,9 +1,9 @@
 import axios from 'axios';
-import {  API_TIMEOUT } from '@/constants/api';
+import { API_BASE_URL, API_TIMEOUT } from '@/constants/api';
 import { setupInterceptors } from './interceptors';
 
 export const apiClient = axios.create({
-  baseURL: "/api",
+  baseURL: API_BASE_URL,
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',

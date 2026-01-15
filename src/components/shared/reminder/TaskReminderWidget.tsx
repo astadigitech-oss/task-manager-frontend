@@ -181,7 +181,7 @@ export function TaskReminderWidget({ isAdmin = false }: TaskReminderWidgetProps)
                                         size="sm"
                                         className="size-6"
                                     />
-                                    <span className="text-xs text-slate-600 dark:text-slate-400 truncate max-w-[100px]">
+                                    <span className="text-xs text-slate-600 dark:text-slate-400 truncate max-w-25">
                                         {member.name}
                                     </span>
                                 </div>
@@ -261,7 +261,7 @@ export function TaskReminderWidget({ isAdmin = false }: TaskReminderWidgetProps)
                 </Alert>
             )}
 
-            <div className="space-y-6 max-h-[500px] overflow-y-auto">
+            <div className="space-y-6 max-h-125 overflow-y-auto">
                 {reminderGroups.map((group) => (
                     <div key={group.date} className="space-y-3">
                         <div className="flex items-center gap-2 sticky top-0 bg-white dark:bg-slate-900 py-2 z-10">

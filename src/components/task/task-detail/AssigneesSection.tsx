@@ -1,4 +1,5 @@
 import { User, UserPlus, X, CheckCircle2, Loader2 } from "lucide-react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -23,6 +24,9 @@ interface AssigneesSectionProps {
   onToggleAssignee: (memberId: number) => void;
   readOnly?: boolean;
   isLoading?: boolean;
+  workspaceId?: number;
+  projectId?: number;
+  taskId?: number;
 }
 
 export function AssigneesSection({
@@ -32,7 +36,9 @@ export function AssigneesSection({
   readOnly = false,
   isLoading = false,
 }: AssigneesSectionProps) {
-  const assignedMembers = member.filter((m) => assignedMemberIds.includes(m.id));
+  const assignedMembers = useMemo(() => {
+    return member.filter((m) => assignedMemberIds.includes(m.id));
+  }, [member, assignedMemberIds]);
 
   return (
     <div className="space-y-3">

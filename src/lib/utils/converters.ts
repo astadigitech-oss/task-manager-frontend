@@ -11,7 +11,7 @@ function normalizeProfileImage(path?: string | null): string | null {
 }
 
 export function apiProfileToUserProfile(api: ProfileApiResponse): UserProfile {
-  const normalizedAvatar = normalizeProfileImage(api.profile_image);
+  const normalizedAvatar = normalizeProfileImage(api.profile_image || api.profile_img);
 
   return {
     id: Number(api.id),
