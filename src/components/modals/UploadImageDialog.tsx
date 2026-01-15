@@ -228,7 +228,7 @@ export function UploadImageDialog({
         </DialogTrigger>
 
         <DialogContent
-          className="max-w-xl sm:max-w-[1200px] flex flex-col p-0"
+          className="max-w-xl sm:max-w-300 flex flex-col p-0"
           style={{ height: '640px' }}
         >
           <DialogHeader className="p-4 border-b">

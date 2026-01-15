@@ -155,7 +155,7 @@ export function ImageLightBoxModal({
               <ZoomOut className="h-4 w-4" />
             </Button>
 
-            <span className="text-white text-sm font-medium min-w-[60px] text-center">
+            <span className="text-white text-sm font-medium min-w-15 text-center">
               {Math.round(zoom * 100)}%
             </span>
 

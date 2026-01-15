@@ -2,25 +2,23 @@ import { ProfileApiResponse } from "@/types/api/profile.api";
 import { UserProfile, UserApi } from "@/types/api/user.api";
 import { Role } from "@/types/shared/role";
 
+/**
+ * Simpan path
+ */
 function normalizeProfileImage(path?: string | null): string | null {
   if (!path) return null;
-
-  if (!path.includes("/")) return null;
-
-  if (path.includes("/uploads/")) {
-    return path.substring(path.indexOf("/uploads/"));
-  }
-
   return path;
 }
 
 export function apiProfileToUserProfile(api: ProfileApiResponse): UserProfile {
+  const normalizedAvatar = normalizeProfileImage(api.profile_image || api.profile_img);
+
   return {
     id: Number(api.id),
     name: api.name,
     email: api.email,
     role: api.role,
-    avatar: normalizeProfileImage(api.profile_image),
+    avatar: normalizedAvatar,
     position: api.position ?? null,
     is_online: Boolean(api.is_online),
     last_seen: api.last_seen ?? null,
@@ -32,24 +30,14 @@ export function apiProfileToUserProfile(api: ProfileApiResponse): UserProfile {
 }
 
 export function apiUserToUserApi(apiUser: any): UserApi {
-
-  function normalizeProfileImage(path?: string | null): string | null {
-    if (!path) return null;
-
-    if (path.includes("/uploads/")) {
-      return path.substring(path.indexOf("/uploads/"));
-    }
-
-    return path;
-  }
+  const normalizedAvatar = normalizeProfileImage(apiUser.profile_image);
 
   return {
     id: Number(apiUser.id),
     name: apiUser.name,
     email: apiUser.email,
     role: apiUser.role as Role,
-    avatar: normalizeProfileImage(apiUser.profile_image),
-
+    avatar: normalizedAvatar,
     is_online: apiUser.is_online ?? false,
     last_seen: apiUser.last_seen ?? null,
     created_at: apiUser.created_at,

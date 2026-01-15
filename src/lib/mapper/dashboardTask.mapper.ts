@@ -1,4 +1,6 @@
 import type { TaskApi, TaskMemberApi } from "@/types/api/task.api";
+import { TaskStatus } from "@/types/shared/status";
+import { TaskPriority } from "@/types/shared/priority";
 
 export function mapDashboardTask(task: any): TaskApi {
 
@@ -10,17 +12,35 @@ export function mapDashboardTask(task: any): TaskApi {
             user_id: m.user_id,
             task_id: task.id,
             project_id: task.project_id,
-            avatar: null,
-            role: m.role_in_task || '',
+            avatar: m.profile_img || m.profile_image || null,
+            profile_img: m.profile_img || null,
+            profile_image: m.profile_image || null,
+            role_in_task: m.role_in_task || '',
             user_email: m.user_email || '',
             position: null,
             joinedAt: m.assigned_at || '',
         }));
 
+    // Normalize status: convert underscores to dashes
+    const normalizeStatus = (status: string): TaskStatus => {
+        if (!status) return "on_board";
+        const normalized = status.replace(/_/g, '-');
+        return normalized as TaskStatus;
+    };
+
+    // Normalize priority: convert underscores to dashes
+    const normalizePriority = (priority: string): TaskPriority => {
+        if (!priority) return "normal";
+        const normalized = priority.replace(/_/g, '-');
+        return normalized as TaskPriority;
+    };
+
     return {
         ...task,
         task_members: taskMembers,
         members: [],
+        status: normalizeStatus(task.status),
+        priority: normalizePriority(task.priority),
         
         due_date:
             task.due_date && !task.due_date.startsWith("0001")

@@ -70,7 +70,7 @@ export function MyTasksWidget() {
             projectId: task.project_id,
             taskId: task.id,
             payload: {
-                status: task.status === "done" ? "on-progress" : "done",
+                status: task.status === "done" ? "on_progress" : "done",
             },
         });
     };
@@ -126,7 +126,7 @@ export function MyTasksWidget() {
                                 size="sm"
                                 className="size-6"
                             />
-                            <span className="text-xs text-slate-600 dark:text-slate-400 truncate max-w-[100px]">
+                            <span className="text-xs text-slate-600 dark:text-slate-400 truncate max-w-25">
                                 {member.name}
                             </span>
                         </div>
@@ -180,7 +180,7 @@ export function MyTasksWidget() {
                 </div>
             ) : (
                 <>
-                    <div className="space-y-6 max-h-[500px] overflow-y-auto">
+                    <div className="space-y-6 max-h-125 overflow-y-auto">
                         {renderSection("Overdue", categorizedTasks.overdue, <AlertCircle className="size-4 text-red-500" />)}
                         {renderSection("Today", categorizedTasks.today, <Clock className="size-4 text-orange-500" />)}
                         {renderSection("This Week", categorizedTasks.thisWeek, <Clock className="size-4 text-blue-500" />)}

@@ -5,12 +5,28 @@ export const statusConfig: Record<
   TaskStatus,
   { label: string; className: string }
 > = {
-  "on-board": { label: "On Board", className: "status-on-board" },
-  "on-progress": { label: "On Progress", className: "status-on-progress" },
-  pending: { label: "Pending", className: "status-pending" },
-  canceled: { label: "Canceled", className: "status-canceled" },
-  done: { label: "Done", className: "status-done" },
+  on_board: {
+    label: "On Board",
+    className: "status-on-board",
+  },
+  on_progress: {
+    label: "On Progress",
+    className: "status-on-progress",
+  },
+  pending: {
+    label: "Pending",
+    className: "status-pending",
+  },
+  canceled: {
+    label: "Canceled",
+    className: "status-canceled",
+  },
+  done: {
+    label: "Done",
+    className: "status-done",
+  },
 };
+
 
 export const priorityConfig: Record<
   TaskPriority,

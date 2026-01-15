@@ -123,6 +123,12 @@ export const API_ENDPOINTS = {
     DELETE: (id: number) => `/api/users/${id}`,
   },
 
+  EXPORT: {
+    DAILY: (project_id: number) => `/api/projects/${project_id}/export/daily`,
+    AGENDA: (project_id: number) => `/api/projects/${project_id}/export/agenda`,
+    WEEKLY_FORWARD: (project_id: number) => `/api/projects/${project_id}/export/weekly-forward`,
+    WEEKLY_BACKWARD: (project_id: number) => `/api/projects/${project_id}/export/weekly-backward`,
+  },
 
   // Web Socket endpoint
   ONLINE_USERS: {

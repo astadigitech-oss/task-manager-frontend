@@ -28,6 +28,7 @@ import {
 import { projectMembersService } from "@/services/projects/projectMember.service";
 import { TaskRequest } from "@/types/api/task.api";
 import { UserAvatar } from "../shared/UserAvatar";
+import { buildTaskPayload } from "@/lib/mapper/task.mapper";
 
 interface QuickAddTaskProps {
   project_id: number;
@@ -47,9 +48,9 @@ export function QuickAddTask({
   const { projects } = useProject();
 
   const [isOpen, setIsOpen] = useState(false);
-  const [taskName, setTaskName] = useState("");
+  const [title, setTitle] = useState("");
   const [assignees, setAssignees] = useState<number[]>([]);
-  const [dueDate, setDueDate] = useState<Date | undefined>();
+  const [dueDate, setDueDate] = useState<string | undefined>();
   const [priority, setPriority] = useState<TaskPriority>("normal");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -72,6 +73,45 @@ export function QuickAddTask({
     }
   }, [isOpen]);
 
+  const handleSubmit = async () => {
+    if (!title.trim() || !currentWorkspaceId) {
+      showErrorToast("Nama task wajib diisi!");
+      return;
+    }
+
+    const payload = buildTaskPayload({
+      title: title.trim(),
+      status,
+      priority,
+      dueDate: dueDate,
+    });
+
+    try {
+
+      const createdTask = await createMutation.mutateAsync({
+        workspaceId: currentWorkspaceId,
+        projectId: project_id,
+        payload,
+      });
+
+      if (!createdTask?.id) return;
+
+      if (assignees.length > 0) {
+        for (const userId of assignees) {
+          await addMemberMutation.mutateAsync({
+            workspaceId: currentWorkspaceId,
+            projectId: project_id,
+            taskId: createdTask.id,
+            userId,
+            role: 'member'
+          });
+        }
+      }
+
+    } catch (err) {
+      console.error("Failed to create task:", err);
+    }
+  };
   const toggleAssignee = (userId?: number) => {
     if (!userId) return;
     setAssignees((prev) =>
@@ -81,73 +121,13 @@ export function QuickAddTask({
     );
   };
 
-  const handleSave = async () => {
-    if (!taskName.trim()) {
-      showErrorToast("Nama task wajib diisi!");
-      return;
-    }
-
-    if (!currentWorkspaceId) {
-      showErrorToast("Workspace tidak ditemukan!");
-      return;
-    }
-
-    if (assignees.length === 0) {
-      showWarningToast("Task dibuat tanpa assignee.");
-    }
-
-    const payload: TaskRequest = {
-      title: taskName.trim(),
-      description: "",
-      status,
-      priority,
-      due_date: dueDate
-        ? format(dueDate, "yyyy-MM-dd")
-        : format(new Date(), "yyyy-MM-dd"),
-    };
-
-    try {
-      console.log('Quick add task...');
-
-      const createdTask = await createMutation.mutateAsync({
-        workspaceId: currentWorkspaceId,
-        projectId: project_id,
-        payload
-      });
-
-      if (!createdTask?.id) {
-        console.error('Quick add failed: no ID returned', createdTask);
-        return;
-      }
-
-      if (assignees.length > 0) {
-        for (const userId of assignees) {
-          await addMemberMutation.mutateAsync({
-            workspaceId: currentWorkspaceId,
-            projectId: project_id,
-            taskId: createdTask.id,
-            userId,
-            role: "member"
-          });
-        }
-        console.log('Quick task members assigned');
-      }
-
-      setTaskName("");
-      setAssignees([]);
-      setDueDate(undefined);
-      setPriority("normal");
-      setIsOpen(false);
-
-      onComplete?.();
-      showSuccessToast("Task berhasil dibuat!");
-    } catch (err) {
-      console.error("Quick add task failed:", err);
-    }
-  };
+  const handleDateSelect = (date: Date | undefined) => {
+    const formattedDate = date ? format(date, "yyyy-MM-dd") : undefined;
+    setDueDate(formattedDate);
+  }
 
   const handleCancel = () => {
-    setTaskName("");
+    setTitle("");
     setAssignees([]);
     setDueDate(undefined);
     setPriority("normal");
@@ -168,8 +148,8 @@ export function QuickAddTask({
           <Input
             ref={inputRef}
             placeholder="Task name..."
-            value={taskName}
-            onChange={(e) => setTaskName(e.target.value)}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             className="text-sm"
             disabled={createMutation.isPending}
           />
@@ -193,7 +173,7 @@ export function QuickAddTask({
                           <UserAvatar
                             key={m.id}
                             name={m.name}
-                            avatar={m.avatar}
+                            avatar={m.avatar || m.profile_img || m.profile_image || ""}
                             size="sm"
                             className="w-6 h-6 border"
                           />
@@ -230,7 +210,7 @@ export function QuickAddTask({
                       >
                         <UserAvatar
                           name={m.name}
-                          avatar={m.avatar}
+                          avatar={m.avatar || m.profile_img || m.profile_image || ""}
                           size="sm"
                           className="w-6 h-6"
                         />
@@ -255,16 +235,13 @@ export function QuickAddTask({
                   disabled={createMutation.isPending}
                 >
                   <CalendarIcon className="w-4 h-4" />
-                  {dueDate ? format(dueDate, "MMM d") : "Due"}
+                  {dueDate ? format(new Date(dueDate), "MMM d, yyyy") : "Due"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-2">
-                <Calendar
-                  mode="single"
-                  selected={dueDate}
-                  onSelect={setDueDate}
-                  initialFocus
-                />
+                <Calendar mode="single"
+                  selected={dueDate ? new Date(dueDate) : undefined}
+                  onSelect={handleDateSelect} />
               </PopoverContent>
             </Popover>
 
@@ -316,8 +293,8 @@ export function QuickAddTask({
 
             <Button
               size="sm"
-              onClick={handleSave}
-              disabled={createMutation.isPending || !taskName.trim()}
+              onClick={handleSubmit}
+              disabled={createMutation.isPending || !title.trim()}
             >
               {createMutation.isPending ? "Adding..." : "Add"}
             </Button>

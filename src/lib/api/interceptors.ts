@@ -52,23 +52,23 @@ export const setupRequestInterceptor = (axiosInstance: AxiosInstance) => {
                 }
             }
 
-            if (process.env.NODE_ENV === "development") {
-                console.log("Request:", {
-                    method: config.method?.toUpperCase(),
-                    url: config.url,
-                    hasToken: !!config.headers["Authorization"],
-                    data: config.data instanceof FormData
-                        ? "FormData (cannot display)"
-                        : config.data,
-                });
+            // if (process.env.NODE_ENV === "development") {
+            //     console.log("Request:", {
+            //         method: config.method?.toUpperCase(),
+            //         url: config.url,
+            //         hasToken: !!config.headers["Authorization"],
+            //         data: config.data instanceof FormData
+            //             ? "FormData (cannot display)"
+            //             : config.data,
+            //     });
 
-                if (config.data instanceof FormData) {
-                    console.log("FormData entries:");
-                    for (let pair of config.data.entries()) {
-                        console.log(`  ${pair[0]}:`, pair[1]);
-                    }
-                }
-            }
+            //     if (config.data instanceof FormData) {
+            //         console.log("FormData entries:");
+            //         for (let pair of config.data.entries()) {
+            //             console.log(`  ${pair[0]}:`, pair[1]);
+            //         }
+            //     }
+            // }
             return config;
         },
         (error: AxiosError) => {

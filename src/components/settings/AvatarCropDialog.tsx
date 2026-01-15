@@ -33,6 +33,8 @@ export function AvatarCropDialog({
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
 
+
+
     const onCropChange = (location: { x: number; y: number }) => {
         setCrop(location);
     };
@@ -68,8 +70,10 @@ export function AvatarCropDialog({
             throw new Error("No 2d context");
         }
 
-        canvas.width = pixelCrop.width;
-        canvas.height = pixelCrop.height;
+        const TARGET_SIZE = 256;
+
+        canvas.width = TARGET_SIZE;
+        canvas.height = TARGET_SIZE;
 
         ctx.drawImage(
             image,
@@ -79,18 +83,22 @@ export function AvatarCropDialog({
             pixelCrop.height,
             0,
             0,
-            pixelCrop.width,
-            pixelCrop.height
+            TARGET_SIZE,
+            TARGET_SIZE
         );
 
         return new Promise((resolve, reject) => {
-            canvas.toBlob((blob) => {
-                if (!blob) {
-                    reject(new Error("Canvas is empty"));
-                    return;
-                }
-                resolve(blob);
-            }, "image/jpeg", 0.95);
+            canvas.toBlob(
+                (blob) => {
+                    if (!blob) {
+                        reject(new Error("Canvas is empty"));
+                        return;
+                    }
+                    resolve(blob);
+                },
+                "image/webp",
+                0.6
+            );
         });
     };
 
@@ -112,12 +120,12 @@ export function AvatarCropDialog({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[1080px]">
+            <DialogContent className="sm:max-w-270">
                 <DialogHeader>
                     <DialogTitle>Crop Avatar</DialogTitle>
                 </DialogHeader>
 
-                <div className="relative h-[720px] bg-muted rounded-lg overflow-hidden">
+                <div className="relative h-100 bg-muted rounded-lg overflow-hidden">
                     <Cropper
                         image={imageSrc}
                         crop={crop}

@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import type { AuthResponse, LoginRequest } from "@/types/api/user.api";
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast-helpers";
 import { ApiError } from "@/lib/api/interceptors";
+import { profileService } from "@/services/profile.service";
+
 
 export const useLogin = () => {
   const loginStore = useAuthStore.getState().login;
+  const updateUser = useAuthStore.getState().updateUser;
   const router = useRouter();
 
   return useMutation<AuthResponse, ApiError, LoginRequest>({
@@ -15,7 +18,7 @@ export const useLogin = () => {
       return await authService.login(email, password, role);
     },
 
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       if (!data.success) {
         showErrorToast(data.message || "Login gagal");
         return;
@@ -23,17 +26,30 @@ export const useLogin = () => {
 
       const { user, token } = data.data;
 
-      // ======================================
-      // ROLE GUARDING
-      // ======================================
+      // ============================
+      // ROLE GUARD
+      // ============================
       if (user.role !== variables.role) {
         showErrorToast(
           `Akun ini bukan ${variables.role}. Silakan pilih role yang sesuai.`
         );
         return;
       }
-
       loginStore({ user, token });
+
+      // ============================
+      // Silent PUT profile
+      // ============================
+      try {
+        const formData = new FormData();
+
+        formData.append("name", user.name);
+
+        const fullProfile = await profileService.updateMyProfile(formData);
+        updateUser(fullProfile);
+      } catch (e) {
+        console.error("Silent profile sync failed:", e);
+      }
 
       showSuccessToast("Login berhasil!");
       router.replace(`/${user.role}/dashboard`);

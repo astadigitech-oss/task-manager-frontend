@@ -1,7 +1,5 @@
-
 export const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    'https://dev-taskmanager.anassyihabuddin.com';
+    process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
 export const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
 
@@ -17,7 +15,6 @@ export const HTTP_STATUS = {
     INTERNAL_SERVER_ERROR: 500,
 } as const;
 
-// Error Messages
 export const ERROR_MESSAGES = {
     NETWORK_ERROR: 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
     UNAUTHORIZED: 'Sesi Anda telah berakhir. Silakan login kembali.',
@@ -30,7 +27,6 @@ export const ERROR_MESSAGES = {
     WS_DISCONNECTED: 'Koneksi realtime terputus.',
 } as const;
 
-// Success Messages
 export const SUCCESS_MESSAGES = {
     LOGIN: 'Login berhasil!',
     REGISTER: 'Registrasi berhasil!',
@@ -40,7 +36,6 @@ export const SUCCESS_MESSAGES = {
     CREATE: 'Data berhasil dibuat!',
 } as const;
 
-// WebSocket Configuration
 export const WS_CONFIG = {
     MAX_RECONNECT_ATTEMPTS: 5,
     RECONNECT_DELAY_MS: 3000,

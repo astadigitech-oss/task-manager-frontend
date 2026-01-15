@@ -30,4 +30,10 @@ export const profileService = {
             throw handleApiError(error, "Gagal mengupdate profile");
         }
     },
+    getMyProfile: async (): Promise<UserProfile> => {
+        const res = await apiClient.get<ProfileApiResponse>(
+            API_ENDPOINTS.PROFILE.UPDATE
+        );
+        return apiProfileToUserProfile(res.data);
+    },
 };

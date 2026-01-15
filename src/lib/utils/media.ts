@@ -8,7 +8,7 @@ export function resolveImageUrl(path?: string | null, bustCache = false): string
   if (path.startsWith("http")) {
     if (bustCache) {
       const separator = path.includes("?") ? "&" : "?";
-      return `${path}${separator}t=${Date.now()}`;
+      return `${path}${separator}?t=${Date.now()}`;
     }
     return path;
   }
@@ -16,8 +16,11 @@ export function resolveImageUrl(path?: string | null, bustCache = false): string
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "";
 
   let relativePath = path;
+  
   if (path.includes("/uploads/")) {
     relativePath = path.substring(path.indexOf("/uploads/"));
+  } else if (path.includes("/profile-images/")) {
+    relativePath = path.substring(path.indexOf("/profile-images/"));
   }
 
   relativePath = relativePath.replace(/^\//, "");

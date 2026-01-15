@@ -180,37 +180,39 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
             ) : (
               <>
                 <ScrollArea className="h-48 border rounded-md p-2">
-                  {usersData.map((user) => (
-                    <div
-                      key={user.id}
-                      className="flex items-center justify-between p-2 rounded-md hover:bg-muted"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <UserAvatar
-                          name={user.name}
-                          avatar={user.avatar}
-                          size="md"
-                          bustCache
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {user.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {user.email}
-                          </p>
+                  {usersData.map((user) => {
+                    const userAvatar = (user as any).profile_image || user.avatar || "";
+                    return (
+                      <div
+                        key={user.id}
+                        className="flex items-center justify-between p-2 rounded-md hover:bg-muted"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <UserAvatar
+                            name={user.name}
+                            avatar={userAvatar}
+                            size="md"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {user.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {user.email}
+                            </p>
+                          </div>
                         </div>
-                      </div>
 
-                      <input
-                        type="checkbox"
-                        checked={selectedUsers.includes(user.id)}
-                        onChange={() => toggleUser(user.id)}
-                        disabled={isSubmitting}
-                        className="cursor-pointer shrink-0"
-                      />
-                    </div>
-                  ))}
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.includes(user.id)}
+                          onChange={() => toggleUser(user.id)}
+                          disabled={isSubmitting}
+                          className="cursor-pointer shrink-0"
+                        />
+                      </div>
+                    );
+                  })}
                 </ScrollArea>
 
                 <p className="text-sm text-muted-foreground mt-1">

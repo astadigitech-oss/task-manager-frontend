@@ -123,7 +123,7 @@ export function UpcomingDeadlinesWidget() {
                                         size="sm"
                                         className="size-6"
                                     />
-                                    <span className="text-xs text-slate-600 dark:text-slate-400 truncate max-w-[100px]">
+                                    <span className="text-xs text-slate-600 dark:text-slate-400 truncate max-w-25">
                                         {member.name}
                                     </span>
                                 </div>
@@ -173,7 +173,7 @@ export function UpcomingDeadlinesWidget() {
                 </Badge>
             </div>
 
-            <div className="space-y-6 max-h-[400px] overflow-y-auto">
+            <div className="space-y-6 max-h-100 overflow-y-auto">
                 {deadlineGroups.map((group) => (
                     <div key={group.date} className="space-y-3">
                         <div className="flex items-center gap-2 sticky top-0 bg-white dark:bg-slate-900 py-2">

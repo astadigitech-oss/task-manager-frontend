@@ -1,11 +1,12 @@
 import { TaskApi, TaskRequest } from "@/types/api/task.api";
 import { TaskStatus } from "@/types/shared/status";
 import { TaskPriority } from "@/types/shared/priority";
+import { apiStatusToUi, uiStatusToApi } from "@/lib/mapper/taskStatus.mapper";
 
-/**
- * Map task dari backend ke format frontend
- * Backend mengirim datetime gabungan, kita split jadi date + time
- */
+// ============================================
+// 1. Task Mapper 
+// ============================================
+
 export function mapTask(api: any): TaskApi {
 
     const parseDateTime = (dateStr: string | undefined | null): string | undefined => {
@@ -47,12 +48,26 @@ export function mapTask(api: any): TaskApi {
     const startDateTime = splitDateTime(api.start_date);
     const dueDateTime = splitDateTime(api.due_date);
 
+    // Normalize status: convert underscores to dashes
+    const normalizeStatus = (status: string): TaskStatus => {
+        if (!status) return "on_board";
+        const normalized = status.replace(/_/g, '-');
+        return normalized as TaskStatus;
+    };
+
+    // Normalize priority: convert underscores to dashes
+    const normalizePriority = (priority: string): TaskPriority => {
+        if (!priority) return "normal";
+        const normalized = priority.replace(/_/g, '-');
+        return normalized as TaskPriority;
+    };
+
     return {
         id: Number(api.id),
         title: api.title ?? "",
         description: api.description ?? "",
-        status: api.status || "on-board",
-        priority: api.priority || "normal",
+        status: api.status as TaskStatus,
+        priority: normalizePriority(api.priority),
         project_id: Number(api.project_id),
 
         members: Array.isArray(api.members) ? api.members : [],
@@ -76,9 +91,12 @@ export function mapTask(api: any): TaskApi {
                 user_id: m.user_id,
                 name: m.user_name,
                 user_email: m.user_email,
-                position: m.role_in_task || "",
+                role_in_task: m.role_in_task || "",
+                position: null,
                 joinedAt: m.assigned_at,
-                avatar: null,
+                avatar: m.profile_img || m.profile_image || null,
+                profile_img: m.profile_img || null,
+                profile_image: m.profile_image || null,
                 task_id: Number(api.id),
                 project_id: Number(api.project_id),
             }))
@@ -88,7 +106,7 @@ export function mapTask(api: any): TaskApi {
 }
 
 // ============================================
-// 2. BUILD PAYLOAD FOR CREATE/UPDATE
+// 2. BUILD PAYLOAD FOR CREATE/UPDATE - FIXED
 // ============================================
 
 export function buildTaskPayload(formData: {
@@ -109,16 +127,26 @@ export function buildTaskPayload(formData: {
         priority: formData.priority || null,
     };
 
-    if (formData.startDate) {
-        payload.start_date = formData.startDate;
+
+    if (formData.startDate && formData.startDate.trim() !== '') {
+        const startDateTime = `${formData.startDate}T00:00:00+07:00`;
+        payload.start_date = startDateTime;
+    } else {
+
+        const fallbackDate = formData.dueDate || new Date().toISOString().split('T')[0];
+        const startDateTime = `${fallbackDate}T00:00:00+07:00`;
+        payload.start_date = startDateTime;
     }
 
-    if (formData.dueDate) {
-        if (formData.dueTime) {
-            payload.due_date = `${formData.dueDate}T${formData.dueTime}:00`;
+    if (formData.dueDate && formData.dueDate.trim() !== '') {
+        let dueDateTime: string;
+
+        if (formData.dueTime && formData.dueTime.trim() !== '') {
+            dueDateTime = `${formData.dueDate}T${formData.dueTime}:00+07:00`;
         } else {
-            payload.due_date = `${formData.dueDate}T00:00:00`;
+            dueDateTime = `${formData.dueDate}T00:00:00+07:00`;
         }
+        payload.due_date = dueDateTime;
     }
 
     return payload;
@@ -143,7 +171,7 @@ export function formatDeadline(date: string, time?: string | null): string {
 }
 
 // ============================================
-// 4. VALIDATION HELPERS - FIXED LOGIC
+// 4. VALIDATION HELPERS
 // ============================================
 
 export function isTaskOverdue(task: TaskApi): boolean {
@@ -173,14 +201,12 @@ export function isCompletedLate(task: TaskApi): boolean {
     
     if (!task.finished_at || !task.due_date) return false;
     
-
     const finishedDate = new Date(task.finished_at);
 
     const [year, month, day] = task.due_date.split('-').map(Number);
     const dueDate = new Date(year, month - 1, day);
     
     if (task.due_time) {
-
         const [hours, minutes] = task.due_time.split(':').map(Number);
         dueDate.setHours(hours, minutes, 0, 0);
     } else {

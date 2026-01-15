@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { AlertTriangle, Flag, Layout, Maximize2, CheckCircle2 } from "lucide-react";
 import { resolveImageUrl } from "@/lib/helpers/imageUrlHelper";
@@ -12,11 +11,12 @@ import { Label } from "@/components/ui/label";
 import { useTaskImages } from "@/context/TaskContext";
 import { useProject } from "@/context/ProjectContext";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useProjectMembers } from "@/hooks/project/useProjectMembers";
 import type { TaskApi } from "@/types/api/task.api";
+import type { ProjectMemberApi } from "@/types/api/project.api";
 import { statusConfig, priorityConfig } from "@/constants/task";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AssigneesSection } from "@/components/task/task-detail/AssigneesSection";
-import { projectMembersService } from "@/services/projects/projectMember.service";
 import { ImageLightBoxModal } from "./ImageLightBoxModal";
 import { 
   formatDeadline, 
@@ -45,15 +45,7 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
     [projects, task.project_id]
   );
 
-  function useProjectMembers(projectId: number) {
-    return useQuery({
-      queryKey: ['project-members', projectId],
-      queryFn: () => projectMembersService.getAll(projectId).then(r => r.data ?? []),
-      enabled: !!projectId,
-      staleTime: 2 * 60 * 1000,
-    });
-  }
-  const { data: projectMembers = [] } = useProjectMembers(task.project_id);
+  const { members: projectMembers = [] } = useProjectMembers(task.project_id);
 
   const taskMembers = task.task_members || [];
 
@@ -65,10 +57,10 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
   }, [user, taskMembers]);
 
   const membersForSection = useMemo(() => {
-    return projectMembers.map((pm) => ({
+    return projectMembers.map((pm: ProjectMemberApi) => ({
       id: pm.user_id ?? pm.id,
       name: pm.name,
-      avatar: pm.avatar || "",
+      avatar: pm.profile_img || pm.avatar || "",
       role: pm.role || "member",
       division: "",
     }));
@@ -103,7 +95,7 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent
-        className="p-0 gap-0 overflow-hidden sm:max-w-[1200px]"
+        className="p-0 gap-0 overflow-hidden sm:max-w-300"
         onPointerDownOutside={handlePointerDownOutside}
       >
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
@@ -114,7 +106,7 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col h-[80vh] max-h-[800px]">
+        <div className="flex flex-col h-[80vh] max-h-200">
           <div className="flex-1 overflow-y-auto">
             <div className="p-6 space-y-6">
               {/* TITLE SECTION */}
@@ -180,6 +172,9 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                 assignedMemberIds={assignedMemberIds}
                 onToggleAssignee={() => { }}
                 readOnly
+                workspaceId={workspace_id}
+                projectId={task.project_id}
+                taskId={task.id}
               />
 
               <Separator />

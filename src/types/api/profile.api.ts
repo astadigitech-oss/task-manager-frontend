@@ -1,6 +1,7 @@
 import { Role } from "../shared/role";
 
 export interface ProfileApiResponse {
+    profile_img: string | null;
     id: number;
     name: string;
     email: string;

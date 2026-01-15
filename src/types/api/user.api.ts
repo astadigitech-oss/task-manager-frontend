@@ -23,21 +23,20 @@ export interface RegisterRequest {
     password: string;
 }
 
-// ✅ Base User dari API (sesuai response GET /users)
+// Base User dari API
 export interface UserApi {
     id: number;
     name: string;
     email: string;
     role: Role;
     avatar: string | null;
+    // profile_img: string | null;
     is_online: boolean;
     last_seen: string | null;
     created_at: string;
     updated_at: string;
 }
 
-// ✅ Extended User untuk profile/dashboard (dengan data tambahan)
-// Tidak perlu override avatar karena sudah nullable di parent
 export interface UserProfile extends UserApi {
     position?: string | null;
     projectsCount?: number;
@@ -50,7 +49,7 @@ export interface AuthResponse {
     success: boolean;
     message: string;
     data: {
-        user: UserProfile; // atau UserApi, tergantung response login Anda
+        user: UserProfile;
         token: string;
     };
 }
@@ -65,7 +64,7 @@ export interface PaginationMeta {
     total_pages: number;
 }
 
-// User list response (sesuai response yang Anda berikan)
+// User list response 
 export interface UserListResponse {
     success: boolean;
     code: number;

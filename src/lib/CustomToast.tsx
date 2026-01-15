@@ -34,7 +34,7 @@ export function CustomToast({ title, description, type }: CustomToastProps) {
             onPointerDown={handleToastClick}
             className={cn(
                 "pointer-events-auto flex items-start gap-3 rounded-lg border p-4 shadow-lg backdrop-blur-sm",
-                "min-w-[300px] max-w-[420px]",
+                "min-w-75 max-w-105",
                 "cursor-default select-none",
                 styles[type]
             )}
@@ -94,7 +94,7 @@ export function ConfirmToast({
             onPointerDown={handleToastClick}
             className={cn(
                 "pointer-events-auto flex flex-col gap-3 rounded-lg border border-border bg-background p-4 shadow-lg backdrop-blur-sm",
-                "min-w-[320px] max-w-[420px]",
+                "min-w-[320px] max-w-105",
                 "cursor-default select-none"
             )}
             style={{ zIndex: 9999 }}

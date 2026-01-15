@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { format } from "date-fns";
 import { Flag, Activity, ChevronRight, Layout, Clock } from "lucide-react";
 import { resolveImageUrl } from "@/lib/helpers/imageUrlHelper";
@@ -20,23 +20,24 @@ import { useAuthStore } from "@/store/useAuthStore";
 import {
     useUpdateTask,
     useDeleteTask,
-    useTaskMembers,
     useAddTaskMember,
     useRemoveTaskMember,
     useTaskImages,
     useUploadMultipleTaskImages,
     useDeleteTaskImage
 } from "@/context/TaskContext";
-import { useQuery } from "@tanstack/react-query";
-import { projectMembersService } from "@/services/projects/projectMember.service";
+import { useProjectMembers } from "@/hooks/project/useProjectMembers";
 import type { TaskApi } from "@/types/api/task.api";
+import type { ProjectMemberApi } from "@/types/api/project.api";
 import type { TaskStatus } from "@/types/shared/status";
 import type { TaskPriority } from "@/types/shared/priority";
 import { cn } from "@/lib/utils/utils";
-import { showSuccessToast, showErrorToast, showWarningToast, showConfirmToast } from "@/lib/helpers/toast-helpers";
+import {  showErrorToast, showWarningToast, showConfirmToast } from "@/lib/helpers/toast-helpers";
 import { statusConfig, priorityConfig } from "@/constants/task";
 import { ImageLightBoxModal } from "./ImageLightBoxModal";
 import { buildTaskPayload } from "@/lib/mapper/task.mapper";
+import { useQueryClient } from "@tanstack/react-query";
+import { taskKeys } from "@/lib/react-query/taskKeys";
 
 interface TaskEditModalProps {
     task: TaskApi;
@@ -47,6 +48,7 @@ interface TaskEditModalProps {
 export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProps) {
     const { projects } = useProject();
     const { user } = useAuthStore();
+    const queryClient = useQueryClient();
 
     // Mutations
     const updateMutation = useUpdateTask();
@@ -57,18 +59,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
     const deleteImageMutation = useDeleteTaskImage();
 
     // Queries
-    const { data: taskMembers = [] } = useTaskMembers(workspace_id, task.project_id, task.id);
     const { data: taskImages = [] } = useTaskImages(workspace_id, task.project_id, task.id);
-    
-    function useProjectMembers(projectId: number) {
-        return useQuery({
-            queryKey: ['project-members', projectId],
-            queryFn: () => projectMembersService.getAll(projectId).then(r => r.data ?? []),
-            enabled: !!projectId,
-            staleTime: 2 * 60 * 1000,
-        });
-    }
-    const { data: projectMembers = [] } = useProjectMembers(task.project_id);
 
     // Form state
     const [title, setTitle] = useState(task.title);
@@ -82,6 +73,10 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
     const [hasChanges, setHasChanges] = useState(false);
     const [showActivity, setShowActivity] = useState(false);
 
+    const [localAssignedIds, setLocalAssignedIds] = useState<number[]>(
+        task.task_members?.map(m => m.user_id) || []
+    );
+
     useEffect(() => {
         setTitle(task.title);
         setDescription(task.description || "");
@@ -92,9 +87,9 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
         setDueDate(task.due_date);
         setDueTime(task.due_time || "");
         setHasChanges(false);
-    }, [task.id]);
+        setLocalAssignedIds(task.task_members?.map(m => m.user_id) || []);
+    }, [task.id, task]);
 
-    // Image upload state
     const [restrictDownload, setRestrictDownload] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -106,9 +101,24 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
     );
 
     const project = useMemo(
-        () => projects.find((p) => p.id === task.project_id),
+        () => projects.find(p => p.id === task.project_id),
         [projects, task.project_id]
     );
+
+    const { members: projectMembers = [] } = useProjectMembers(task.project_id);
+
+    const membersForSection = useMemo(() => {
+        return projectMembers.map((pm: ProjectMemberApi) => ({
+            id: pm.user_id ?? pm.id,
+            name: pm.name,
+            avatar: pm.profile_img || pm.avatar || "",
+            role: pm.role || "member",
+            division: "",
+        }));
+    }, [projectMembers]);
+
+    // Gunakan localAssignedIds yang reactive
+    const assignedMemberIds = localAssignedIds;
 
     const handleSave = async () => {
         if (!title.trim()) {
@@ -121,11 +131,10 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
             return;
         }
 
-        if (taskMembers.length === 0) {
+        if (localAssignedIds.length === 0) {
             showWarningToast("Task belum di-assign", "Task akan disimpan tanpa assignee.");
         }
 
-        // ✅ Use buildTaskPayload helper
         const payload = buildTaskPayload({
             title: title.trim(),
             description: description.trim(),
@@ -134,7 +143,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
             priority,
             startDate: startDate,
             dueDate: dueDate,
-            dueTime: dueTime || undefined, // ✅ Include time
+            dueTime: dueTime || undefined,
         });
 
         try {
@@ -142,7 +151,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                 workspaceId: workspace_id,
                 projectId: task.project_id,
                 taskId: task.id,
-                payload // ✅ Payload has combined datetime
+                payload
             });
             setHasChanges(false);
             onClose();
@@ -170,20 +179,24 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
         );
     };
 
-    const toggleAssignee = async (userId: number | undefined) => {
+    const toggleAssignee = useCallback(async (userId: number | undefined) => {
         if (!userId) return;
 
-        const existingMember = taskMembers.find(m => m.user_id === userId);
+        const isCurrentlyAssigned = localAssignedIds.includes(userId);
 
         try {
-            if (existingMember) {
+            if (isCurrentlyAssigned) {
+
                 await removeMemberMutation.mutateAsync({
                     workspaceId: workspace_id,
                     projectId: task.project_id,
                     taskId: task.id,
-                    memberId: existingMember.user_id
+                    memberId: userId
                 });
+                
+                setLocalAssignedIds(prev => prev.filter(id => id !== userId));
             } else {
+
                 await addMemberMutation.mutateAsync({
                     workspaceId: workspace_id,
                     projectId: task.project_id,
@@ -191,31 +204,25 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                     userId,
                     role: "member"
                 });
+                
+
+                setLocalAssignedIds(prev => [...prev, userId]);
             }
 
-            setHasChanges(true);
+            queryClient.invalidateQueries({
+                queryKey: taskKeys.detail(workspace_id, task.project_id, task.id)
+            });
+            queryClient.invalidateQueries({
+                queryKey: taskKeys.list(workspace_id, task.project_id)
+            });
+
         } catch (err) {
             console.error("Failed to toggle assignee:", err);
+            showErrorToast("Gagal update assignee", "Silakan coba lagi");
         }
-    };
+    }, [localAssignedIds, workspace_id, task, addMemberMutation, removeMemberMutation, queryClient]);
 
-    const membersForSection = useMemo(
-        () => projectMembers.map(pm => ({
-            id: pm.user_id ?? pm.id,
-            name: pm.name,
-            avatar: pm.avatar || "",
-            role: pm.role || "member",
-            position: pm.position || "",
-        })),
-        [projectMembers]
-    );
-
-    const assignedMemberIds = useMemo(
-        () => taskMembers.map(m => m.user_id),
-        [taskMembers]
-    );
-
-    const handleDateChange = (date: Date | undefined, field: "startDate" | "dueDate") => {
+    const handleDateChange = useCallback((date: Date | undefined, field: "startDate" | "dueDate") => {
         const formattedDate = date ? format(date, "yyyy-MM-dd") : undefined;
         if (field === "startDate") {
             setStartDate(formattedDate);
@@ -223,9 +230,9 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
             setDueDate(formattedDate);
         }
         setHasChanges(true);
-    };
+    }, []);
 
-    const handleImageUpload = async (files: File[]) => {
+    const handleImageUpload = useCallback(async (files: File[]) => {
         if (files.length === 0) return;
 
         try {
@@ -243,14 +250,14 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
             console.error('Upload failed:', err);
             setUploadProgress(0);
         }
-    };
+    }, [workspace_id, task.project_id, task.id, uploadImagesMutation]);
 
-    const handlePreviewImage = (index: number) => {
+    const handlePreviewImage = useCallback((index: number) => {
         setLightboxIndex(index);
         setLightboxOpen(true);
-    };
+    }, []);
 
-    const handleDownloadImage = (image: any) => {
+    const handleDownloadImage = useCallback((image: any) => {
         const imageUrlRaw = image.image_url || image.url;
         const imageUrl = resolveImageUrl(imageUrlRaw);
         const a = document.createElement("a");
@@ -258,26 +265,42 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
         a.download = image.title || `image-${image.id}.jpg`;
         a.target = "_blank";
         a.click();
-    };
+    }, []);
 
-    const handleRemoveImage = async (imageId: number) => {
-        showConfirmToast(
-            "Hapus gambar?",
-            "Gambar yang dihapus tidak dapat dikembalikan.",
-            async () => {
-                try {
-                    await deleteImageMutation.mutateAsync({
-                        workspaceId: workspace_id,
-                        projectId: task.project_id,
-                        taskId: task.id,
-                        imageId
-                    });
-                } catch (err) {
-                    console.error("Failed to delete image:", err);
-                }
+    const handleRemoveImage = useCallback(async (imageId: number) => {
+
+    if (!workspace_id || workspace_id <= 0) {
+        console.error("Invalid workspace_id in handleRemoveImage:", workspace_id);
+        showErrorToast("Workspace ID tidak valid", "Silakan refresh halaman");
+        return;
+    }
+
+    showConfirmToast(
+        "Hapus gambar?",
+        "Gambar yang dihapus tidak dapat dikembalikan.",
+        async () => {
+            try {
+                console.log("User confirmed, calling deleteImageMutation...");
+                
+                await deleteImageMutation.mutateAsync({
+                    workspaceId: workspace_id,
+                    projectId: task.project_id,
+                    taskId: task.id,
+                    imageId
+                });
+                
+                console.log("Image deleted successfully");
+            } catch (err: any) {
+                console.error("Failed to delete image:", {
+                    error: err,
+                    message: err?.message,
+                    response: err?.response?.data
+                });
+                
             }
-        );
-    };
+        }
+    );
+}, [workspace_id, task.project_id, task.id, deleteImageMutation]);
 
     const handlePointerDownOutside = (e: Event) => {
         const target = e.target as HTMLElement;
@@ -293,14 +316,14 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
     return (
         <Dialog open={true} onOpenChange={onClose}>
             <DialogContent
-                className="p-0 gap-0 overflow-hidden sm:max-w-[1200px]"
+                className="p-0 gap-0 overflow-hidden sm:max-w-300"
                 onPointerDownOutside={handlePointerDownOutside}
             >
                 <DialogHeader className="px-6 pt-6 pb-4 border-b">
                     <DialogTitle>Edit Task</DialogTitle>
                 </DialogHeader>
 
-                <div className="flex flex-col h-[80vh] max-h-[800px]">
+                <div className="flex flex-col h-[80vh] max-h-200">
                     <div className="flex-1 overflow-y-auto">
                         <div className="p-6 space-y-6">
                             {/* TITLE SECTION */}
@@ -369,7 +392,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                         setHasChanges(true);
                                     }}
                                 >
-                                    <SelectTrigger className="w-[140px] h-8">
+                                    <SelectTrigger className="w-35 h-8">
                                         <div className="flex items-center gap-1.5">
                                             <Flag
                                                 className="w-3.5 h-3.5"
@@ -434,7 +457,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                                 className="w-40"
                                                 placeholder="HH:MM"
                                             />
-                                            
+
                                             <div className="flex gap-1">
                                                 <Button
                                                     variant="outline"
@@ -457,7 +480,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                                     5 PM
                                                 </Button>
                                             </div>
-                                            
+
                                             {dueTime && (
                                                 <Button
                                                     variant="ghost"
@@ -489,7 +512,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                         setDescription(e.target.value);
                                         setHasChanges(true);
                                     }}
-                                    className="min-h-[120px] resize-none"
+                                    className="min-h-30 resize-none"
                                     placeholder="Add a description..."
                                 />
                             </div>
@@ -505,7 +528,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                         setNotes(e.target.value);
                                         setHasChanges(true);
                                     }}
-                                    className="min-h-[120px] resize-none"
+                                    className="min-h-30 resize-none"
                                     placeholder="Add some notes..."
                                 />
                             </div>

@@ -42,16 +42,16 @@ interface ProjectBoardLayoutProps {
 }
 
 const COLUMNS: { status: TaskStatus; label: string }[] = [
-  { status: "on-board", label: "On Board" },
-  { status: "on-progress", label: "On Progress" },
+  { status: "on_board", label: "On Board" },
+  { status: "on_progress", label: "On Progress" },
   { status: "pending", label: "Pending" },
   { status: "canceled", label: "Canceled" },
   { status: "done", label: "Done" },
 ];
 
 const STATUS_COLOR_MAP: Record<TaskStatus, string> = {
-  "on-board": "status-on-board",
-  "on-progress": "status-on-progress",
+  "on_board": "status-on-board",
+  "on_progress": "status-on-progress",
   "pending": "status-pending",
   "canceled": "status-canceled",
   "done": "status-done",
@@ -405,7 +405,12 @@ function ProjectBoardLayout({
                   <Card
                     key={col.status}
                     className={cn(
-                      "w-72 shrink-0 p-3 flex flex-col",
+                      "w-72 shrink-0 p-3 grid grid-rows-[auto_1fr] gap-3",
+                      "max-h-[calc(100vh-8rem)]",
+                      "sm:max-h-[calc(100vh-10rem)]",
+                      "md:max-h-[calc(100vh-13rem)]",
+                      "lg:max-h-[calc(100vh-16rem)]",
+                      "xl:max-h-[calc(100vh-19rem)]",
                       hoveredStatus === col.status ? "ring-2 ring-dashed ring-primary/40" : ""
                     )}
                     onDragOver={(e) => e.preventDefault()}
@@ -413,7 +418,7 @@ function ProjectBoardLayout({
                     onDragLeave={() => setHoveredStatus(null)}
                     onDrop={(e) => handleDrop(e, col.status)}
                   >
-                    <div className="flex justify-between items-center mb-3 shrink-0">
+                    <div className="flex justify-between items-center">
                       <Badge
                         variant="secondary"
                         className={cn("font-semibold text-xs px-2.5 py-1", getStatusColor(col.status))}
@@ -422,14 +427,16 @@ function ProjectBoardLayout({
                       </Badge>
                     </div>
 
-                    <div className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-ring">
-                      <TaskCard
-                        tasks={columnTasks}
-                        status={col.status}
-                        projectId={project_id}
-                        workspaceId={validWorkspaceId}
-                        readOnly={!canCreateTask}
-                      />
+                    <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-ring min-h-0">
+                      <div className="space-y-2 p-2">
+                        <TaskCard
+                          tasks={columnTasks}
+                          status={col.status}
+                          projectId={project_id}
+                          workspaceId={validWorkspaceId}
+                          readOnly={!canCreateTask}
+                        />
+                      </div>
                     </div>
                   </Card>
                 );

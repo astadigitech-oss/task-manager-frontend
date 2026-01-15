@@ -25,33 +25,27 @@ import {
 } from "@/components/ui/breadcrumb";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { divisionConfig } from "@/types/ui/user";
+import { positionConfig } from "@/types/shared/position";
 import { useUpdateProfile } from "@/hooks/api/useProfile";
 import { resolveImageUrl } from "@/lib/utils/media";
 import { getInitials } from "@/lib/helpers/avatar";
 import { AvatarCropDialog } from "@/components/settings/AvatarCropDialog";
 import { showWarningToast } from "@/lib/helpers/toast-helpers";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 type SettingsTab = "profile" | "preferences" | "account";
-type DivisionKey = keyof typeof divisionConfig;
+type PositionKey = keyof typeof positionConfig;
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const { mutate: updateProfile, isPending } = useUpdateProfile();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [division, setDivision] = useState<DivisionKey | "">("");
+  const [position, setPosition] = useState<PositionKey | "">("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -61,7 +55,7 @@ export function SettingsPage() {
   const [initialProfile, setInitialProfile] = useState({
     fullName: "",
     email: "",
-    division: "" as DivisionKey | "", 
+    position: "" as PositionKey | "",
   });
 
   const [isDirty, setIsDirty] = useState(false);
@@ -72,24 +66,23 @@ export function SettingsPage() {
     const initialData = {
       fullName: user.name,
       email: user.email,
-      division: (user.position as DivisionKey) || "",
+      position: (user.position as PositionKey) || "",
     };
 
     setFullName(initialData.fullName);
     setEmail(initialData.email);
-    setDivision(initialData.division);
+    setPosition(initialData.position);
     setInitialProfile(initialData);
   }, [user]);
 
   useEffect(() => {
     const hasChanged =
       fullName !== initialProfile.fullName ||
-      division !== initialProfile.division ||
+      position !== initialProfile.position ||
       avatarFile !== null;
 
     setIsDirty(hasChanged);
-  }, [fullName, division, avatarFile, initialProfile]);
-
+  }, [fullName, position, avatarFile, initialProfile]);
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -142,55 +135,37 @@ export function SettingsPage() {
     };
   }, [avatarPreview, selectedImageSrc]);
 
+  useEffect(() => {
+    if (user) {
+      setFullName(user.name);
+      setPosition((user.position as PositionKey) || "");
+    }
+  }, [user]);
+
   const handleSave = () => {
     const formData = new FormData();
-    
     formData.append("name", fullName);
-    
-    const positionToSend = division || user?.position || "";
-    if (positionToSend) {
-      formData.append("position", positionToSend);
+
+    if (position) {
+      formData.append("position", position);
     }
 
     if (avatarFile) {
       formData.append("profile_image", avatarFile);
     }
 
-    updateProfile(formData, {
-      onSuccess: (data) => {
-        setInitialProfile({ 
-          fullName: data.name, 
-          email: data.email, 
-          division: (data.position as DivisionKey) || ""
-        });
-        
-        if (avatarPreview) {
-          URL.revokeObjectURL(avatarPreview);
-        }
-        
-        setAvatarFile(null);
-        setAvatarPreview(null);
-        setIsDirty(false);
-        
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-      },
-      onError: (error) => {
-        console.error("Update gagal:", error);
-      }
-    });
+    updateProfile(formData);
   };
 
   const handleCancel = () => {
     setFullName(initialProfile.fullName);
     setEmail(initialProfile.email);
-    setDivision(initialProfile.division);
-    
+    setPosition(initialProfile.position);
+
     if (avatarPreview) {
       URL.revokeObjectURL(avatarPreview);
     }
-    
+
     setAvatarFile(null);
     setAvatarPreview(null);
     setIsDirty(false);
@@ -241,11 +216,10 @@ export function SettingsPage() {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-2 px-1 py-4 text-sm font-medium border-b-2 transition-colors ${
-                      activeTab === item.id
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50"
-                    }`}
+                    className={`flex items-center gap-2 px-1 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === item.id
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50"
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     {item.label}
@@ -273,9 +247,12 @@ export function SettingsPage() {
                   <div className="relative">
                     <Avatar className="h-24 w-24">
                       <AvatarImage
-                        src={avatarPreview || resolveImageUrl(user?.avatar, true)}
+                        src={
+                          avatarPreview ||
+                          resolveImageUrl(user?.avatar, true)
+                        }
                         alt={user?.name}
-                        key={user?.avatar}
+                        key={`avatar-${user?.updated_at}`}
                       />
                       <AvatarFallback className="text-2xl">
                         {getInitials(user?.name)}
@@ -341,25 +318,33 @@ export function SettingsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="division">Division</Label>
-                    <Select 
-                      value={division} 
-                      onValueChange={(v: string) => setDivision(v as DivisionKey | "")}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select division" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(divisionConfig).map(([key, config]) => (
-                          <SelectItem key={key} value={key}>
-                            {config.label}
-                          </SelectItem>
+                    <Label htmlFor="position">Position</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="px-3 text-sm">
+                          {position
+                            ? positionConfig[position].label
+                            : "Select your position"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        {Object.entries(positionConfig).map(([key, config]) => (
+                          <div
+                            key={key}
+                            className={`p-2 rounded-md cursor-pointer hover:bg-muted ${position === key ? "bg-muted" : ""
+                              }`}
+                            onClick={() => {
+                              setPosition(key as PositionKey);
+                            }}
+                          >
+                            <p className="text-sm">{config.label}</p>
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
-                    {!division && (
+                      </PopoverContent>
+                    </Popover>
+                    {!position && (
                       <p className="text-xs text-muted-foreground">
-                        Pilih divisi Anda
+                        Pilih posisi Anda
                       </p>
                     )}
                   </div>
