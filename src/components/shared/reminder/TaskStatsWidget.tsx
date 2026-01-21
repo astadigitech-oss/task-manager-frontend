@@ -31,8 +31,8 @@ export function TaskStatsWidget() {
 
         const total = myTasks.length;
         const completed = myTasks.filter((t) => t.status === "done").length;
-        const inProgress = myTasks.filter((t) => t.status === "on-progress").length;
-        const pending = myTasks.filter((t) => t.status === "on-board" || t.status === "pending").length;
+        const inProgress = myTasks.filter((t) => t.status === "on_progress").length;
+        const pending = myTasks.filter((t) => t.status === "on_board" || t.status === "pending").length;
 
         const overdue = myTasks.filter((t) => {
             if (t.status === "done" || t.status === "canceled") return false;
