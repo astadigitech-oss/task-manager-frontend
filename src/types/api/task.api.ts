@@ -19,6 +19,7 @@ export interface TaskRequest {
 
 export interface TaskMemberInList {
     profile_image: string | null;
+    user_profile_image: string | null;
     avatar: string | null;
     user_id: number;
     user_name: string;
@@ -66,6 +67,7 @@ export interface TaskMemberApi {
     project_id: number;
     avatar?: string | null;
     profile_image?: string | null;
+    user_profile_image: string | null;
     profile_img?: string | null; 
     role_in_task: string;  
     user_email: string;

@@ -102,7 +102,7 @@ export function UpcomingDeadlinesWidget() {
                         <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-1">{task.title}</p>
                         <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="secondary" className="text-xs capitalize">
-                                {task.status.replace("-", " ")}
+                                {task.status.replace("_", " ")}
                             </Badge>
                             <Badge
                                 variant="secondary"

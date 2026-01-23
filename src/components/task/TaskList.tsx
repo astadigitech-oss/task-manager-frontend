@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { TaskStatus } from "@/types/shared/status";
 import { useDeleteTask, useUpdateTask } from "@/context/TaskContext";
-import { useTaskMembers } from "@/hooks/task/useTaskMember";
 import { cn } from "@/lib/utils/utils";
 import { priorityConfig } from "@/constants/task";
 import { showConfirmToast } from "@/lib/helpers/toast-helpers";
@@ -232,11 +231,8 @@ export function TaskList({ tasks, project_id, readOnly, workspace_id: propWorksp
 
                   <tbody>
                     {groupTasks.map((task) => {
-                      // Fetch task members dengan profile image
-                      const { data: fetchedMembers = [] } = useTaskMembers(workspace_id, project_id, task.id);
-                      
-                      // Gunakan fetched members jika ada, fallback ke task.task_members
-                      const assignedMembers = fetchedMembers.length > 0 ? fetchedMembers : (task.task_members || []);
+
+                      const assignedMembers = task.task_members || [];
 
                       return (
                         <tr
@@ -269,20 +265,30 @@ export function TaskList({ tasks, project_id, readOnly, workspace_id: propWorksp
                           </td>
 
                           <td className="py-3 px-4">
-                            {assignedMembers.slice(0, 3).map((member , index) => (
-                              <div
-                                key={`${task.id}-${member.user_id ?? index}`}
-                                title={member.name}
-                                className="relative group/avatar"
-                              >
-                                <UserAvatar
-                                  name={member.name}
-                                  avatar={member.profile_img || member.profile_image || member.avatar}
-                                  size="sm"
-                                  className="w-7 h-7 border-2 border-border shadow-sm hover:scale-105 transition-transform"
-                                />
-                              </div>
-                            ))}
+                            <div className="flex -space-x-2">
+                              {assignedMembers.slice(0, 3).map((member, index) => (
+                                <div
+                                  key={`${task.id}-${member.user_id ?? index}`}
+                                  title={member.name}
+                                  className="relative group/avatar"
+                                >
+                                  <UserAvatar
+                                    name={member.name}
+                                    avatar={member.profile_img || member.profile_image || member.avatar}
+                                    size="sm"
+                                    className="w-7 h-7 border-2 border-background shadow-sm hover:scale-105 transition-transform"
+                                  />
+                                </div>
+                              ))}
+                              {assignedMembers.length > 3 && (
+                                <div
+                                  className="w-7 h-7 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-medium text-muted-foreground"
+                                  title={`+${assignedMembers.length - 3} more`}
+                                >
+                                  +{assignedMembers.length - 3}
+                                </div>
+                              )}
+                            </div>
                           </td>
 
                           <td className="py-3 px-4">

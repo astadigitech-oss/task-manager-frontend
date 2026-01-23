@@ -52,11 +52,8 @@ const SingleTaskCard = memo(({
   onSelectTask: (task: TaskApi) => void;
   onEditTask: (task: TaskApi) => void;
 }) => {
-  // Fetch task members dengan profile image
-  const { data: fetchedMembers = [] } = useTaskMembers(workspaceId, projectId, task.id);
-  
-  // Gunakan fetched members jika ada, fallback ke task.task_members
-  const assignedMembers = fetchedMembers.length > 0 ? fetchedMembers : (task.task_members || []);
+
+  const assignedMembers = task.task_members ?? [];
 
   const handleDragStart = useCallback((e: React.DragEvent) => {
     (e.currentTarget as HTMLElement).style.opacity = '1';
@@ -185,11 +182,11 @@ const SingleTaskCard = memo(({
           <div className="flex items-center gap-2">
             {assignedMembers.length > 0 ? (
               <div className="flex space-x-2">
-                {assignedMembers.slice(0, 3).map((member, index) => (
+                {assignedMembers.slice(0, 3).map((m) => (
                   <UserAvatar
-                    key={`${member.user_id || member.id}-${index}`}
-                    name={member.name}
-                    avatar={member.profile_img || member.profile_image || member.avatar}
+                    key={m.user_id}
+                    name={m.name}
+                    avatar={m.avatar}
                     size="sm"
                     className="w-7 h-7 border-2 border-border text-foreground shadow-sm hover:scale-105 transition-transform"
                   />

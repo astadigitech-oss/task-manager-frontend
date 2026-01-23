@@ -37,7 +37,9 @@ function ProjectCard({
   onViewDetail: (project: ProjectApi) => void;
   isReadOnly: boolean;
 }) {
-  const { progress, task_count, members = [] } = project;
+  const rawProgress = Number(project.progress) || 0;
+  const progressValue = Math.round(rawProgress);
+  const { task_count, members = [] } = project;
 
   return (
     <Card
@@ -92,10 +94,12 @@ function ProjectCard({
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-foreground">Progress</span>
-          <span className="text-sm text-foreground">{progress}%</span>
+          <span className="text-sm text-foreground">
+            {progressValue}%
+          </span>
         </div>
 
-        <Progress value={progress} className="h-2" />
+        <Progress value={progressValue} className="h-2" />
 
         {/* Task Info */}
         {task_count > 0 && (

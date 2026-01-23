@@ -12,7 +12,8 @@ export function mapDashboardTask(task: any): TaskApi {
             user_id: m.user_id,
             task_id: task.id,
             project_id: task.project_id,
-            avatar: m.profile_img || m.profile_image || null,
+            user_profile_image: m.user_profile_image || m.profile_img || m.profile_image || null,
+            avatar: m.user_profile_image || m.profile_img || m.profile_image || null,
             profile_img: m.profile_img || null,
             profile_image: m.profile_image || null,
             role_in_task: m.role_in_task || '',
@@ -39,9 +40,9 @@ export function mapDashboardTask(task: any): TaskApi {
         ...task,
         task_members: taskMembers,
         members: [],
-        status: normalizeStatus(task.status),
+        status: task.status as TaskStatus,
         priority: normalizePriority(task.priority),
-        
+
         due_date:
             task.due_date && !task.due_date.startsWith("0001")
                 ? task.due_date
