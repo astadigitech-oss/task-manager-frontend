@@ -101,8 +101,8 @@ export function MyTasksWidget() {
                 <p className="text-sm font-medium truncate">{task.title}</p>
 
                 <div className="flex gap-2 mt-1 flex-wrap">
-                    <Badge variant="secondary" className={statusConfig[task.status]?.className}>
-                        {statusConfig[task.status]?.label}
+                    <Badge variant="secondary" className="text-xs capitalize">
+                        {task.status.replace("_", " ")}
                     </Badge>
                     <Badge variant="secondary" className={priorityConfig[task.priority]?.className}>
                         {priorityConfig[task.priority]?.label}
@@ -122,7 +122,7 @@ export function MyTasksWidget() {
                         <div key={member.user_id} className="flex items-center gap-2">
                             <UserAvatar
                                 name={member.name}
-                                avatar={member.avatar}
+                                avatar={member.user_profile_image}
                                 size="sm"
                                 className="size-6"
                             />

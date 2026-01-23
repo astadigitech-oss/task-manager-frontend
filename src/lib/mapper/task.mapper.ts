@@ -24,20 +24,20 @@ export function mapTask(api: any): TaskApi {
         time: string | undefined;
     } => {
         if (!dateTimeStr) return { date: undefined, time: undefined };
-        
+
         try {
             const dt = new Date(dateTimeStr);
             if (isNaN(dt.getTime())) return { date: undefined, time: undefined };
-            
+
             const date = dt.toISOString().split('T')[0];
-            
+
             const hours = dt.getHours();
             const minutes = dt.getMinutes();
-            
+
             if (hours === 0 && minutes === 0) {
                 return { date, time: undefined };
             }
-            
+
             const time = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
             return { date, time };
         } catch {
@@ -77,14 +77,14 @@ export function mapTask(api: any): TaskApi {
         start_date: startDateTime.date,
         due_date: dueDateTime.date,
         due_time: dueDateTime.time,
-        
+
         finished_at: parseDateTime(api.finished_at),
         is_overdue: api.is_overdue ?? false,
 
         notes: api.notes ?? "",
         created_at: parseDateTime(api.created_at) ?? new Date().toISOString(),
         updated_at: parseDateTime(api.updated_at) ?? new Date().toISOString(),
-        
+
         task_members: Array.isArray(api.members)
             ? api.members.map((m: any) => ({
                 id: m.user_id,
@@ -94,13 +94,14 @@ export function mapTask(api: any): TaskApi {
                 role_in_task: m.role_in_task || "",
                 position: null,
                 joinedAt: m.assigned_at,
-                avatar: m.profile_img || m.profile_image || null,
-                profile_img: m.profile_img || null,
-                profile_image: m.profile_image || null,
+                avatar: m.user_profile_image || null,
+                profile_img: m.user_profile_image || null,
+                profile_image: m.user_profile_image || null,
                 task_id: Number(api.id),
                 project_id: Number(api.project_id),
             }))
             : [],
+
         workspace_id: 0,
     };
 }
@@ -115,9 +116,9 @@ export function buildTaskPayload(formData: {
     notes?: string;
     status?: TaskStatus | null;
     priority?: TaskPriority | null;
-    startDate?: string;     
-    dueDate?: string;        
-    dueTime?: string;       
+    startDate?: string;
+    dueDate?: string;
+    dueTime?: string;
 }): TaskRequest {
     const payload: TaskRequest = {
         title: formData.title,
@@ -163,7 +164,7 @@ export function formatDeadline(date: string, time?: string | null): string {
         month: 'short',
         year: 'numeric'
     });
-    
+
     if (time) {
         return `${dateStr} at ${time}`;
     }
@@ -178,41 +179,41 @@ export function isTaskOverdue(task: TaskApi): boolean {
     if (task.status === "done" || task.status === "canceled") {
         return false;
     }
-    
+
     if (!task.due_date) return false;
-    
+
     const now = new Date();
-    
+
     const [year, month, day] = task.due_date.split('-').map(Number);
     const dueDate = new Date(year, month - 1, day);
-    
+
     if (task.due_time) {
         const [hours, minutes] = task.due_time.split(':').map(Number);
         dueDate.setHours(hours, minutes, 0, 0);
     } else {
         dueDate.setHours(23, 59, 59, 999);
     }
-    
+
     return now > dueDate;
 }
 
 export function isCompletedLate(task: TaskApi): boolean {
     if (task.status !== "done") return false;
-    
+
     if (!task.finished_at || !task.due_date) return false;
-    
+
     const finishedDate = new Date(task.finished_at);
 
     const [year, month, day] = task.due_date.split('-').map(Number);
     const dueDate = new Date(year, month - 1, day);
-    
+
     if (task.due_time) {
         const [hours, minutes] = task.due_time.split(':').map(Number);
         dueDate.setHours(hours, minutes, 0, 0);
     } else {
         dueDate.setHours(23, 59, 59, 999);
     }
-    
+
     return finishedDate > dueDate;
 }
 
@@ -228,10 +229,10 @@ export function getTaskDeadlineStatus(task: TaskApi): {
             variant: 'default'
         };
     }
-    
+
     if (task.status === "done") {
         const completedLate = isCompletedLate(task);
-        
+
         if (completedLate) {
             return {
                 status: 'completed-late',
@@ -295,25 +296,25 @@ export function getTimeRemaining(task: TaskApi): {
             label: task.status === "done" ? 'Completed' : 'Canceled'
         };
     }
-    
+
     const now = new Date();
-    
+
     const [year, month, day] = task.due_date.split('-').map(Number);
     const dueDate = new Date(year, month - 1, day);
-    
+
     if (task.due_time) {
         const [hours, minutes] = task.due_time.split(':').map(Number);
         dueDate.setHours(hours, minutes, 0, 0);
     } else {
         dueDate.setHours(23, 59, 59, 999);
     }
-    
+
     const diffMs = dueDate.getTime() - now.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
-    
+
     const isPastDue = diffMs < 0;
-    
+
     if (isPastDue) {
         return {
             isOverdue: true,
@@ -323,7 +324,7 @@ export function getTimeRemaining(task: TaskApi): {
             label: `${Math.abs(diffDays)} days overdue`
         };
     }
-    
+
     if (diffDays === 0) {
         return {
             isOverdue: false,
@@ -333,7 +334,7 @@ export function getTimeRemaining(task: TaskApi): {
             label: diffHours > 0 ? `${diffHours}h remaining` : 'Due now'
         };
     }
-    
+
     if (diffDays === 1) {
         return {
             isOverdue: false,
@@ -343,7 +344,7 @@ export function getTimeRemaining(task: TaskApi): {
             label: 'Due tomorrow'
         };
     }
-    
+
     return {
         isOverdue: false,
         isPastDue: false,

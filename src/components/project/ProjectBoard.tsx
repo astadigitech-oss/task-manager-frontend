@@ -406,11 +406,9 @@ function ProjectBoardLayout({
                     key={col.status}
                     className={cn(
                       "w-72 shrink-0 p-3 grid grid-rows-[auto_1fr] gap-3",
-                      "max-h-[calc(100vh-8rem)]",
-                      "sm:max-h-[calc(100vh-10rem)]",
-                      "md:max-h-[calc(100vh-13rem)]",
-                      "lg:max-h-[calc(100vh-16rem)]",
-                      "xl:max-h-[calc(100vh-19rem)]",
+                      mode === "member"
+                      ? "max-h-[calc(100vh-12rem)] sm:max-h-[calc(100vh-14rem)] md:max-h-[calc(100vh-17rem)] lg:max-h-[calc(100vh-20rem)] xl:max-h-[calc(100vh-23rem)]"
+                      : "max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-10rem)] md:max-h-[calc(100vh-13rem)] lg:max-h-[calc(100vh-16rem)] xl:max-h-[calc(100vh-19rem)]",
                       hoveredStatus === col.status ? "ring-2 ring-dashed ring-primary/40" : ""
                     )}
                     onDragOver={(e) => e.preventDefault()}

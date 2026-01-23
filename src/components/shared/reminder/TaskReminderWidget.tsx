@@ -155,7 +155,7 @@ export function TaskReminderWidget({ isAdmin = false }: TaskReminderWidgetProps)
                         </p>
                         <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="secondary" className="text-xs capitalize">
-                                {task.status.replace("-", " ")}
+                                {task.status.replace("_", " ")}
                             </Badge>
                             <Badge
                                 variant="secondary"

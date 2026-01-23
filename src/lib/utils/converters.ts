@@ -7,11 +7,17 @@ import { Role } from "@/types/shared/role";
  */
 function normalizeProfileImage(path?: string | null): string | null {
   if (!path) return null;
+  
+  if (!path.includes('/') && !path.startsWith('http') && !path.startsWith('blob:')) {
+    console.warn(`Invalid profile image path: ${path}`);
+    return null;
+  }
+  
   return path;
 }
 
 export function apiProfileToUserProfile(api: ProfileApiResponse): UserProfile {
-  const normalizedAvatar = normalizeProfileImage(api.profile_image || api.profile_img);
+  const normalizedAvatar = normalizeProfileImage(api.profile_image || api.profile_img || api.user_profile_image);
 
   return {
     id: Number(api.id),

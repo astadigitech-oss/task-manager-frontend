@@ -14,12 +14,15 @@ interface RecentProjectCardProps {
 }
 
 function RecentProjectCard({ project, onClick }: RecentProjectCardProps) {
-  const { progress = 0, task_count = 0, members = [] } = project;
+  // const { members = [] } = project;
+  const rawProgress = Number(project.progress) || 0;
+  const progressValue = Math.round(rawProgress);
+  const { task_count, members = [] } = project;
 
   const completedTasks = useMemo(() => {
     if (task_count === 0) return 0;
-    return Math.round((progress / 100) * task_count);
-  }, [progress, task_count]);
+    return Math.round((progressValue / 100) * task_count);
+  }, [progressValue, task_count]);
 
   return (
     <div
@@ -43,10 +46,10 @@ function RecentProjectCard({ project, onClick }: RecentProjectCardProps) {
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs text-muted">Progress</span>
             <span className="text-xs text-foreground">
-              {progress}%
+              {progressValue}%
             </span>
           </div>
-          <Progress value={progress} className="h-2" />
+          <Progress value={progressValue} className="h-2" />
 
           {/* Task Breakdown */}
           {task_count > 0 && (

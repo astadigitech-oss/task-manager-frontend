@@ -31,7 +31,7 @@ export function TaskStatsWidget() {
 
         const total = myTasks.length;
         const completed = myTasks.filter((t) => t.status === "done").length;
-        const inProgress = myTasks.filter((t) => t.status === "on_progress").length;
+        const onProgress = myTasks.filter((t) => t.status === "on_progress").length;
         const pending = myTasks.filter((t) => t.status === "on_board" || t.status === "pending").length;
 
         const overdue = myTasks.filter((t) => {
@@ -48,7 +48,7 @@ export function TaskStatsWidget() {
         return {
             total,
             completed,
-            inProgress,
+            onProgress,
             pending,
             overdue,
             completionRate,
@@ -72,7 +72,7 @@ export function TaskStatsWidget() {
         },
         {
             label: "On Progress",
-            value: stats.inProgress,
+            value: stats.onProgress,
             icon: Clock,
             color: "bg-blue-100 text-blue-600",
             iconColor: "text-blue-600",
