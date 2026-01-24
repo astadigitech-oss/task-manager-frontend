@@ -232,7 +232,8 @@ export function EditProjectDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-screen flex flex-col">
+      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-screen flex flex-col"
+        aria-describedby={undefined}>
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle>Edit Project</DialogTitle>
           <DialogDescription>

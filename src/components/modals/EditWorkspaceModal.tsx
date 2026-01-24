@@ -89,35 +89,61 @@ export function EditWorkspaceDialog({
     }, [isOpen, workspace?.id]);
 
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen || !workspace?.id) return;
 
-        const fetchUsers = async () => {
+        const fetchMembersAndUsers = async () => {
+            setIsLoadingMembers(true);
             setIsLoadingUsers(true);
+
             try {
-                const response = await usersService.getAllUsers({ limit: 1000 });
+                // Fetch members dan users secara paralel
+                const [membersResponse, usersResponse] = await Promise.all([
+                    workspaceMembersService.getAll(workspace.id),
+                    usersService.getAllUsers({ limit: 1000 })
+                ]);
 
-                if (response.success && response.data) {
-                    const currentMemberUserIds = new Set(
-                        currentMembers.map((m) => m.user_id)
-                    );
+                // Set current members
+                const members = membersResponse.success && membersResponse.data
+                    ? membersResponse.data
+                    : [];
+                setCurrentMembers(members);
+                setIsLoadingMembers(false);
 
-                    const available = response.data.users.filter(
-                        (user: { id: number; }) => !currentMemberUserIds.has(user.id)
-                    );
+                // Filter available users berdasarkan members
+                if (usersResponse.success && usersResponse.data) {
+                    if (members.length > 0) {
+                        const memberUserIds = new Set(
+                            members.map((m) => {
+                                const userId = m.user_id || (m as any).user?.id || m.id;
+                                return Number(userId);
+                            })
+                        );
 
-                    setAvailableUsers(available);
+                        const filtered = usersResponse.data.users.filter(
+                            (user) => !memberUserIds.has(Number(user.id))
+                        );
+
+                        setAvailableUsers(filtered);
+                    } else {
+                        setAvailableUsers(usersResponse.data.users);
+                    }
                 } else {
                     setAvailableUsers([]);
                 }
-            } catch (err) {
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                setCurrentMembers([]);
                 setAvailableUsers([]);
             } finally {
+                setIsLoadingMembers(false);
                 setIsLoadingUsers(false);
             }
         };
 
-        fetchUsers();
-    }, [isOpen, currentMembers]);
+        fetchMembersAndUsers();
+    }, [isOpen, workspace?.id]);
+
 
     useEffect(() => {
         if (!isOpen) {
@@ -184,7 +210,8 @@ export function EditWorkspaceDialog({
     };
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-screen flex flex-col">
+            <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-screen flex flex-col"
+            aria-describedby={undefined}>
                 <DialogHeader className="px-6 pt-6 pb-4 border-b">
                     <DialogTitle>Edit Workspace</DialogTitle>
                     <DialogDescription>
@@ -243,12 +270,10 @@ export function EditWorkspaceDialog({
                                                 className="flex items-center justify-between p-2 hover:bg-muted rounded-lg group"
                                             >
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                    <Avatar className="h-8 w-8">
-                                                        <AvatarImage src={member.avatar || undefined} alt={member.name} />
-                                                        <AvatarFallback>
-                                                            {member.name?.charAt(0)?.toUpperCase() || "?"}
-                                                        </AvatarFallback>
-                                                    </Avatar>
+                                                    <UserAvatar
+                                                        name={member.name}
+                                                        avatar={member.profile_img}>
+                                                    </UserAvatar>
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm font-medium text-foreground truncate">
                                                             {member.name}
@@ -308,34 +333,37 @@ export function EditWorkspaceDialog({
                         ) : (
                             <>
                                 <ScrollArea className="h-48 border rounded-md mt-2 p-2">
-                                    {availableUsers.map((user) => (
-                                        <div
-                                            key={user.id}
-                                            className="flex items-center justify-between p-2 rounded-md hover:bg-muted"
-                                        >
-                                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <UserAvatar
-                                                    name={user.name}
-                                                    avatar={user.avatar}
-                                                    size="md"
-                                                    bustCache
-                                                />
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium truncate">{user.name}</p>
-                                                    <p className="text-xs text-muted-foreground truncate">
-                                                        {user.email}
-                                                    </p>
+                                    {availableUsers.map((user) => {
+                                        const userAvatar = (user as any).profile_image || user.avatar || "";
+                                        return (
+                                            <div
+                                                key={user.id}
+                                                className="flex items-center justify-between p-2 rounded-md hover:bg-muted"
+                                            >
+                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <UserAvatar
+                                                        name={user.name}
+                                                        avatar={user.avatar || userAvatar}
+                                                        size="md"
+                                                        bustCache
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium truncate">{user.name}</p>
+                                                        <p className="text-xs text-muted-foreground truncate">
+                                                            {user.email}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                            </div>
 
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedUsers.includes(user.id)}
-                                                onChange={() => toggleUser(user.id)}
-                                                className="cursor-pointer shrink-0"
-                                            />
-                                        </div>
-                                    ))}
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedUsers.includes(user.id)}
+                                                    onChange={() => toggleUser(user.id)}
+                                                    className="cursor-pointer shrink-0"
+                                                />
+                                            </div>
+                                        );
+                                    })}
                                 </ScrollArea>
 
                                 <p className="text-sm text-muted-foreground mt-1">

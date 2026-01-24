@@ -185,7 +185,8 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                 </Button>
             </DialogTrigger>
 
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" 
+            aria-describedby={undefined}>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <FileText className="w-5 h-5" />
@@ -318,16 +319,6 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                         disabled={loading}
                     >
                         Cancel
-                    </Button>
-
-                    <Button
-                        variant="outline"
-                        onClick={handleExportText}
-                        className="gap-2"
-                        disabled={loading}
-                    >
-                        <FileText className="w-4 h-4" />
-                        Export as Text
                     </Button>
 
                     <Button

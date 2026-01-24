@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDeleteTask } from "@/context/TaskContext";
-import { useTaskMembers } from "@/hooks/task/useTaskMember";
 import type { TaskStatus } from "@/types/shared/status";
 import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils/utils";
@@ -209,7 +208,7 @@ const SingleTaskCard = memo(({
             )}
           </div>
 
-          {task.priority && task.priority !== "normal" && (
+          {/* {task.priority && task.priority !== "normal" && ( */}
             <div className="flex items-center gap-1">
               <Flag
                 className="w-3.5 h-3.5"
@@ -219,7 +218,7 @@ const SingleTaskCard = memo(({
               />
               {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
             </div>
-          )}
+          {/* )} */}
         </div>
       </CardContent>
     </Card>

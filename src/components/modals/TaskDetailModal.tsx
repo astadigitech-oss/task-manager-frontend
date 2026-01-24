@@ -95,8 +95,9 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent
-        className="p-0 gap-0 overflow-hidden sm:max-w-300"
+        className="p-0 gap-0 overflow-hidden sm:max-w-300 aria-describedby={undefined}"
         onPointerDownOutside={handlePointerDownOutside}
+        aria-describedby={undefined}
       >
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <div className="flex items-center justify-between">

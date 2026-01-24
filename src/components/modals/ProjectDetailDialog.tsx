@@ -83,7 +83,8 @@ export function ProjectDetailDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-screen flex flex-col">
+            <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-screen flex flex-col"
+                aria-describedby={undefined}>
                 <DialogHeader className="px-6 pt-6 pb-4 border-b">
                     <DialogTitle>Detail Project</DialogTitle>
                     <DialogDescription>
@@ -97,7 +98,7 @@ export function ProjectDetailDialog({
                         <Label className="space-y-2">Nama Project</Label>
                         <Input value={project.name} disabled />
                     </div>
-                    \{/* Project Description Section */}
+                    {/* Project Description Section */}
                     <div>
                         <Label className="space-y-2">Deskripsi</Label>
                         <Textarea value={project.description || ""} disabled />

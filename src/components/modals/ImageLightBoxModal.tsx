@@ -129,6 +129,7 @@ export function ImageLightBoxModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-none! w-screen! h-screen! p-0 m-0! bg-transparent border-none shadow-none rounded-none!"
+        aria-describedby={undefined}
       >
 
         <DialogTitle className="sr-only">

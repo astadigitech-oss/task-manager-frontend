@@ -22,11 +22,11 @@ interface Props {
   onDelete?: () => void;
 }
 
-export function UniversalAttachmentViewer({ 
-  file, 
-  url, 
-  name, 
-  open, 
+export function UniversalAttachmentViewer({
+  file,
+  url,
+  name,
+  open,
   onOpenChange,
   allowDownload = true,
   canDelete = false,
@@ -157,9 +157,10 @@ export function UniversalAttachmentViewer({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-none! w-screen! h-screen! p-0 overflow-hidden overlay m-0! rounded-none!">
+      <DialogContent className="max-w-none! w-screen! h-screen! p-0 overflow-hidden overlay m-0! rounded-none!"
+        aria-describedby={undefined}>
         <DialogTitle className="sr-only">{fileName}</DialogTitle>
-        
+
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-6 overlay-strong">
           <div className="text-card-foreground">
@@ -239,9 +240,9 @@ export function UniversalAttachmentViewer({
             )}
 
             {/* Close */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => onOpenChange(false)}
               className="overlay-btn"
               title="Close"
