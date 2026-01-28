@@ -25,7 +25,7 @@ function parseDate(dateStr: string | undefined | null): Date | null {
 
 /**
  * Check if task is overdue
- * Task overdue jika due_date sudah lewat dan status bukan "done"
+ * 
  */
 function isTaskOverdue(task: TaskApi): boolean {
     if (task.status === "done") return false;
@@ -36,7 +36,7 @@ function isTaskOverdue(task: TaskApi): boolean {
 
 /**
  * Check if task was completed late
- * Untuk task "done", cek apakah due_date < created_at atau ada overdue_duration
+ * 
  */
 function isCompletedLate(task: TaskApi): boolean {
     if (task.status !== "done") return false;
