@@ -1,14 +1,13 @@
 import { TaskApi, TaskRequest } from "@/types/api/task.api";
 import { TaskStatus } from "@/types/shared/status";
 import { TaskPriority } from "@/types/shared/priority";
-import { apiStatusToUi, uiStatusToApi } from "@/lib/mapper/taskStatus.mapper";
 
 // ============================================
-// 1. Task Mapper 
+// 1. Task Mapper - FIXED
 // ============================================
 
 export function mapTask(api: any): TaskApi {
-
+    
     const parseDateTime = (dateStr: string | undefined | null): string | undefined => {
         if (!dateStr) return undefined;
         try {
@@ -26,21 +25,36 @@ export function mapTask(api: any): TaskApi {
         if (!dateTimeStr) return { date: undefined, time: undefined };
 
         try {
-            const dt = new Date(dateTimeStr);
-            if (isNaN(dt.getTime())) return { date: undefined, time: undefined };
-
-            const date = dt.toISOString().split('T')[0];
-
-            const hours = dt.getHours();
-            const minutes = dt.getMinutes();
-
-            if (hours === 0 && minutes === 0) {
-                return { date, time: undefined };
+            if (!dateTimeStr.includes('T')) {
+                return { date: dateTimeStr, time: undefined };
             }
 
-            const time = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-            return { date, time };
-        } catch {
+            // Split manual untuk preserve timezone accuracy
+            const [datePart, timePart] = dateTimeStr.split('T');
+            
+            if (!timePart) {
+                return { date: datePart, time: undefined };
+            }
+
+            // Extract HH:MM dari "17:00:00+07:00" atau "17:00:00"
+            const timeMatch = timePart.match(/^(\d{2}):(\d{2})/);
+            
+            if (!timeMatch) {
+                return { date: datePart, time: undefined };
+            }
+
+            const hours = timeMatch[1];
+            const minutes = timeMatch[2];
+            
+            // Jika waktu adalah 00:00, anggap tidak ada waktu spesifik
+            if (hours === '00' && minutes === '00') {
+                return { date: datePart, time: undefined };
+            }
+
+            const time = `${hours}:${minutes}`;
+            return { date: datePart, time };
+        } catch (error) {
+            console.error('Error parsing datetime:', dateTimeStr, error);
             return { date: undefined, time: undefined };
         }
     };
@@ -48,14 +62,6 @@ export function mapTask(api: any): TaskApi {
     const startDateTime = splitDateTime(api.start_date);
     const dueDateTime = splitDateTime(api.due_date);
 
-    // Normalize status: convert underscores to dashes
-    const normalizeStatus = (status: string): TaskStatus => {
-        if (!status) return "on_board";
-        const normalized = status.replace(/_/g, '-');
-        return normalized as TaskStatus;
-    };
-
-    // Normalize priority: convert underscores to dashes
     const normalizePriority = (priority: string): TaskPriority => {
         if (!priority) return "normal";
         const normalized = priority.replace(/_/g, '-');
@@ -76,7 +82,8 @@ export function mapTask(api: any): TaskApi {
 
         start_date: startDateTime.date,
         due_date: dueDateTime.date,
-        due_time: dueDateTime.time,
+        
+        due_time: api.due_time || dueDateTime.time,
 
         finished_at: parseDateTime(api.finished_at),
         is_overdue: api.is_overdue ?? false,
@@ -107,7 +114,7 @@ export function mapTask(api: any): TaskApi {
 }
 
 // ============================================
-// 2. BUILD PAYLOAD FOR CREATE/UPDATE - FIXED
+// 2. BUILD PAYLOAD FOR CREATE/UPDATE
 // ============================================
 
 export function buildTaskPayload(formData: {
@@ -127,27 +134,23 @@ export function buildTaskPayload(formData: {
         status: formData.status || null,
         priority: formData.priority || null,
     };
-
-
+    
+    // Start date
     if (formData.startDate && formData.startDate.trim() !== '') {
-        const startDateTime = `${formData.startDate}T00:00:00+07:00`;
-        payload.start_date = startDateTime;
+        // Format: "2025-11-03 00:00:00"
+        payload.start_date = `${formData.startDate} 00:00:00`;
     } else {
-
         const fallbackDate = formData.dueDate || new Date().toISOString().split('T')[0];
-        const startDateTime = `${fallbackDate}T00:00:00+07:00`;
-        payload.start_date = startDateTime;
+        payload.start_date = `${fallbackDate} 00:00:00`;
     }
 
+    // Due date & time
     if (formData.dueDate && formData.dueDate.trim() !== '') {
-        let dueDateTime: string;
-
         if (formData.dueTime && formData.dueTime.trim() !== '') {
-            dueDateTime = `${formData.dueDate}T${formData.dueTime}:00+07:00`;
+            payload.due_date = `${formData.dueDate} ${formData.dueTime}:00`;
         } else {
-            dueDateTime = `${formData.dueDate}T00:00:00+07:00`;
+            payload.due_date = `${formData.dueDate} 00:00:00`;
         }
-        payload.due_date = dueDateTime;
     }
 
     return payload;

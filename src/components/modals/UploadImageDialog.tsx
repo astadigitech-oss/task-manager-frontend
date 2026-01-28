@@ -230,6 +230,7 @@ export function UploadImageDialog({
         <DialogContent
           className="max-w-xl sm:max-w-300 flex flex-col p-0"
           style={{ height: '640px' }}
+          aria-describedby={undefined}
         >
           <DialogHeader className="p-4 border-b">
             <DialogTitle>Upload Project Images</DialogTitle>

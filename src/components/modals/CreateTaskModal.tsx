@@ -159,7 +159,7 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
         <Button>+ New Task</Button>
       </DialogTrigger>
 
-      <DialogContent className="p-0 gap-0 sm:max-w-225 overflow-hidden">
+      <DialogContent className="p-0 gap-0 sm:max-w-225 overflow-hidden" aria-describedby={undefined}>
 
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle>Add Task</DialogTitle>

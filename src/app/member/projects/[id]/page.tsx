@@ -42,10 +42,10 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           <h2 className="text-xl font-semibold text-destructive">
             Workspace tidak ditemukan
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-foreground">
             Project ID: {project_id}
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground">
             selectedWorkspaceId: {selectedWorkspaceId || 'null'}<br />
             project.workspace_id: {project?.workspace_id || 'undefined'}
           </p>

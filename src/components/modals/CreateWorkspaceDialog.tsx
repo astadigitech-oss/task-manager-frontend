@@ -108,7 +108,8 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+        aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Buat Workspace</DialogTitle>
         </DialogHeader>

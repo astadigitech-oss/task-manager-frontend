@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDeleteTask } from "@/context/TaskContext";
-import { useTaskMembers } from "@/hooks/task/useTaskMember";
 import type { TaskStatus } from "@/types/shared/status";
 import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils/utils";
@@ -114,7 +113,7 @@ const SingleTaskCard = memo(({
       onDragEnd={handleDragEnd}
       className={cn(
         "card border border-border shadow-sm hover:shadow-md cursor-pointer transition-all group relative",
-        isMyTask ? "ring-2 ring-primary/40" : ""
+        isMyTask ? "ring-1 ring-primary/12" : ""
       )}
       onClick={() => onSelectTask(task)}
     >
@@ -122,7 +121,7 @@ const SingleTaskCard = memo(({
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1 w-full">
             <button
-              className="p-0 rounded hover:surface-hover cursor-grab active:cursor-grabbing"
+              className="p-1 rounded hover:surface-hover cursor-grab active:cursor-grabbing"
               draggable={true}
               onDragStart={handleGripDragStart}
               onDragEnd={handleGripDragEnd}
@@ -209,7 +208,7 @@ const SingleTaskCard = memo(({
             )}
           </div>
 
-          {task.priority && task.priority !== "normal" && (
+          {/* {task.priority && task.priority !== "normal" && ( */}
             <div className="flex items-center gap-1">
               <Flag
                 className="w-3.5 h-3.5"
@@ -219,7 +218,7 @@ const SingleTaskCard = memo(({
               />
               {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
             </div>
-          )}
+          {/* )} */}
         </div>
       </CardContent>
     </Card>
