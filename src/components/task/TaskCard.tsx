@@ -113,7 +113,7 @@ const SingleTaskCard = memo(({
       onDragEnd={handleDragEnd}
       className={cn(
         "card border border-border shadow-sm hover:shadow-md cursor-pointer transition-all group relative",
-        isMyTask ? "ring-2 ring-primary/40" : ""
+        isMyTask ? "ring-1 ring-primary/12" : ""
       )}
       onClick={() => onSelectTask(task)}
     >
@@ -121,7 +121,7 @@ const SingleTaskCard = memo(({
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1 w-full">
             <button
-              className="p-0 rounded hover:surface-hover cursor-grab active:cursor-grabbing"
+              className="p-1 rounded hover:surface-hover cursor-grab active:cursor-grabbing"
               draggable={true}
               onDragStart={handleGripDragStart}
               onDragEnd={handleGripDragEnd}

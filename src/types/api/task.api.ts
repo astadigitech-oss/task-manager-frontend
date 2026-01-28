@@ -55,6 +55,7 @@ export interface TaskApi {
     notes?: string;
     created_at: string;
     updated_at: string;
+    overdue_duration?: number | null;
 
     task_members?: TaskMemberApi[];
 }

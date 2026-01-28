@@ -32,14 +32,13 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
     // ============================================
 
     const handleExportPDF = async () => {
-
         const result = await downloadPDF(
             {
                 project_id: projectId,
                 export_type: exportType,
                 date: exportType === "daily" ? format(new Date(), "yyyy-MM-dd") : undefined,
             },
-            projectName // Pass projectName untuk generate filename
+            projectName
         );
 
         if (result.success) {
@@ -84,8 +83,8 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
             text += `WEEKLY SUMMARY\n`;
             text += `${"-".repeat(50)}\n\n`;
 
-            text += `IN PROGRESS (${data.inProgress.length} tasks)\n\n`;
-            data.inProgress.forEach((task, i) => {
+            text += `IN PROGRESS (${data.onProgress.length} tasks)\n\n`;
+            data.onProgress.forEach((task, i) => {
                 text += `${i + 1}. ${task.title}\n`;
                 text += `   Status: ${task.status.toUpperCase()}\n`;
                 text += `   Priority: ${task.priority.toUpperCase()}\n`;
@@ -98,20 +97,22 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                 text += `${i + 1}. ${task.title}\n`;
                 text += `   Priority: ${task.priority.toUpperCase()}\n`;
                 text += `   Deadline: ${formatTaskDeadline(task)}\n`;
-                if (task.finished_at) {
-                    text += `   Finished: ${format(new Date(task.finished_at), "MMM dd, yyyy 'at' HH:mm")}\n`;
+                if (task.created_at) {
+                    text += `   Created: ${format(new Date(task.created_at), "MMM dd, yyyy 'at' HH:mm")}\n`;
                 }
-                if (task.is_overdue) text += `   ⚠ COMPLETED LATE\n`;
+                if (task.overdue_duration && task.overdue_duration > 0) {
+                    text += `   ⚠ COMPLETED LATE (${task.overdue_duration} days)\n`;
+                }
                 text += `\n`;
             });
 
             if (data.overdue.length > 0) {
-                text += `\nOVERDUE COMPLETIONS (${data.overdue.length} tasks)\n\n`;
+                text += `\nCOMPLETED LATE (${data.overdue.length} tasks)\n\n`;
                 data.overdue.forEach((task, i) => {
                     text += `${i + 1}. ${task.title}\n`;
                     text += `   Deadline: ${formatTaskDeadline(task)}\n`;
-                    if (task.finished_at) {
-                        text += `   Finished: ${format(new Date(task.finished_at), "MMM dd 'at' HH:mm")}\n`;
+                    if (task.overdue_duration) {
+                        text += `   Late by: ${task.overdue_duration} days\n`;
                     }
                     text += `\n`;
                 });
@@ -127,14 +128,14 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
             text += `Completed (${data.past.completed.length})\n`;
             data.past.completed.forEach((task, i) => {
                 text += `  ${i + 1}. ${task.title}\n`;
-                if (task.finished_at) {
-                    text += `     Finished: ${format(new Date(task.finished_at), "MMM dd 'at' HH:mm")}\n`;
+                text += `     Deadline: ${formatTaskDeadline(task)}\n`;
+                if (task.overdue_duration && task.overdue_duration > 0) {
+                    text += `     ⚠ Late (${task.overdue_duration} days)\n`;
                 }
-                if (task.is_overdue) text += `     ⚠ Late\n`;
             });
 
-            text += `\nIn Progress (${data.past.inProgress.length})\n`;
-            data.past.inProgress.forEach((task, i) => {
+            text += `\nIn Progress (${data.past.onProgress.length})\n`;
+            data.past.onProgress.forEach((task, i) => {
                 text += `  ${i + 1}. ${task.title} - ${task.status.toUpperCase()}\n`;
             });
 
@@ -173,7 +174,6 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
         setOpen(false);
     };
 
-    // Get preview data (gunakan helper yang sama)
     const previewData = getExportData(exportType, tasks, projectId);
 
     return (
@@ -259,7 +259,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                                         <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                                         <span className="text-sm text-foreground">In Progress</span>
                                     </div>
-                                    <Badge variant="secondary">{previewData.inProgress.length}</Badge>
+                                    <Badge variant="secondary">{previewData.onProgress.length}</Badge>
                                 </div>
                                 <div className="flex items-center justify-between p-3 bg-card border border-border rounded hover:bg-accent group">
                                     <div className="flex items-center gap-2">
@@ -289,7 +289,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                                         </div>
                                         <div className="flex justify-between text-xs p-2 rounded hover:bg-accent">
                                             <span>In Progress</span>
-                                            <Badge variant="outline" className="h-5">{previewData.past.inProgress.length}</Badge>
+                                            <Badge variant="outline" className="h-5">{previewData.past.onProgress.length}</Badge>
                                         </div>
                                     </div>
                                 </div>
@@ -319,6 +319,16 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                         disabled={loading}
                     >
                         Cancel
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        onClick={handleExportText}
+                        className="gap-2"
+                        disabled={loading}
+                    >
+                        <FileText className="w-4 h-4" />
+                        Export as Text
                     </Button>
 
                     <Button
