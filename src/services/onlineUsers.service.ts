@@ -25,13 +25,13 @@ export const onlineUsersService = {
             );
 
             if (response.data.success && response.data.data) {
-                console.log("📊 Online users fetched:", response.data.data.length);
+                console.log("Online users fetched:", response.data.data.length);
                 return response.data.data;
             }
 
             return [];
         } catch (err) {
-            console.error("❌ Failed to fetch online users:", err);
+            console.error("Failed to fetch online users:", err);
             return [];
         }
     },
@@ -42,13 +42,13 @@ export const onlineUsersService = {
      */
     buildWebSocketUrl: (config: WebSocketConfig): string | null => {
         if (!WS_BASE_URL) {
-            console.error("❌ WS_BASE_URL not configured");
+            console.error("WS_BASE_URL not configured");
             return null;
         }
 
         if (!config.token || !config.workspace_id) {
             console.error(
-                "❌ Missing required WebSocket config",
+                "Missing required WebSocket config",
                 { token: !!config.token, workspace_id: !!config.workspace_id }
             );
             return null;
@@ -60,7 +60,7 @@ export const onlineUsersService = {
             config.workspace_id
         )}`;
 
-        console.log("🔗 WebSocket URL built (token hidden)");
+        console.log("WebSocket URL built (token hidden)");
         return wsUrl;
     },
 
@@ -82,22 +82,22 @@ export const onlineUsersService = {
             const ws = new WebSocket(url);
 
             ws.onopen = () => {
-                console.log("✅ WebSocket connected - User is now ONLINE");
+                console.log("WebSocket connected - User is now ONLINE");
                 handlers.onOpen?.();
             };
 
             ws.onmessage = (event) => {
                 try {
                     const message = JSON.parse(event.data);
-                    console.log("📨 WebSocket message:", message);
+                    console.log("WebSocket message:", message);
                     handlers.onMessage?.(message);
                 } catch (err) {
-                    console.error("❌ Failed to parse WebSocket message:", err);
+                    console.error("Failed to parse WebSocket message:", err);
                 }
             };
 
             ws.onerror = (error) => {
-                console.error("❌ WebSocket error:", error);
+                console.error("WebSocket error:", error);
                 handlers.onError?.(error);
             };
 
@@ -108,7 +108,7 @@ export const onlineUsersService = {
 
             return ws;
         } catch (err) {
-            console.error("❌ Failed to create WebSocket:", err);
+            console.error("Failed to create WebSocket:", err);
             return null;
         }
     },
