@@ -18,7 +18,7 @@ export function useOnlineUsersQuery() {
         queryFn: async () => {
 
             if (!isAdmin) {
-                console.warn("⚠️ Non-admin users cannot fetch online users");
+                console.warn("Non-admin users cannot fetch online users");
                 return [];
             }
             return onlineUsersService.getOnlineUsers();
