@@ -142,7 +142,7 @@ export function OnlineUserProvider({
     // Fetch online users dari API (hanya untuk admin)
     const fetchOnlineUsers = useCallback(async () => {
         if (!canViewOnlineUsers) {
-            console.warn("⚠️ Non-admin users cannot fetch online users list");
+            console.warn("Non-admin users cannot fetch online users list");
             return;
         }
 
@@ -171,7 +171,7 @@ export function OnlineUserProvider({
         }
 
         if (!isAuthenticated || !token || !user) {
-            console.warn("⚠️ Cannot connect WebSocket: missing auth data");
+            console.warn("Cannot connect WebSocket: missing auth data");
             return;
         }
 
@@ -206,7 +206,7 @@ export function OnlineUserProvider({
                         const currentWs = wsRef.current;
                         if (currentWs && currentWs.readyState === WebSocket.OPEN) {
                             currentWs.send(JSON.stringify({ type: "ping" }));
-                            console.log("🏓 Ping sent to keep connection alive");
+                            console.log("Ping sent to keep connection alive");
                         }
                     }, 25000); //25 seconds 
                 },
