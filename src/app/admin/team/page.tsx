@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { TeamMembers } from "@/components/shared/TeamMember";
 import { Input } from "@/components/ui/input";
-import { Search, Home, Users } from "lucide-react";
+import { Search, Home, Users, Circle } from "lucide-react";
 import { useDeleteUser, useUsers } from "@/hooks/api/useUsers";
 import {
   Breadcrumb,
@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast-helpers";
+import { useOnlineUsers } from "@/context/OnlineUserContext";
 
 export default function TeamPage() {
   const {
@@ -43,7 +44,15 @@ export default function TeamPage() {
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
   const router = useRouter();
   const { user } = useAuthStore();
+  const { isUserOnline, canViewOnlineUsers, onlineUsers } = useOnlineUsers();
+  
   const users = data?.data.users ?? [];
+
+  // Calculate online members count
+  const onlineCount = useMemo(() => {
+    if (!canViewOnlineUsers) return 0;
+    return users.filter(member => isUserOnline(member.id)).length;
+  }, [users, isUserOnline, canViewOnlineUsers]);
 
   const filteredMembers = users.filter(
     (member) =>
@@ -64,7 +73,6 @@ export default function TeamPage() {
       },
     });
   };
-
 
   const dashboardPath = user?.role === "admin" ? "/admin/dashboard" : "/member/dashboard";
 
@@ -104,7 +112,19 @@ export default function TeamPage() {
                   Kelola anggota tim, role, dan divisinya
                 </p>
               </div>
+              
               <div className="flex items-center gap-3">
+                {/* Online Counter - Only for Admin */}
+                {canViewOnlineUsers && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+                    <Circle className="w-2.5 h-2.5 fill-green-500 text-green-500 animate-pulse" />
+                    <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                      {onlineCount} Online
+                    </span>
+                  </div>
+                )}
+                
+                {/* Total Members */}
                 <span className="text-sm text-muted-foreground">
                   {isLoading ? "Loading..." : `${users.length} Members`}
                 </span>

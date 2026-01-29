@@ -7,7 +7,7 @@ import { UserApi } from "@/types/api/user.api";
 import { formatDistanceToNow } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { useOnlineUsers } from "@/context/OnlineUserContext";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { UserAvatar } from "./UserAvatar";
 
 interface TeamMembersProps {
@@ -17,16 +17,26 @@ interface TeamMembersProps {
 }
 
 export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) {
-    const { isUserOnline, getLastSeen } = useOnlineUsers();
+    const { isUserOnline, getLastSeen, canViewOnlineUsers } = useOnlineUsers();
+    const [currentTime, setCurrentTime] = useState(Date.now());
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentTime(Date.now());
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     const membersWithRealTimeStatus = useMemo(() => {
         return members.map((member) => ({
             ...member,
-            avatar: (member as any).profile_image || member.avatar || null, // ✅ Fallback
-            is_online: isUserOnline(member.id),
-            last_seen: getLastSeen(member.id) || member.last_seen,
+            avatar: (member as any).profile_image || member.avatar || null,
+            is_online: canViewOnlineUsers ? isUserOnline(member.id) : false,
+            last_seen: canViewOnlineUsers ? (getLastSeen(member.id) || member.last_seen) : member.last_seen,
         }));
-    }, [members, isUserOnline, getLastSeen]);
+    }, [members, isUserOnline, getLastSeen, canViewOnlineUsers, currentTime]);
+
     if (isLoading) {
         return (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -45,7 +55,6 @@ export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) 
             </div>
         );
     }
-
 
     if (!members || members.length === 0) {
         return (
@@ -82,11 +91,15 @@ export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) 
                                 size="md"
                                 bustCache
                             />
-                            {member.is_online && (
-                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900" />
-                            )}
+                            <div
+                                className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-900 transition-colors ${
+                                    member.is_online || !canViewOnlineUsers
+                                        ? "bg-green-500"
+                                        : "bg-gray-400 dark:bg-gray-600"
+                                }`}
+                                title={member.is_online ? "Online" : "Offline"}
+                            />
                         </div>
-
 
                         <div className="flex-1 min-w-0">
                             {/* Name */}
@@ -103,23 +116,26 @@ export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) 
                             <div className="flex flex-wrap items-center gap-2">
                                 <Badge
                                     variant="outline"
-                                    className={`capitalize text-[11px] dark:border-slate-600 ${member.role === "admin"
-                                        ? "border-blue-500/50 text-blue-600 dark:text-blue-400"
-                                        : "border-gray-500/50 dark:border-slate-600"
-                                        }`}
+                                    className={`capitalize text-[11px] dark:border-slate-600 ${
+                                        member.role === "admin"
+                                            ? "border-blue-500/50 text-blue-600 dark:text-blue-400"
+                                            : "border-gray-500/50 dark:border-slate-600"
+                                    }`}
                                 >
                                     {member.role}
                                 </Badge>
 
-                                {member.is_online ? (
+                                {/* Show online status badge only for admin */}
+                                {canViewOnlineUsers && member.is_online ? (
                                     <Badge
                                         variant="outline"
                                         className="flex items-center gap-1 text-[11px] border-green-500/50 text-green-600 dark:text-green-400 dark:border-green-500/50"
                                     >
-                                        <Circle className="w-2 h-2 fill-current" />
+                                        <Circle className="w-2 h-2 fill-current animate-pulse" />
                                         Online
                                     </Badge>
                                 ) : (
+                                    canViewOnlineUsers &&
                                     member.last_seen && (
                                         <span className="text-[10px] text-muted-foreground dark:text-slate-500">
                                             {formatLastSeen(member.last_seen)}

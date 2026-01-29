@@ -12,8 +12,7 @@ import {
 import { UserApi, UserWsEvent } from "@/types/api/user.api";
 import { useAuthStore } from "@/store/useAuthStore";
 import { onlineUsersService } from "@/services/onlineUsers.service";
-import { useOnlineUsersQuery } from "@/hooks/api/useOnlineUsers";
-import { useQueryClient } from "@tanstack/react-query";
+import { WS_CONFIG } from "@/constants/api";
 
 interface OnlineState {
     onlineUsers: Map<number, UserApi>;
@@ -32,7 +31,7 @@ function onlineReducer(state: OnlineState, action: OnlineAction): OnlineState {
         case "USER_ONLINE": {
             const lastUpdate = state.lastUpdated[action.user.id] || 0;
             if (action.timestamp < lastUpdate) {
-                console.warn(` Ignoring stale online update for user ${action.user.id}`);
+                console.warn(`Ignoring stale online update for user ${action.user.id}`);
                 return state;
             }
 
@@ -54,7 +53,7 @@ function onlineReducer(state: OnlineState, action: OnlineAction): OnlineState {
         case "USER_OFFLINE": {
             const lastUpdate = state.lastUpdated[action.userId] || 0;
             if (action.timestamp < lastUpdate) {
-                console.warn(` Ignoring stale offline update for user ${action.userId}`);
+                console.warn(`Ignoring stale offline update for user ${action.userId}`);
                 return state;
             }
 
@@ -81,11 +80,10 @@ function onlineReducer(state: OnlineState, action: OnlineAction): OnlineState {
             const newLastUpdated = { ...state.lastUpdated };
 
             action.users.forEach((user) => {
-                if (user.is_online) {
-                    newOnlineUsers.set(user.id, user);
-                    newLastUpdated[user.id] = action.timestamp;
-                }
+                newOnlineUsers.set(user.id, user);
+                newLastUpdated[user.id] = action.timestamp;
             });
+
 
             return {
                 onlineUsers: newOnlineUsers,
@@ -110,25 +108,26 @@ interface OnlineUserContextType {
     onlineUsers: UserApi[];
     isUserOnline: (userId: number) => boolean;
     getLastSeen: (userId: number) => string | null;
+    refreshOnlineUsers: () => Promise<void>;
+    canViewOnlineUsers: boolean;
 }
 
 const OnlineUserContext = createContext<OnlineUserContextType | undefined>(undefined);
 
 export function OnlineUserProvider({
     children,
-    workspaceId,
+    workspaceId = 1,
 }: {
     children: ReactNode;
     workspaceId?: number;
 }) {
-    const { isAuthenticated, isHydrated, token } = useAuthStore();
-    const queryClient = useQueryClient();
+    const { isAuthenticated, user, token } = useAuthStore();
 
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const reconnectAttemptsRef = useRef(0);
-    const MAX_RECONNECT_ATTEMPTS = 5;
-    const RECONNECT_DELAY_MS = 3000;
+    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const [state, dispatch] = useReducer(onlineReducer, {
         onlineUsers: new Map(),
@@ -136,29 +135,43 @@ export function OnlineUserProvider({
         lastUpdated: {},
     });
 
-    // Fetch initial data via React Query
-    const { data: initialUsers } = useOnlineUsersQuery();
+    // Check if current user is admin
+    const isAdmin = user?.role === "admin";
+    const canViewOnlineUsers = isAdmin;
 
-    // Sync initial data ke state saat pertama kali load
-    useEffect(() => {
-        if (initialUsers && initialUsers.length > 0) {
-            dispatch({
-                type: "BATCH_SYNC",
-                users: initialUsers,
-                timestamp: Date.now(),
-            });
-        }
-    }, [initialUsers]);
-
-    // WebSocket connection
-    const connectWebSocket = useCallback(() => {
-        if (!isAuthenticated || !isHydrated || !token || !workspaceId) {
-            console.warn("Cannot connect WebSocket: missing auth data");
+    // Fetch online users dari API (hanya untuk admin)
+    const fetchOnlineUsers = useCallback(async () => {
+        if (!canViewOnlineUsers) {
+            console.warn("Non-admin users cannot fetch online users list");
             return;
         }
 
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-            console.log(" WebSocket already connected");
+        try {
+            const users = await onlineUsersService.getOnlineUsers();
+            
+            dispatch({
+                type: "BATCH_SYNC",
+                users: users,
+                timestamp: Date.now(),
+            });
+        } catch (error) {
+            console.error("Failed to fetch online users:", error);
+        }
+    }, [canViewOnlineUsers]);
+
+    const connectWebSocket = useCallback(() => {
+        if (wsRef.current) {
+            onlineUsersService.closeConnection(wsRef.current);
+            wsRef.current = null;
+        }
+
+        if (pingIntervalRef.current) {
+            clearInterval(pingIntervalRef.current);
+            pingIntervalRef.current = null;
+        }
+
+        if (!isAuthenticated || !token || !user) {
+            console.warn("Cannot connect WebSocket: missing auth data");
             return;
         }
 
@@ -169,31 +182,50 @@ export function OnlineUserProvider({
             });
 
             if (!wsUrl) {
-                console.error(" Failed to build WebSocket URL");
+                console.error("Failed to build WebSocket URL");
                 return;
             }
 
-            console.log(` Connecting to WebSocket (workspace_id=${workspaceId})`);
-
             const ws = onlineUsersService.createConnection(wsUrl, {
                 onOpen: () => {
-                    console.log(" WebSocket connected");
                     reconnectAttemptsRef.current = 0;
 
-                    queryClient.invalidateQueries({ queryKey: ["online-users"] });
+                    // Mark current user as online immediately
+                    if (user) {
+                        dispatch({
+                            type: "USER_ONLINE",
+                            user: user as UserApi,
+                            timestamp: Date.now(),
+                        });
+                    }
+
+                    if (canViewOnlineUsers) {
+                        fetchOnlineUsers();
+                    }
+                    pingIntervalRef.current = setInterval(() => {
+                        const currentWs = wsRef.current;
+                        if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+                            currentWs.send(JSON.stringify({ type: "ping" }));
+                            console.log("Ping sent to keep connection alive");
+                        }
+                    }, 25000); //25 seconds 
                 },
+
                 onMessage: (message: UserWsEvent) => {
+
+                    if (!canViewOnlineUsers) {
+                        return;
+                    }
+
                     const timestamp = Date.now();
 
                     if (message.type === "USER_ONLINE") {
-                        console.log(` User ${message.user.id} is online`);
                         dispatch({
                             type: "USER_ONLINE",
                             user: message.user,
                             timestamp,
                         });
                     } else if (message.type === "USER_OFFLINE") {
-                        console.log(` User ${message.user_id} is offline`);
                         dispatch({
                             type: "USER_OFFLINE",
                             userId: message.user_id,
@@ -202,36 +234,52 @@ export function OnlineUserProvider({
                         });
                     }
                 },
+
                 onError: (error) => {
-                    console.error(" WebSocket error:", error);
+                    console.error("WebSocket error:", error);
                 },
+
                 onClose: () => {
-                    console.log(" WebSocket disconnected");
                     wsRef.current = null;
 
-                    if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+                    // Clear ping interval
+                    if (pingIntervalRef.current) {
+                        clearInterval(pingIntervalRef.current);
+                        pingIntervalRef.current = null;
+                    }
+
+                    // Auto-reconnect
+                    if (reconnectAttemptsRef.current < WS_CONFIG.MAX_RECONNECT_ATTEMPTS) {
                         reconnectAttemptsRef.current++;
-                        console.log(
-                            ` Reconnecting in ${RECONNECT_DELAY_MS}ms (attempt ${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})`
-                        );
+                        const delay = WS_CONFIG.RECONNECT_DELAY_MS * reconnectAttemptsRef.current;
 
                         reconnectTimeoutRef.current = setTimeout(() => {
                             connectWebSocket();
-                        }, RECONNECT_DELAY_MS);
+                        }, delay);
+                    } else {
+                        console.error("Max reconnection attempts reached");
                     }
                 },
             });
 
             wsRef.current = ws;
         } catch (err) {
-            console.error(" Failed to create WebSocket:", err);
+            console.error("Failed to create WebSocket:", err);
         }
-    }, [isAuthenticated, isHydrated, token, workspaceId, queryClient]);
+    }, [isAuthenticated, token, user, workspaceId, fetchOnlineUsers, canViewOnlineUsers]);
 
     // Disconnect WebSocket
     const disconnectWebSocket = useCallback(() => {
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
+        }
+
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+        }
+
+        if (pingIntervalRef.current) {
+            clearInterval(pingIntervalRef.current);
         }
 
         onlineUsersService.closeConnection(wsRef.current);
@@ -240,30 +288,56 @@ export function OnlineUserProvider({
         dispatch({ type: "CLEAR" });
     }, []);
 
-    //  Connect/disconnect based on auth state
     useEffect(() => {
-        if (!isAuthenticated || !isHydrated || !token || !workspaceId) {
+        if (isAuthenticated && token && user && canViewOnlineUsers) {
+
+            fetchOnlineUsers();
+
+            pollingIntervalRef.current = setInterval(() => {
+                console.log("Polling online users for sync...");
+                fetchOnlineUsers();
+            }, 60000);
+        }
+
+        return () => {
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+            }
+        };
+    }, [isAuthenticated, token, user, canViewOnlineUsers, fetchOnlineUsers]);
+
+    useEffect(() => {
+        if (!isAuthenticated || !token || !user) {
             disconnectWebSocket();
             return;
         }
 
         connectWebSocket();
-    }, [isAuthenticated, isHydrated, token, workspaceId, connectWebSocket, disconnectWebSocket]);
 
-    //  Cleanup on unmount
-    useEffect(() => {
+        // Cleanup on unmount
         return () => {
             disconnectWebSocket();
         };
-    }, [disconnectWebSocket]);
+    }, [isAuthenticated, token, user, connectWebSocket, disconnectWebSocket]);
 
     const contextValue: OnlineUserContextType = {
-        onlineUsers: Array.from(state.onlineUsers.values()),
-        isUserOnline: (userId: number) => state.onlineUsers.has(userId),
+
+        onlineUsers: canViewOnlineUsers ? Array.from(state.onlineUsers.values()) : [],
+
+        isUserOnline: (userId: number) => {
+
+            if (userId === user?.id && isAuthenticated) {
+                return true;
+            }
+            return canViewOnlineUsers ? state.onlineUsers.has(userId) : false;
+        },
         getLastSeen: (userId: number) => {
+            if (!canViewOnlineUsers) return null;
             const offline = state.offlineUsers.get(userId);
             return offline?.lastSeen || null;
         },
+        refreshOnlineUsers: fetchOnlineUsers,
+        canViewOnlineUsers,
     };
 
     return (
