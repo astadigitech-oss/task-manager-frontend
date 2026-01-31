@@ -139,7 +139,7 @@ export function OnlineUserProvider({
     const isAdmin = user?.role === "admin";
     const canViewOnlineUsers = isAdmin;
 
-    // ✅ PERBAIKAN: Invalidate React Query cache ketika status berubah
+    // PERBAIKAN: Invalidate React Query cache ketika status berubah
     const invalidateUsersCache = useCallback(() => {
         queryClient.invalidateQueries({
             queryKey: ["users"],
@@ -149,7 +149,7 @@ export function OnlineUserProvider({
         });
     }, [queryClient]);
 
-    // ✅ PERBAIKAN: Update cache secara optimistik
+    // PERBAIKAN: Update cache secara optimistik
     const updateUserInCache = useCallback((userId: number, isOnline: boolean, lastSeen?: string) => {
         queryClient.setQueriesData(
             { queryKey: ["users"] },
@@ -162,11 +162,11 @@ export function OnlineUserProvider({
                         ...oldData.data,
                         users: oldData.data.users.map((u: UserApi) =>
                             u.id === userId
-                                ? { 
-                                    ...u, 
+                                ? {
+                                    ...u,
                                     is_online: isOnline,
-                                    last_seen: lastSeen || u.last_seen 
-                                  }
+                                    last_seen: lastSeen || u.last_seen
+                                }
                                 : u
                         ),
                     },
@@ -183,14 +183,14 @@ export function OnlineUserProvider({
 
         try {
             const users = await onlineUsersService.getOnlineUsers();
-            
+
             dispatch({
                 type: "BATCH_SYNC",
                 users: users,
                 timestamp: Date.now(),
             });
 
-            // ✅ Invalidate cache setelah batch sync
+            // Invalidate cache setelah batch sync
             invalidateUsersCache();
         } catch (error) {
             console.error("Failed to fetch online users:", error);
@@ -226,7 +226,7 @@ export function OnlineUserProvider({
 
             const ws = onlineUsersService.createConnection(wsUrl, {
                 onOpen: () => {
-                    console.log("✅ WebSocket connected");
+                    console.log("WebSocket connected");
                     reconnectAttemptsRef.current = 0;
 
                     if (user) {
@@ -235,8 +235,8 @@ export function OnlineUserProvider({
                             user: user as UserApi,
                             timestamp: Date.now(),
                         });
-                        
-                        // ✅ Update cache untuk current user
+
+                        // Update cache untuk current user
                         updateUserInCache(user.id, true);
                     }
 
@@ -248,13 +248,13 @@ export function OnlineUserProvider({
                         const currentWs = wsRef.current;
                         if (currentWs && currentWs.readyState === WebSocket.OPEN) {
                             currentWs.send(JSON.stringify({ type: "ping" }));
-                            console.log("📡 Ping sent");
+                            console.log("Ping sent");
                         }
                     }, 25000);
                 },
 
                 onMessage: (message: UserWsEvent) => {
-                    console.log("📨 WebSocket message received:", message);
+                    console.log("WebSocket message received:", message);
 
                     if (!canViewOnlineUsers) {
                         return;
@@ -263,17 +263,17 @@ export function OnlineUserProvider({
                     const timestamp = Date.now();
 
                     if (message.type === "USER_ONLINE") {
-                        console.log(`✅ User ${message.user.id} is now ONLINE`);
-                        
+                        console.log(`User ${message.user.id} is now ONLINE`);
+
                         dispatch({
                             type: "USER_ONLINE",
                             user: message.user,
                             timestamp,
                         });
 
-                        // ✅ PERBAIKAN: Update cache optimistically
+                        // PERBAIKAN: Update cache optimistically
                         updateUserInCache(message.user.id, true);
-                        
+
                         // Invalidate setelah 100ms untuk memastikan data fresh
                         setTimeout(() => {
                             invalidateUsersCache();
@@ -281,7 +281,7 @@ export function OnlineUserProvider({
 
                     } else if (message.type === "USER_OFFLINE") {
                         console.log(` User ${message.user_id} is now OFFLINE`);
-                        
+
                         dispatch({
                             type: "USER_OFFLINE",
                             userId: message.user_id,
@@ -290,8 +290,8 @@ export function OnlineUserProvider({
                         });
 
                         updateUserInCache(
-                            message.user_id, 
-                            false, 
+                            message.user_id,
+                            false,
                             message.last_seen || new Date().toISOString()
                         );
 
@@ -303,7 +303,7 @@ export function OnlineUserProvider({
                 },
 
                 onError: (error) => {
-                    console.error("❌ WebSocket error:", error);
+                    console.error("WebSocket error:", error);
                 },
 
                 onClose: () => {
@@ -335,11 +335,11 @@ export function OnlineUserProvider({
             console.error("Failed to create WebSocket:", err);
         }
     }, [
-        isAuthenticated, 
-        token, 
-        user, 
-        workspaceId, 
-        fetchOnlineUsers, 
+        isAuthenticated,
+        token,
+        user,
+        workspaceId,
+        fetchOnlineUsers,
         canViewOnlineUsers,
         updateUserInCache,
         invalidateUsersCache
@@ -370,7 +370,7 @@ export function OnlineUserProvider({
             fetchOnlineUsers();
 
             pollingIntervalRef.current = setInterval(() => {
-                console.log("🔄 Polling online users for sync...");
+                console.log(" Polling online users for sync...");
                 fetchOnlineUsers();
             }, 60000);
         }

@@ -91,7 +91,7 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
       startDate: startDate,
       dueDate: dueDate,
       dueTime: dueTime || undefined,
-    });
+    }, 'create');
 
     try {
       setSelectedWorkspaceId(currentWorkspaceId);
