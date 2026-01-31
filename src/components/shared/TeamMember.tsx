@@ -7,7 +7,7 @@ import { UserApi } from "@/types/api/user.api";
 import { formatDistanceToNow } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { useOnlineUsers } from "@/context/OnlineUserContext";
-import { useMemo, useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { UserAvatar } from "./UserAvatar";
 
 interface TeamMembersProps {
@@ -17,9 +17,10 @@ interface TeamMembersProps {
 }
 
 export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) {
-    const { isUserOnline, getLastSeen, canViewOnlineUsers } = useOnlineUsers();
+    const { canViewOnlineUsers } = useOnlineUsers();
     const [currentTime, setCurrentTime] = useState(Date.now());
 
+    // Update time setiap 10 detik untuk refresh "X minutes ago"
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentTime(Date.now());
@@ -27,15 +28,6 @@ export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) 
 
         return () => clearInterval(interval);
     }, []);
-
-    const membersWithRealTimeStatus = useMemo(() => {
-        return members.map((member) => ({
-            ...member,
-            avatar: (member as any).profile_image || member.avatar || null,
-            is_online: canViewOnlineUsers ? isUserOnline(member.id) : false,
-            last_seen: canViewOnlineUsers ? (getLastSeen(member.id) || member.last_seen) : member.last_seen,
-        }));
-    }, [members, isUserOnline, getLastSeen, canViewOnlineUsers, currentTime]);
 
     if (isLoading) {
         return (
@@ -71,33 +63,42 @@ export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) 
                 addSuffix: true,
                 locale: localeId,
             });
-        } catch {
+        } catch (error) {
+            console.error("Error formatting last seen:", error);
             return null;
         }
     };
 
     return (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {membersWithRealTimeStatus.map((member) => {
+            {members.map((member) => {
+                // SIMPLIFIED: Langsung pakai is_online dari member (sudah diupdate via cache)
+                const isOnline = member.is_online === true;
+                const formattedLastSeen = !isOnline && member.last_seen
+                    ? formatLastSeen(member.last_seen)
+                    : null;
+
                 return (
                     <div
                         key={member.id}
                         className="flex items-center gap-4 surface-elevated p-4 rounded-xl border border-border dark:border-slate-700 shadow-sm hover:shadow-md transition-all"
                     >
+                        {/* Avatar with online indicator */}
                         <div className="relative">
                             <UserAvatar
                                 name={member.name}
-                                avatar={member.avatar}
+                                avatar={(member as any).profile_image || member.avatar || null}
                                 size="md"
                                 bustCache
                             />
+                            {/* Online/Offline indicator */}
                             <div
-                                className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-900 transition-colors ${
-                                    member.is_online || !canViewOnlineUsers
-                                        ? "bg-green-500"
+                                className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-900 transition-all duration-300 ${
+                                    isOnline || !canViewOnlineUsers
+                                        ? "bg-green-500 shadow-lg shadow-green-500/50"
                                         : "bg-gray-400 dark:bg-gray-600"
                                 }`}
-                                title={member.is_online ? "Online" : "Offline"}
+                                title={isOnline ? "Online" : "Offline"}
                             />
                         </div>
 
@@ -114,6 +115,7 @@ export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) 
 
                             {/* Role + Online Status */}
                             <div className="flex flex-wrap items-center gap-2">
+                                {/* Role Badge */}
                                 <Badge
                                     variant="outline"
                                     className={`capitalize text-[11px] dark:border-slate-600 ${
@@ -125,26 +127,28 @@ export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) 
                                     {member.role}
                                 </Badge>
 
-                                {/* Show online status badge only for admin */}
-                                {canViewOnlineUsers && member.is_online ? (
-                                    <Badge
-                                        variant="outline"
-                                        className="flex items-center gap-1 text-[11px] border-green-500/50 text-green-600 dark:text-green-400 dark:border-green-500/50"
-                                    >
-                                        <Circle className="w-2 h-2 fill-current animate-pulse" />
-                                        Online
-                                    </Badge>
-                                ) : (
-                                    canViewOnlineUsers &&
-                                    member.last_seen && (
-                                        <span className="text-[10px] text-muted-foreground dark:text-slate-500">
-                                            {formatLastSeen(member.last_seen)}
-                                        </span>
-                                    )
+                                {/* Online Status Badge - Only for Admin */}
+                                {canViewOnlineUsers && (
+                                    <>
+                                        {isOnline ? (
+                                            <Badge
+                                                variant="outline"
+                                                className="flex items-center gap-1 text-[11px] border-green-500/50 text-green-600 dark:text-green-400 dark:border-green-500/50 animate-in fade-in duration-300"
+                                            >
+                                                <Circle className="w-2 h-2 fill-current animate-pulse" />
+                                                Online
+                                            </Badge>
+                                        ) : formattedLastSeen ? (
+                                            <span className="text-[10px] text-muted-foreground dark:text-slate-500">
+                                                {formattedLastSeen}
+                                            </span>
+                                        ) : null}
+                                    </>
                                 )}
                             </div>
                         </div>
 
+                        {/* Delete Button */}
                         {onDelete && (
                             <Button
                                 size="icon"

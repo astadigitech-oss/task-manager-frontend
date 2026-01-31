@@ -38,7 +38,7 @@ export const onlineUsersService = {
 
     /**
      * Build WebSocket URL untuk aktivasi status online
-     * WebSocket: ws://base_url/ws?token=xxx&workspace_id=xxx
+     * ini digunakan untuk membuat koneksi WebSocket
      */
     buildWebSocketUrl: (config: WebSocketConfig): string | null => {
         if (!WS_BASE_URL) {
@@ -54,7 +54,7 @@ export const onlineUsersService = {
             return null;
         }
 
-        // Build: ws://base_url/ws?token=xxx&workspace_id=xxx
+        // url utama untuk koneksi WebSocket
         const wsUrl = `${WS_BASE_URL}${API_ENDPOINTS.ONLINE_USERS.WS(
             config.token,
             config.workspace_id

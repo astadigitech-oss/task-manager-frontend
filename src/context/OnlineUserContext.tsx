@@ -13,6 +13,7 @@ import { UserApi, UserWsEvent } from "@/types/api/user.api";
 import { useAuthStore } from "@/store/useAuthStore";
 import { onlineUsersService } from "@/services/onlineUsers.service";
 import { WS_CONFIG } from "@/constants/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface OnlineState {
     onlineUsers: Map<number, UserApi>;
@@ -84,7 +85,6 @@ function onlineReducer(state: OnlineState, action: OnlineAction): OnlineState {
                 newLastUpdated[user.id] = action.timestamp;
             });
 
-
             return {
                 onlineUsers: newOnlineUsers,
                 offlineUsers: state.offlineUsers,
@@ -122,6 +122,7 @@ export function OnlineUserProvider({
     workspaceId?: number;
 }) {
     const { isAuthenticated, user, token } = useAuthStore();
+    const queryClient = useQueryClient();
 
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -135,11 +136,45 @@ export function OnlineUserProvider({
         lastUpdated: {},
     });
 
-    // Check if current user is admin
     const isAdmin = user?.role === "admin";
     const canViewOnlineUsers = isAdmin;
 
-    // Fetch online users dari API (hanya untuk admin)
+    // ✅ PERBAIKAN: Invalidate React Query cache ketika status berubah
+    const invalidateUsersCache = useCallback(() => {
+        queryClient.invalidateQueries({
+            queryKey: ["users"],
+        });
+        queryClient.invalidateQueries({
+            queryKey: ["online-users"],
+        });
+    }, [queryClient]);
+
+    // ✅ PERBAIKAN: Update cache secara optimistik
+    const updateUserInCache = useCallback((userId: number, isOnline: boolean, lastSeen?: string) => {
+        queryClient.setQueriesData(
+            { queryKey: ["users"] },
+            (oldData: any) => {
+                if (!oldData?.data?.users) return oldData;
+
+                return {
+                    ...oldData,
+                    data: {
+                        ...oldData.data,
+                        users: oldData.data.users.map((u: UserApi) =>
+                            u.id === userId
+                                ? { 
+                                    ...u, 
+                                    is_online: isOnline,
+                                    last_seen: lastSeen || u.last_seen 
+                                  }
+                                : u
+                        ),
+                    },
+                };
+            }
+        );
+    }, [queryClient]);
+
     const fetchOnlineUsers = useCallback(async () => {
         if (!canViewOnlineUsers) {
             console.warn("Non-admin users cannot fetch online users list");
@@ -154,10 +189,13 @@ export function OnlineUserProvider({
                 users: users,
                 timestamp: Date.now(),
             });
+
+            // ✅ Invalidate cache setelah batch sync
+            invalidateUsersCache();
         } catch (error) {
             console.error("Failed to fetch online users:", error);
         }
-    }, [canViewOnlineUsers]);
+    }, [canViewOnlineUsers, invalidateUsersCache]);
 
     const connectWebSocket = useCallback(() => {
         if (wsRef.current) {
@@ -188,30 +226,35 @@ export function OnlineUserProvider({
 
             const ws = onlineUsersService.createConnection(wsUrl, {
                 onOpen: () => {
+                    console.log("✅ WebSocket connected");
                     reconnectAttemptsRef.current = 0;
 
-                    // Mark current user as online immediately
                     if (user) {
                         dispatch({
                             type: "USER_ONLINE",
                             user: user as UserApi,
                             timestamp: Date.now(),
                         });
+                        
+                        // ✅ Update cache untuk current user
+                        updateUserInCache(user.id, true);
                     }
 
                     if (canViewOnlineUsers) {
                         fetchOnlineUsers();
                     }
+
                     pingIntervalRef.current = setInterval(() => {
                         const currentWs = wsRef.current;
                         if (currentWs && currentWs.readyState === WebSocket.OPEN) {
                             currentWs.send(JSON.stringify({ type: "ping" }));
-                            console.log("Ping sent to keep connection alive");
+                            console.log("📡 Ping sent");
                         }
-                    }, 25000); //25 seconds 
+                    }, 25000);
                 },
 
                 onMessage: (message: UserWsEvent) => {
+                    console.log("📨 WebSocket message received:", message);
 
                     if (!canViewOnlineUsers) {
                         return;
@@ -220,38 +263,63 @@ export function OnlineUserProvider({
                     const timestamp = Date.now();
 
                     if (message.type === "USER_ONLINE") {
+                        console.log(`✅ User ${message.user.id} is now ONLINE`);
+                        
                         dispatch({
                             type: "USER_ONLINE",
                             user: message.user,
                             timestamp,
                         });
+
+                        // ✅ PERBAIKAN: Update cache optimistically
+                        updateUserInCache(message.user.id, true);
+                        
+                        // Invalidate setelah 100ms untuk memastikan data fresh
+                        setTimeout(() => {
+                            invalidateUsersCache();
+                        }, 100);
+
                     } else if (message.type === "USER_OFFLINE") {
+                        console.log(` User ${message.user_id} is now OFFLINE`);
+                        
                         dispatch({
                             type: "USER_OFFLINE",
                             userId: message.user_id,
                             lastSeen: message.last_seen || new Date().toISOString(),
                             timestamp,
                         });
+
+                        updateUserInCache(
+                            message.user_id, 
+                            false, 
+                            message.last_seen || new Date().toISOString()
+                        );
+
+                        // Invalidate setelah 100ms
+                        setTimeout(() => {
+                            invalidateUsersCache();
+                        }, 100);
                     }
                 },
 
                 onError: (error) => {
-                    console.error("WebSocket error:", error);
+                    console.error("❌ WebSocket error:", error);
                 },
 
                 onClose: () => {
+                    console.log("🔌 WebSocket disconnected");
                     wsRef.current = null;
 
-                    // Clear ping interval
                     if (pingIntervalRef.current) {
                         clearInterval(pingIntervalRef.current);
                         pingIntervalRef.current = null;
                     }
 
-                    // Auto-reconnect
                     if (reconnectAttemptsRef.current < WS_CONFIG.MAX_RECONNECT_ATTEMPTS) {
                         reconnectAttemptsRef.current++;
                         const delay = WS_CONFIG.RECONNECT_DELAY_MS * reconnectAttemptsRef.current;
+
+                        console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
 
                         reconnectTimeoutRef.current = setTimeout(() => {
                             connectWebSocket();
@@ -266,9 +334,17 @@ export function OnlineUserProvider({
         } catch (err) {
             console.error("Failed to create WebSocket:", err);
         }
-    }, [isAuthenticated, token, user, workspaceId, fetchOnlineUsers, canViewOnlineUsers]);
+    }, [
+        isAuthenticated, 
+        token, 
+        user, 
+        workspaceId, 
+        fetchOnlineUsers, 
+        canViewOnlineUsers,
+        updateUserInCache,
+        invalidateUsersCache
+    ]);
 
-    // Disconnect WebSocket
     const disconnectWebSocket = useCallback(() => {
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
@@ -288,13 +364,13 @@ export function OnlineUserProvider({
         dispatch({ type: "CLEAR" });
     }, []);
 
+    // Polling untuk sync periodik
     useEffect(() => {
         if (isAuthenticated && token && user && canViewOnlineUsers) {
-
             fetchOnlineUsers();
 
             pollingIntervalRef.current = setInterval(() => {
-                console.log("Polling online users for sync...");
+                console.log("🔄 Polling online users for sync...");
                 fetchOnlineUsers();
             }, 60000);
         }
@@ -306,6 +382,7 @@ export function OnlineUserProvider({
         };
     }, [isAuthenticated, token, user, canViewOnlineUsers, fetchOnlineUsers]);
 
+    // WebSocket connection management
     useEffect(() => {
         if (!isAuthenticated || !token || !user) {
             disconnectWebSocket();
@@ -314,28 +391,27 @@ export function OnlineUserProvider({
 
         connectWebSocket();
 
-        // Cleanup on unmount
         return () => {
             disconnectWebSocket();
         };
     }, [isAuthenticated, token, user, connectWebSocket, disconnectWebSocket]);
 
     const contextValue: OnlineUserContextType = {
-
         onlineUsers: canViewOnlineUsers ? Array.from(state.onlineUsers.values()) : [],
 
         isUserOnline: (userId: number) => {
-
             if (userId === user?.id && isAuthenticated) {
                 return true;
             }
             return canViewOnlineUsers ? state.onlineUsers.has(userId) : false;
         },
+
         getLastSeen: (userId: number) => {
             if (!canViewOnlineUsers) return null;
             const offline = state.offlineUsers.get(userId);
             return offline?.lastSeen || null;
         },
+
         refreshOnlineUsers: fetchOnlineUsers,
         canViewOnlineUsers,
     };
