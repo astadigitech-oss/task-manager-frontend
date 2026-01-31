@@ -55,7 +55,6 @@ export function useUsers(
                 response.data.users = response.data.users.map((user: any) => ({
                     ...user,
                     avatar: user.profile_image || null,
-                    // ✅ PERBAIKAN: Pastikan is_online dari API dipertahankan
                     is_online: user.is_online ?? false,
                     last_seen: user.last_seen || null,
                 }));
@@ -69,13 +68,10 @@ export function useUsers(
             !isMember &&
             (isWorkspaceMode ? !!workspaceId : true),
 
-        // ✅ PERBAIKAN: Untuk admin, set staleTime lebih rendah agar data lebih fresh
-        staleTime: isAdmin ? 10 * 1000 : 5 * 60 * 1000, // 10 detik untuk admin, 5 menit untuk yang lain
+        staleTime: isAdmin ? 10 * 1000 : 5 * 60 * 1000,
 
-        // ✅ PERBAIKAN: Auto-refetch untuk admin setiap 30 detik
         refetchInterval: isAdmin ? 30 * 1000 : false,
 
-        // ✅ Refetch on window focus untuk admin
         refetchOnWindowFocus: isAdmin,
 
         ...options,

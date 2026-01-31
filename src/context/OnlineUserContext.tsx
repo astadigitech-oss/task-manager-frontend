@@ -139,7 +139,6 @@ export function OnlineUserProvider({
     const isAdmin = user?.role === "admin";
     const canViewOnlineUsers = isAdmin;
 
-    // PERBAIKAN: Invalidate React Query cache ketika status berubah
     const invalidateUsersCache = useCallback(() => {
         queryClient.invalidateQueries({
             queryKey: ["users"],
@@ -149,7 +148,6 @@ export function OnlineUserProvider({
         });
     }, [queryClient]);
 
-    // PERBAIKAN: Update cache secara optimistik
     const updateUserInCache = useCallback((userId: number, isOnline: boolean, lastSeen?: string) => {
         queryClient.setQueriesData(
             { queryKey: ["users"] },

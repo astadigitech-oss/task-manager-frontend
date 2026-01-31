@@ -28,7 +28,7 @@ import { projectMembersService } from "@/services/projects/projectMember.service
 import { projectsService } from "@/services/projects/project.service";
 import { WorkspaceMemberApi } from "@/types/api/workspace.api";
 import { ScrollArea } from "../ui/scroll-area";
-import { FolderSearch, Loader2, User } from "lucide-react";
+import { FolderSearch, Loader2 } from "lucide-react";
 import { showInfoToast, showSuccessToast } from "@/lib/helpers/toast-helpers";
 import { UserAvatar } from "../shared/UserAvatar";
 
