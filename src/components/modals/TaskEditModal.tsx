@@ -157,7 +157,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
             startDate: startDate,
             dueDate: dueDate,
             dueTime: dueTime || undefined,
-        });
+        }, 'update');
 
         try {
             const result = await updateMutation.mutateAsync({

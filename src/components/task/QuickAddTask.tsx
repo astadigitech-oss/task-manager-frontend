@@ -84,7 +84,7 @@ export function QuickAddTask({
       status,
       priority,
       dueDate: dueDate,
-    });
+    }, 'create');
 
     try {
 

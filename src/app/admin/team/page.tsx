@@ -200,41 +200,6 @@ export default function TeamPage() {
                   className="pl-10"
                 />
               </div>
-
-              {/* Refresh & Debug Buttons */}
-              {canViewOnlineUsers && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRefreshAll}
-                    disabled={isLoading}
-                    className="shrink-0 flex items-center gap-2"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDebugClick}
-                    className="shrink-0 flex items-center gap-2"
-                  >
-                    <Bug className="w-4 h-4" />
-                    Debug
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowDebug(!showDebug)}
-                    className="shrink-0"
-                  >
-                    {showDebug ? "Hide Panel" : "Show Panel"}
-                  </Button>
-                </div>
-              )}
             </div>
 
             {/* Search Results Info */}
