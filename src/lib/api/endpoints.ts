@@ -116,12 +116,12 @@ export const API_ENDPOINTS = {
 
 
   // members endpoint for user
-  MEMBERS: {
-    LIST: '/api/users',
-    DETAIL: (id: number) => `/api/users/${id}`,
-    UPDATE: (id: number) => `/api/users/${id}`,
-    DELETE: (id: number) => `/api/users/${id}`,
-  },
+  // MEMBERS: {
+  //   LIST: '/api/users',
+  //   DETAIL: (id: number) => `/api/users/${id}`,
+  //   UPDATE: (id: number) => `/api/users/${id}`,
+  //   DELETE: (id: number) => `/api/users/${id}`,
+  // },
 
   EXPORT: {
     DAILY: (project_id: number) => `/api/projects/${project_id}/export/daily`,
