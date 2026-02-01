@@ -25,7 +25,6 @@ function parseDate(dateStr: string | undefined | null): Date | null {
 
 /**
  * Check if task is overdue
- * 
  */
 function isTaskOverdue(task: TaskApi): boolean {
     if (task.status === "done") return false;
@@ -36,7 +35,6 @@ function isTaskOverdue(task: TaskApi): boolean {
 
 /**
  * Check if task was completed late
- * 
  */
 function isCompletedLate(task: TaskApi): boolean {
     if (task.status !== "done") return false;
@@ -53,6 +51,16 @@ function isCompletedLate(task: TaskApi): boolean {
  */
 export function filterTasksByProject(tasks: TaskApi[], projectId: number): TaskApi[] {
     return tasks.filter(task => task.project_id === projectId);
+}
+
+/**
+ * Format task notes untuk display
+ */
+export function formatTaskNotes(task: TaskApi): string {
+    if (!task.notes || task.notes.trim() === '') {
+        return '-';
+    }
+    return task.notes.trim();
 }
 
 // ============================================

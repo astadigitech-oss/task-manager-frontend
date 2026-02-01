@@ -5,6 +5,7 @@ import { mapTask } from "@/lib/mapper/task.mapper";
 import { showSuccessToast, showErrorToast } from "@/lib/helpers/toast-helpers";
 import { TaskApi, TaskRequest } from "@/types/api/task.api";
 import { ApiError } from "@/lib/api/interceptors";
+import { applyOverdueCalculation } from "@/lib/helpers/taskOverdue.helper";
 
 /**
  * =========================
@@ -31,7 +32,8 @@ export function useTasks(
                     throw new Error("Gagal memuat task");
                 }
 
-                return res.data.map(mapTask);
+                const mappedTasks = res.data.map(mapTask);
+                return mappedTasks.map(applyOverdueCalculation);
             } catch (error) {
 
                 if (error instanceof ApiError && error.status === 403) {
@@ -64,7 +66,6 @@ export function useTasks(
             return failureCount < 2;
         },
 
-
         throwOnError: false,
     });
 }
@@ -92,7 +93,6 @@ export function useTaskDetail(
                 return null;
             }
 
-
             try {
                 const res = await tasksService.detail(workspaceId, projectId, taskId);
 
@@ -100,7 +100,8 @@ export function useTaskDetail(
                     throw new Error("Gagal memuat detail task");
                 }
 
-                return mapTask(res.data);
+                const mappedTask = mapTask(res.data);
+                return applyOverdueCalculation(mappedTask);
             } catch (error) {
                 if (error instanceof ApiError && error.status === 403) {
                     const errorMessage = error.data?.error || error.message;
@@ -138,16 +139,14 @@ export function useCreateTask() {
             projectId: number;
             payload: TaskRequest;
         }) => {
-
-            const res = await tasksService.create(workspaceId, projectId, {
-                ...payload,
-            });
+            const res = await tasksService.create(workspaceId, projectId, payload);
 
             if (!res.success || !res.data) {
                 throw new Error("Gagal membuat task");
             }
 
-            return mapTask(res.data);
+            const mappedTask = mapTask(res.data);
+            return applyOverdueCalculation(mappedTask);
         },
 
         onSuccess: (task, variables) => {
@@ -196,39 +195,6 @@ export function useUpdateTask() {
             taskId: number;
             payload: Partial<TaskRequest>;
         }) => {
-
-            const currentTask = queryClient.getQueryData<TaskApi[]>(
-                taskKeys.list(workspaceId, projectId)
-            )?.find(t => t.id === taskId);
-
-            const finalPayload = { ...payload };
-
-            if (payload.status === "done" && currentTask?.status !== "done") {
-                finalPayload.finished_at = new Date().toISOString();
-
-                if (currentTask?.due_date) {
-                    const dueDateTime = new Date(currentTask.due_date);
-
-                    if (currentTask.due_time) {
-                        const [hours, minutes] = currentTask.due_time.split(':').map(Number);
-                        dueDateTime.setHours(hours, minutes, 0, 0);
-                    } else {
-
-                        dueDateTime.setHours(23, 59, 59, 999);
-                    }
-
-                    const now = new Date();
-                    if (now > dueDateTime) {
-
-                        console.log('Task completed after deadline');
-                    }
-                }
-            }
-
-            if (currentTask?.status === "done" && payload.status !== "done") {
-                finalPayload.finished_at = null;
-            }
-
             const res = await tasksService.update(
                 workspaceId,
                 projectId,
@@ -240,7 +206,8 @@ export function useUpdateTask() {
                 throw new Error("Gagal update task");
             }
 
-            return mapTask(res.data);
+            const mappedTask = mapTask(res.data);
+            return applyOverdueCalculation(mappedTask);
         },
 
         onMutate: async ({ workspaceId, projectId, taskId, payload }) => {
@@ -261,29 +228,49 @@ export function useUpdateTask() {
                         if (task.id !== taskId) return task;
 
                         const updates: Partial<TaskApi> = {};
+
+                        if (payload.status !== undefined) {
+                            updates.status = payload.status ?? task.status;
+                        }
+
+                        if (payload.priority !== undefined) {
+                            updates.priority = payload.priority ?? task.priority;
+                        }
+
+                        if (payload.title !== undefined) {
+                            updates.title = payload.title;
+                        }
+                        if (payload.description !== undefined) {
+                            updates.description = payload.description;
+                        }
+                        if (payload.notes !== undefined) {
+                            updates.notes = payload.notes;
+                        }
+                        if (payload.start_date !== undefined) {
+                            updates.start_date = payload.start_date;
+                        }
+                        if (payload.due_date !== undefined) {
+                            updates.due_date = payload.due_date;
+                        }
+                        if (payload.due_time !== undefined) {
+                            updates.due_time = payload.due_time;
+                        }
+
                         if (payload.status === "done" && task.status !== "done") {
                             updates.finished_at = new Date().toISOString();
                         }
-                        if (task.status === "done" && payload.status !== "done") {
+                        
+                        if (task.status === "done" && payload.status && payload.status !== "done") {
                             updates.finished_at = undefined;
-                            updates.is_overdue = false;
                         }
 
-                        return {
-                            ...task,
-                            ...(payload.status !== null && payload.status !== undefined
-                                ? { status: payload.status }
-                                : {}),
-                            ...(payload.priority !== null && payload.priority !== undefined
-                                ? { priority: payload.priority }
-                                : {}),
-                            ...(payload.title !== undefined ? { title: payload.title } : {}),
-                            ...(payload.description !== undefined ? { description: payload.description } : {}),
-                            ...(payload.start_date !== undefined ? { start_date: payload.start_date } : {}),
-                            ...(payload.due_date !== undefined ? { due_date: payload.due_date } : {}),
-                            ...(payload.due_time !== undefined ? { due_time: payload.due_time } : {}),
-                            ...(payload.notes !== undefined ? { notes: payload.notes } : {}),
-                        };
+                        if (payload.finished_at !== undefined) {
+                            updates.finished_at = payload.finished_at || undefined;
+                        }
+
+                        const updatedTask = { ...task, ...updates };
+                        
+                        return applyOverdueCalculation(updatedTask);
                     });
                 }
             );

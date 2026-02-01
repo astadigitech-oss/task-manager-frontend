@@ -7,7 +7,6 @@ import { TaskPriority } from "@/types/shared/priority";
 // ============================================
 
 export function mapTask(api: any): TaskApi {
-
     const parseDateTime = (dateStr: string | undefined | null): string | undefined => {
         if (!dateStr) return undefined;
         try {
@@ -18,12 +17,6 @@ export function mapTask(api: any): TaskApi {
         }
     };
 
-    /**
-     * Split datetime into date and time components
-     * Handles both formats:
-     * - ISO format: "2025-11-03T17:00:00+07:00" (from API response)
-     * - SQL format: "2025-11-03 17:00:00" (from API response)
-     */
     const splitDateTime = (dateTimeStr: string | undefined | null): {
         date: string | undefined;
         time: string | undefined;
@@ -31,17 +24,14 @@ export function mapTask(api: any): TaskApi {
         if (!dateTimeStr) return { date: undefined, time: undefined };
 
         try {
-            // Handle ISO format with 'T' separator
             if (dateTimeStr.includes('T')) {
                 const dt = new Date(dateTimeStr);
                 if (isNaN(dt.getTime())) return { date: undefined, time: undefined };
 
                 const date = dt.toISOString().split('T')[0];
-
                 const hours = dt.getHours();
                 const minutes = dt.getMinutes();
 
-                // If time is 00:00, consider it as no specific time
                 if (hours === 0 && minutes === 0) {
                     return { date, time: undefined };
                 }
@@ -50,7 +40,6 @@ export function mapTask(api: any): TaskApi {
                 return { date, time };
             }
 
-            // Handle SQL format "YYYY-MM-DD HH:MM:SS"
             if (dateTimeStr.includes(' ')) {
                 const [datePart, timePart] = dateTimeStr.split(' ');
 
@@ -58,7 +47,6 @@ export function mapTask(api: any): TaskApi {
                     return { date: datePart, time: undefined };
                 }
 
-                // Extract HH:MM from "17:00:00+07:00" or "17:00:00"
                 const timeMatch = timePart.match(/^(\d{2}):(\d{2})/);
 
                 if (!timeMatch) {
@@ -68,7 +56,6 @@ export function mapTask(api: any): TaskApi {
                 const hours = timeMatch[1];
                 const minutes = timeMatch[2];
 
-                // If time is 00:00, consider it as no specific time
                 if (hours === '00' && minutes === '00') {
                     return { date: datePart, time: undefined };
                 }
@@ -77,7 +64,6 @@ export function mapTask(api: any): TaskApi {
                 return { date: datePart, time };
             }
 
-            // If it's just a date (YYYY-MM-DD)
             return { date: dateTimeStr, time: undefined };
 
         } catch (error) {
@@ -89,7 +75,6 @@ export function mapTask(api: any): TaskApi {
     const startDateTime = splitDateTime(api.start_date);
     const dueDateTime = splitDateTime(api.due_date);
 
-    // Normalize priority: convert underscores to dashes
     const normalizePriority = (priority: string): TaskPriority => {
         if (!priority) return "normal";
         const normalized = priority.replace(/_/g, '-');
@@ -110,12 +95,12 @@ export function mapTask(api: any): TaskApi {
 
         start_date: startDateTime.date,
         due_date: dueDateTime.date,
-
-        // Prioritize api.due_time if exists, otherwise use parsed time
         due_time: api.due_time || dueDateTime.time,
 
         finished_at: parseDateTime(api.finished_at),
-        is_overdue: api.is_overdue ?? false,
+        overdue_duration: api.overdue_duration ?? 0,
+        
+        is_overdue: (api.overdue_duration ?? 0) > 0,
 
         notes: api.notes ?? "",
         created_at: parseDateTime(api.created_at) ?? new Date().toISOString(),
@@ -143,120 +128,52 @@ export function mapTask(api: any): TaskApi {
 }
 
 // ============================================
-// 2. BUILD PAYLOAD FOR CREATE/UPDATE - UNIFIED WITH MODE
+// OVERDUE HELPERS - Using API's overdue_duration
 // ============================================
 
-export function buildTaskPayload(
-    formData: {
-        title: string;
-        description?: string;
-        notes?: string;
-        status?: TaskStatus | null;
-        priority?: TaskPriority | null;
-        startDate?: string;
-        dueDate?: string;
-        dueTime?: string;
-    },
-    mode: 'create' | 'update' = 'create'  // ← Parameter tambahan
-): TaskRequest {
-    const payload: TaskRequest = {
-        title: formData.title,
-        description: formData.description || "",
-        notes: formData.notes || "",
-        status: formData.status || null,
-        priority: formData.priority || null,
-    };
-
-    const useTimezone = mode === 'create';  // ← Create pakai timezone, Update tidak
-    const timezone = '+07:00';
-
-    // Start date handling
-    if (formData.startDate && formData.startDate.trim() !== '') {
-        if (useTimezone) {
-            payload.start_date = `${formData.startDate}T00:00:00${timezone}`;
-        } else {
-            payload.start_date = `${formData.startDate} 00:00:00`;
+/**
+ * Format overdue duration to human readable
+ */
+export function formatOverdueDuration(minutes: number): string {
+    if (minutes === 0) return '';
+    
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    
+    if (days > 0) {
+        if (remainingHours > 0) {
+            return `${days}d ${remainingHours}h overdue`;
         }
-    } else {
-        const fallbackDate = formData.dueDate || new Date().toISOString().split('T')[0];
-        if (useTimezone) {
-            payload.start_date = `${fallbackDate}T00:00:00${timezone}`;
-        } else {
-            payload.start_date = `${fallbackDate} 00:00:00`;
-        }
+        return `${days} day${days > 1 ? 's' : ''} overdue`;
     }
-
-    // Due date & time handling
-    if (formData.dueDate && formData.dueDate.trim() !== '') {
-        if (formData.dueTime && formData.dueTime.trim() !== '') {
-            if (useTimezone) {
-                payload.due_date = `${formData.dueDate}T${formData.dueTime}:00${timezone}`;
-            } else {
-                payload.due_date = `${formData.dueDate} ${formData.dueTime}:00`;
-            }
-        } else {
-            if (useTimezone) {
-                payload.due_date = `${formData.dueDate}T00:00:00${timezone}`;
-            } else {
-                payload.due_date = `${formData.dueDate} 00:00:00`;
-            }
-        }
+    
+    if (hours > 0) {
+        return `${hours} hour${hours > 1 ? 's' : ''} overdue`;
     }
-
-    return payload;
+    
+    return `${minutes} minute${minutes > 1 ? 's' : ''} overdue`;
 }
 
-// ============================================
-// 3. DISPLAY & FORMATTING HELPERS
-// ============================================
-
-export function formatDeadline(date: string, time?: string | null): string {
-    const d = new Date(date);
-    const dateStr = d.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-    });
-
-    if (time) {
-        return `${dateStr} at ${time}`;
-    }
-    return dateStr;
-}
-
-// ============================================
-// 4. VALIDATION HELPERS
-// ============================================
-
+/**
+ * Check if task is overdue based on API data
+ */
 export function isTaskOverdue(task: TaskApi): boolean {
     if (task.status === "done" || task.status === "canceled") {
         return false;
     }
-
-    if (!task.due_date) return false;
-
-    const now = new Date();
-
-    const [year, month, day] = task.due_date.split('-').map(Number);
-    const dueDate = new Date(year, month - 1, day);
-
-    if (task.due_time) {
-        const [hours, minutes] = task.due_time.split(':').map(Number);
-        dueDate.setHours(hours, minutes, 0, 0);
-    } else {
-        dueDate.setHours(23, 59, 59, 999);
-    }
-
-    return now > dueDate;
+    
+    return (task.overdue_duration ?? 0) > 0;
 }
 
+/**
+ * Check if task was completed late
+ */
 export function isCompletedLate(task: TaskApi): boolean {
     if (task.status !== "done") return false;
-
     if (!task.finished_at || !task.due_date) return false;
 
     const finishedDate = new Date(task.finished_at);
-
     const [year, month, day] = task.due_date.split('-').map(Number);
     const dueDate = new Date(year, month - 1, day);
 
@@ -270,10 +187,14 @@ export function isCompletedLate(task: TaskApi): boolean {
     return finishedDate > dueDate;
 }
 
+/**
+ * Get task deadline status with overdue duration
+ */
 export function getTaskDeadlineStatus(task: TaskApi): {
     status: 'completed-on-time' | 'completed-late' | 'overdue' | 'upcoming' | 'no-deadline';
     message: string;
     variant: 'success' | 'warning' | 'destructive' | 'default';
+    overdueDuration?: string;
 } {
     if (!task.due_date) {
         return {
@@ -311,8 +232,9 @@ export function getTaskDeadlineStatus(task: TaskApi): {
     if (isTaskOverdue(task)) {
         return {
             status: 'overdue',
-            message: 'Overdue',
-            variant: 'destructive'
+            message: formatOverdueDuration(task.overdue_duration ?? 0),
+            variant: 'destructive',
+            overdueDuration: formatOverdueDuration(task.overdue_duration ?? 0)
         };
     }
 
@@ -321,6 +243,131 @@ export function getTaskDeadlineStatus(task: TaskApi): {
         message: 'Active',
         variant: 'default'
     };
+}
+
+// ============================================
+// FINISHED_AT HELPERS
+// ============================================
+
+/**
+ * Format finished_at timestamp
+ */
+export function formatFinishedAt(finishedAt: string | undefined): string {
+    if (!finishedAt) return '';
+    
+    try {
+        const date = new Date(finishedAt);
+        return date.toLocaleString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+    } catch {
+        return '';
+    }
+}
+
+/**
+ * Auto-set finished_at when status changes to done
+ */
+export function prepareTaskForStatusUpdate(
+    currentTask: TaskApi,
+    newStatus: TaskStatus
+): Partial<TaskRequest> {
+    const updates: Partial<TaskRequest> = { status: newStatus };
+    
+    if (newStatus === "done" && currentTask.status !== "done") {
+        updates.finished_at = new Date().toISOString();
+    }
+    
+    if (currentTask.status === "done" && newStatus !== "done") {
+        updates.finished_at = null;
+    }
+    
+    return updates;
+}
+
+// ============================================
+// 2. BUILD PAYLOAD FOR CREATE/UPDATE - UNIFIED WITH MODE
+// ============================================
+
+export function buildTaskPayload(
+    formData: {
+        title: string;
+        description?: string;
+        notes?: string;
+        status?: TaskStatus | null;
+        priority?: TaskPriority | null;
+        startDate?: string;
+        dueDate?: string;
+        dueTime?: string;
+    },
+    mode: 'create' | 'update' = 'create'
+): TaskRequest {
+    const payload: TaskRequest = {
+        title: formData.title,
+        description: formData.description || "",
+        notes: formData.notes || "",
+        status: formData.status || null,
+        priority: formData.priority || null,
+    };
+
+    const useTimezone = mode === 'create';
+    const timezone = '+07:00';
+
+    if (formData.startDate && formData.startDate.trim() !== '') {
+        if (useTimezone) {
+            payload.start_date = `${formData.startDate}T00:00:00${timezone}`;
+        } else {
+            payload.start_date = `${formData.startDate} 00:00:00`;
+        }
+    } else {
+        const fallbackDate = formData.dueDate || new Date().toISOString().split('T')[0];
+        if (useTimezone) {
+            payload.start_date = `${fallbackDate}T00:00:00${timezone}`;
+        } else {
+            payload.start_date = `${fallbackDate} 00:00:00`;
+        }
+    }
+
+    if (formData.dueDate && formData.dueDate.trim() !== '') {
+        if (formData.dueTime && formData.dueTime.trim() !== '') {
+            if (useTimezone) {
+                payload.due_date = `${formData.dueDate}T${formData.dueTime}:00${timezone}`;
+            } else {
+                payload.due_date = `${formData.dueDate} ${formData.dueTime}:00`;
+            }
+        } else {
+            if (useTimezone) {
+                payload.due_date = `${formData.dueDate}T00:00:00${timezone}`;
+            } else {
+                payload.due_date = `${formData.dueDate} 00:00:00`;
+            }
+        }
+    }
+
+    return payload;
+}
+
+// ============================================
+// 3. DISPLAY & FORMATTING HELPERS
+// ============================================
+
+export function formatDeadline(date: string, time?: string | null): string {
+    const d = new Date(date);
+    const dateStr = d.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    });
+
+    if (time) {
+        return `${dateStr} at ${time}`;
+    }
+    return dateStr;
 }
 
 export function getTimeRemaining(task: TaskApi): {

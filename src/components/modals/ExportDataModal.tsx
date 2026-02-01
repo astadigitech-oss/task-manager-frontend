@@ -13,7 +13,8 @@ import { showSuccessToast, showErrorToast } from "@/lib/helpers/toast-helpers";
 import type { ExportType } from "@/hooks/useExport";
 import {
     getExportData,
-    formatTaskDeadline
+    formatTaskDeadline,
+    formatTaskNotes
 } from "@/lib/helpers/export_data.helpers";
 
 interface ExportTasksModalProps {
@@ -73,6 +74,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                     text += `   Priority: ${task.priority.toUpperCase()}\n`;
                     text += `   Deadline: ${formatTaskDeadline(task)}\n`;
                     if (task.description) text += `   Description: ${task.description}\n`;
+                    text += `   Notes: ${formatTaskNotes(task)}\n`;
                     text += `\n`;
                 });
             }
@@ -89,6 +91,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                 text += `   Status: ${task.status.toUpperCase()}\n`;
                 text += `   Priority: ${task.priority.toUpperCase()}\n`;
                 text += `   Deadline: ${formatTaskDeadline(task)}\n`;
+                text += `   Notes: ${formatTaskNotes(task)}\n`;
                 text += `\n`;
             });
 
@@ -103,6 +106,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                 if (task.overdue_duration && task.overdue_duration > 0) {
                     text += `   ⚠ COMPLETED LATE (${task.overdue_duration} days)\n`;
                 }
+                text += `   Notes: ${formatTaskNotes(task)}\n`;
                 text += `\n`;
             });
 
@@ -114,6 +118,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                     if (task.overdue_duration) {
                         text += `   Late by: ${task.overdue_duration} days\n`;
                     }
+                    text += `   Notes: ${formatTaskNotes(task)}\n`;
                     text += `\n`;
                 });
             }
@@ -132,11 +137,13 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                 if (task.overdue_duration && task.overdue_duration > 0) {
                     text += `     ⚠ Late (${task.overdue_duration} days)\n`;
                 }
+                text += `     Notes: ${formatTaskNotes(task)}\n`;
             });
 
             text += `\nIn Progress (${data.past.onProgress.length})\n`;
             data.past.onProgress.forEach((task, i) => {
                 text += `  ${i + 1}. ${task.title} - ${task.status.toUpperCase()}\n`;
+                text += `     Notes: ${formatTaskNotes(task)}\n`;
             });
 
             text += `\n\nUPCOMING WEEK\n${"-".repeat(30)}\n\n`;
@@ -147,6 +154,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                     text += `     Starts: ${format(new Date(task.start_date), "MMM dd, yyyy")}\n`;
                 }
                 text += `     Due: ${formatTaskDeadline(task)}\n`;
+                text += `     Notes: ${formatTaskNotes(task)}\n`;
             });
 
             text += `\nDue Soon (${data.upcoming.due.length})\n`;
@@ -154,6 +162,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                 text += `  ${i + 1}. ${task.title}\n`;
                 text += `     Due: ${formatTaskDeadline(task)}\n`;
                 text += `     Priority: ${task.priority.toUpperCase()}\n`;
+                text += `     Notes: ${formatTaskNotes(task)}\n`;
             });
         }
 
