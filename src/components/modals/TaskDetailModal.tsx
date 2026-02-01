@@ -18,11 +18,13 @@ import { statusConfig, priorityConfig } from "@/constants/task";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AssigneesSection } from "@/components/task/task-detail/AssigneesSection";
 import { ImageLightBoxModal } from "./ImageLightBoxModal";
-import { 
-  formatDeadline, 
-  isTaskOverdue, 
+import {
+  formatDeadline,
+  isTaskOverdue,
   isCompletedLate,
-  getTaskDeadlineStatus 
+  getTaskDeadlineStatus,
+  formatFinishedAt,
+  formatOverdueDuration
 } from "@/lib/mapper/task.mapper";
 
 interface TaskDetailModalProps {
@@ -72,7 +74,7 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
 
   const deadlineStatus = useMemo(() => {
     const status = getTaskDeadlineStatus(task);
-    
+
     return status;
   }, [task]);
 
@@ -139,19 +141,19 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                 </div>
 
                 {task.due_date && deadlineStatus.status !== 'no-deadline' && (
-                  <Badge 
+                  <Badge
                     variant={
                       deadlineStatus.variant === 'destructive' ? 'destructive' :
-                      deadlineStatus.variant === 'warning' ? 'outline' :
-                      deadlineStatus.variant === 'success' ? 'default' :
-                      'secondary'
+                        deadlineStatus.variant === 'warning' ? 'outline' :
+                          deadlineStatus.variant === 'success' ? 'default' :
+                            'secondary'
                     }
                     className={
-                      deadlineStatus.status === 'completed-on-time' 
+                      deadlineStatus.status === 'completed-on-time'
                         ? 'bg-green-100 text-green-800 border-green-300 gap-1'
                         : deadlineStatus.status === 'completed-late'
-                        ? 'bg-orange-100 text-orange-800 border-orange-300 gap-1'
-                        : 'gap-1'
+                          ? 'bg-orange-100 text-orange-800 border-orange-300 gap-1'
+                          : 'gap-1'
                     }
                   >
                     {deadlineStatus.status === 'completed-on-time' && (
@@ -205,10 +207,11 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                             </p>
                           )}
 
-                          {isTaskOverdue(task) && (
+                          {/* Show overdue only for active tasks */}
+                          {isTaskOverdue(task) && task.status !== "done" && (
                             <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
                               <AlertTriangle className="w-3 h-3" />
-                              <span>Overdue</span>
+                              <span>{formatOverdueDuration(task.overdue_duration ?? 0)}</span>
                             </div>
                           )}
                         </div>
@@ -216,33 +219,44 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                     )}
                   </div>
 
+                  {/* FINISHED AT SECTION */}
                   {task.status === "done" && task.finished_at && (
-                    <div className={`mt-3 p-3 rounded-lg border ${
-                      isCompletedLate(task) 
+                    <div className={`mt-4 p-4 rounded-lg border ${
+                      isCompletedLate(task)
                         ? 'bg-orange-50 border-orange-200' 
                         : 'bg-green-50 border-green-200'
                     }`}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label className="text-xs">Completed At</Label>
-                          <p className="text-sm font-medium mt-0.5">
-                            {format(new Date(task.finished_at), "PPP 'at' p")}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <Label className="text-xs font-semibold mb-1 block">
+                            Completed At
+                          </Label>
+                          <p className="text-sm font-medium">
+                            {formatFinishedAt(task.finished_at)}
                           </p>
+                          {task.due_date && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Due date was: {formatDeadline(task.due_date, task.due_time)}
+                            </p>
+                          )}
                         </div>
-                        {isCompletedLate(task) ? (
-                          <Badge variant="outline" className="gap-1 bg-orange-100 text-orange-800 border-orange-300">
-                            <AlertTriangle className="w-3 h-3" />
-                            Completed Late
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="gap-1 bg-green-100 text-green-800 border-green-300">
-                            <CheckCircle2 className="w-3 h-3" />
-                            On Time
-                          </Badge>
-                        )}
+                        <div>
+                          {isCompletedLate(task) ? (
+                            <Badge variant="outline" className="gap-1.5 bg-orange-100 text-orange-800 border-orange-300 whitespace-nowrap">
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              Completed Late
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="gap-1.5 bg-green-100 text-green-800 border-green-300 whitespace-nowrap">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              On Time
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
+
                   <Separator />
                 </>
               )}
