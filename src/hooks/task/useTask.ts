@@ -5,7 +5,29 @@ import { mapTask } from "@/lib/mapper/task.mapper";
 import { showSuccessToast, showErrorToast } from "@/lib/helpers/toast-helpers";
 import { TaskApi, TaskRequest } from "@/types/api/task.api";
 import { ApiError } from "@/lib/api/interceptors";
-import { applyOverdueCalculation } from "@/lib/helpers/taskOverdue.helper";
+
+
+function calculateOptimisticOverdue(task: TaskApi): number {
+
+    if (!task.due_date) return 0;
+    
+    const now = new Date();
+    const [year, month, day] = task.due_date.split('-').map(Number);
+    const dueDate = new Date(year, month - 1, day);
+    
+    if (task.due_time) {
+        const [hours, minutes] = task.due_time.split(':').map(Number);
+        dueDate.setHours(hours, minutes, 0, 0);
+    } else {
+        dueDate.setHours(23, 59, 59, 999);
+    }
+    
+    const diffMs = now.getTime() - dueDate.getTime();
+    
+    if (diffMs <= 0) return 0;
+    
+    return Math.floor(diffMs / (1000 * 60));
+}
 
 /**
  * =========================
@@ -32,8 +54,7 @@ export function useTasks(
                     throw new Error("Gagal memuat task");
                 }
 
-                const mappedTasks = res.data.map(mapTask);
-                return mappedTasks.map(applyOverdueCalculation);
+                return res.data.map(mapTask);
             } catch (error) {
 
                 if (error instanceof ApiError && error.status === 403) {
@@ -100,8 +121,7 @@ export function useTaskDetail(
                     throw new Error("Gagal memuat detail task");
                 }
 
-                const mappedTask = mapTask(res.data);
-                return applyOverdueCalculation(mappedTask);
+                return mapTask(res.data);
             } catch (error) {
                 if (error instanceof ApiError && error.status === 403) {
                     const errorMessage = error.data?.error || error.message;
@@ -145,8 +165,7 @@ export function useCreateTask() {
                 throw new Error("Gagal membuat task");
             }
 
-            const mappedTask = mapTask(res.data);
-            return applyOverdueCalculation(mappedTask);
+            return mapTask(res.data);
         },
 
         onSuccess: (task, variables) => {
@@ -206,8 +225,7 @@ export function useUpdateTask() {
                 throw new Error("Gagal update task");
             }
 
-            const mappedTask = mapTask(res.data);
-            return applyOverdueCalculation(mappedTask);
+            return mapTask(res.data);
         },
 
         onMutate: async ({ workspaceId, projectId, taskId, payload }) => {
@@ -258,19 +276,26 @@ export function useUpdateTask() {
 
                         if (payload.status === "done" && task.status !== "done") {
                             updates.finished_at = new Date().toISOString();
+                            
+                            const overdueMins = calculateOptimisticOverdue(task);
+                            updates.overdue_duration = overdueMins;
+                            updates.is_overdue = overdueMins > 0;
                         }
                         
                         if (task.status === "done" && payload.status && payload.status !== "done") {
                             updates.finished_at = undefined;
+                            updates.overdue_duration = 0;
+                            updates.is_overdue = false;
                         }
 
                         if (payload.finished_at !== undefined) {
                             updates.finished_at = payload.finished_at || undefined;
                         }
 
-                        const updatedTask = { ...task, ...updates };
-                        
-                        return applyOverdueCalculation(updatedTask);
+                        return {
+                            ...task,
+                            ...updates
+                        };
                     });
                 }
             );
@@ -294,7 +319,14 @@ export function useUpdateTask() {
             showErrorToast(message);
         },
 
-        onSuccess: (_, variables) => {
+        onSuccess: (updatedTask, variables) => {
+            queryClient.setQueryData<TaskApi[]>(
+                taskKeys.list(variables.workspaceId, variables.projectId),
+                (old = []) => old.map(task => 
+                    task.id === variables.taskId ? updatedTask : task
+                )
+            );
+
             invalidateTaskQueries.allInProject(
                 queryClient,
                 variables.workspaceId,
