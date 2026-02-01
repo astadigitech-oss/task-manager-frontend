@@ -20,11 +20,10 @@ import { AssigneesSection } from "@/components/task/task-detail/AssigneesSection
 import { ImageLightBoxModal } from "./ImageLightBoxModal";
 import {
   formatDeadline,
-  isTaskOverdue,
   isCompletedLate,
   getTaskDeadlineStatus,
   formatFinishedAt,
-  formatOverdueDuration
+  formatOverdueDisplay,
 } from "@/lib/mapper/task.mapper";
 
 interface TaskDetailModalProps {
@@ -73,9 +72,7 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
   }, [taskMembers]);
 
   const deadlineStatus = useMemo(() => {
-    const status = getTaskDeadlineStatus(task);
-
-    return status;
+    return getTaskDeadlineStatus(task);
   }, [task]);
 
   const handlePointerDownOutside = (e: Event) => {
@@ -207,12 +204,15 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                             </p>
                           )}
 
-                          {/* Show overdue only for active tasks */}
-                          {isTaskOverdue(task) && task.status !== "done" && (
-                            <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
-                              <AlertTriangle className="w-3 h-3" />
-                              <span>{formatOverdueDuration(task.overdue_duration ?? 0)}</span>
-                            </div>
+                          {task.status !== "done" && task.status !== "canceled" && (
+                            <>
+                              {deadlineStatus.status === 'overdue' && (
+                                <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  <span>{formatOverdueDisplay(task)}</span>
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -237,6 +237,12 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                           {task.due_date && (
                             <p className="text-xs text-muted-foreground mt-1">
                               Due date was: {formatDeadline(task.due_date, task.due_time)}
+                            </p>
+                          )}
+
+                          {isCompletedLate(task) && task.overdue_duration && task.overdue_duration > 0 && (
+                            <p className="text-xs text-orange-600 mt-1 font-medium">
+                              {formatOverdueDisplay(task)}
                             </p>
                           )}
                         </div>

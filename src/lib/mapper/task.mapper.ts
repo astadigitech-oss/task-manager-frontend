@@ -98,8 +98,8 @@ export function mapTask(api: any): TaskApi {
         due_time: api.due_time || dueDateTime.time,
 
         finished_at: parseDateTime(api.finished_at),
-        overdue_duration: api.overdue_duration ?? 0,
         
+        overdue_duration: api.overdue_duration ? Math.floor(api.overdue_duration / 60) : 0,
         is_overdue: (api.overdue_duration ?? 0) > 0,
 
         notes: api.notes ?? "",
@@ -128,7 +128,88 @@ export function mapTask(api: any): TaskApi {
 }
 
 // ============================================
-// OVERDUE HELPERS - Using API's overdue_duration
+// HELPER: Build Due Date Object
+// ============================================
+
+function buildDueDate(date: string | undefined, time?: string | null): Date | null {
+    if (!date) return null;
+    
+    const [year, month, day] = date.split('-').map(Number);
+    const dueDate = new Date(year, month - 1, day);
+
+    if (time) {
+        const [hours, minutes] = time.split(':').map(Number);
+        dueDate.setHours(hours, minutes, 0, 0);
+    } else {
+        dueDate.setHours(23, 59, 59, 999);
+    }
+
+    return dueDate;
+}
+
+// ============================================
+// OVERDUE HELPERS - REAL-TIME (Untuk Task Aktif)
+// ============================================
+
+/**
+ * Check apakah task SAAT INI overdue (real-time)
+ */
+export function isCurrentlyOverdue(task: TaskApi): boolean {
+
+    if (task.status === "done" || task.status === "canceled") {
+        return false;
+    }
+    
+    if (!task.due_date) return false;
+    
+    const now = new Date();
+    const dueDate = buildDueDate(task.due_date, task.due_time);
+    
+    if (!dueDate) return false;
+    
+    return now > dueDate;
+}
+
+/**
+ * Hitung berapa menit task SAAT INI overdue (real-time)
+ * Gunakan untuk: Display "5h overdue" pada task aktif
+ */
+export function getCurrentOverdueMinutes(task: TaskApi): number {
+    if (!isCurrentlyOverdue(task)) return 0;
+    
+    if (!task.due_date) return 0;
+    
+    const now = new Date();
+    const dueDate = buildDueDate(task.due_date, task.due_time);
+    
+    if (!dueDate) return 0;
+    
+    return Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60));
+}
+
+// ============================================
+// OVERDUE HELPERS - HISTORICAL (Untuk Task Done)
+// ============================================
+
+export function getHistoricalOverdueMinutes(task: TaskApi): number {
+    if (task.status !== "done") return 0;
+    return task.overdue_duration ?? 0;
+}
+
+/**
+ * Gunakan isCurrentlyOverdue() untuk task aktif
+ * atau task.overdue_duration untuk task done
+ */
+export function isTaskOverdue(task: TaskApi): boolean {
+    if (task.status === "done" || task.status === "canceled") {
+        return false;
+    }
+    
+    return isCurrentlyOverdue(task);
+}
+
+// ============================================
+// FORMAT HELPERS
 // ============================================
 
 /**
@@ -156,35 +237,21 @@ export function formatOverdueDuration(minutes: number): string {
 }
 
 /**
- * Check if task is overdue based on API data
+ *  Format overdue untuk display - auto detect task status
  */
-export function isTaskOverdue(task: TaskApi): boolean {
-    if (task.status === "done" || task.status === "canceled") {
-        return false;
+export function formatOverdueDisplay(task: TaskApi): string {
+    if (task.status === "done") {
+
+        return formatOverdueDuration(task.overdue_duration ?? 0);
     }
     
-    return (task.overdue_duration ?? 0) > 0;
+    return formatOverdueDuration(getCurrentOverdueMinutes(task));
 }
 
-/**
- * Check if task was completed late
- */
 export function isCompletedLate(task: TaskApi): boolean {
     if (task.status !== "done") return false;
-    if (!task.finished_at || !task.due_date) return false;
-
-    const finishedDate = new Date(task.finished_at);
-    const [year, month, day] = task.due_date.split('-').map(Number);
-    const dueDate = new Date(year, month - 1, day);
-
-    if (task.due_time) {
-        const [hours, minutes] = task.due_time.split(':').map(Number);
-        dueDate.setHours(hours, minutes, 0, 0);
-    } else {
-        dueDate.setHours(23, 59, 59, 999);
-    }
-
-    return finishedDate > dueDate;
+    
+    return (task.overdue_duration ?? 0) > 0;
 }
 
 /**
@@ -229,12 +296,13 @@ export function getTaskDeadlineStatus(task: TaskApi): {
         };
     }
 
-    if (isTaskOverdue(task)) {
+    if (isCurrentlyOverdue(task)) {
+        const minutes = getCurrentOverdueMinutes(task);
         return {
             status: 'overdue',
-            message: formatOverdueDuration(task.overdue_duration ?? 0),
+            message: formatOverdueDuration(minutes),
             variant: 'destructive',
-            overdueDuration: formatOverdueDuration(task.overdue_duration ?? 0)
+            overdueDuration: formatOverdueDuration(minutes)
         };
     }
 
@@ -398,15 +466,16 @@ export function getTimeRemaining(task: TaskApi): {
     }
 
     const now = new Date();
-
-    const [year, month, day] = task.due_date.split('-').map(Number);
-    const dueDate = new Date(year, month - 1, day);
-
-    if (task.due_time) {
-        const [hours, minutes] = task.due_time.split(':').map(Number);
-        dueDate.setHours(hours, minutes, 0, 0);
-    } else {
-        dueDate.setHours(23, 59, 59, 999);
+    const dueDate = buildDueDate(task.due_date, task.due_time);
+    
+    if (!dueDate) {
+        return {
+            isOverdue: false,
+            isPastDue: false,
+            daysRemaining: 999,
+            hoursRemaining: 999,
+            label: 'Invalid date'
+        };
     }
 
     const diffMs = dueDate.getTime() - now.getTime();
