@@ -15,7 +15,6 @@ import { mapProject } from "@/lib/mapper/project.mapper";
 import { useAuthStore } from "@/store/useAuthStore";
 import { ApiError } from "@/lib/api/interceptors";
 
-// Query Keys - Centralized
 export const projectKeys = {
     all: ['projects'] as const,
     lists: () => [...projectKeys.all, 'list'] as const,
