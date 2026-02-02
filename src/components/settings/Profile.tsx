@@ -33,7 +33,7 @@ import { AvatarCropDialog } from "@/components/settings/AvatarCropDialog";
 import { showWarningToast } from "@/lib/helpers/toast-helpers";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
-type SettingsTab = "profile" | "preferences" | "account";
+type SettingsTab = "profile" | "preferences";
 type PositionKey = keyof typeof positionConfig;
 
 export function SettingsPage() {
@@ -174,7 +174,6 @@ export function SettingsPage() {
   const menuItems = [
     { id: "profile" as SettingsTab, label: "Profile Settings", icon: User },
     { id: "preferences" as SettingsTab, label: "Preferences", icon: SettingsIcon },
-    { id: "account" as SettingsTab, label: "Account Management", icon: Shield },
   ];
 
   const basePath = user?.role === "admin" ? "/admin" : "/member";
@@ -421,64 +420,6 @@ export function SettingsPage() {
               </div>
             )}
 
-            {activeTab === "account" && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-foreground font-bold text-xl mb-1">Account Management</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Kelola akun dan keamanan Anda
-                  </p>
-                </div>
-                <Separator />
-
-                <div className="space-y-6">
-                  <Separator />
-
-                  <div>
-                    <h3 className="text-foreground mb-4">Active Sessions</h3>
-                    <div className="bg-muted/50 p-4 rounded-lg space-y-3 border border-border">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-foreground">Current Session</p>
-                          <p className="text-xs text-muted-foreground">Chrome on Windows • Jakarta, Indonesia</p>
-                        </div>
-                        <span className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50 px-2 py-1 rounded border border-green-200 dark:border-green-800">
-                          Active
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <h3 className="text-destructive mb-4">Danger Zone</h3>
-                    <div className="border border-destructive/30 bg-destructive/5 p-4 rounded-lg space-y-3">
-                      <div>
-                        <p className="text-sm text-foreground mb-1">Delete Account</p>
-                        <p className="text-xs text-muted-foreground mb-3">
-                          Permanently delete your account and all of your data
-                        </p>
-                        <Button variant="destructive" size="sm">
-                          Delete Account
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {isDirty && (
-                  <div className="flex justify-end gap-3">
-                    <Button variant="outline" onClick={handleCancel}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSave}>Save Changes</Button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>
