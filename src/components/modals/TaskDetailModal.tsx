@@ -147,9 +147,9 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                     }
                     className={
                       deadlineStatus.status === 'completed-on-time'
-                        ? 'bg-green-100 text-green-800 border-green-300 gap-1'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700 gap-1'
                         : deadlineStatus.status === 'completed-late'
-                          ? 'bg-orange-100 text-orange-800 border-orange-300 gap-1'
+                          ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-700 gap-1'
                           : 'gap-1'
                     }
                   >
@@ -221,17 +221,16 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
 
                   {/* FINISHED AT SECTION */}
                   {task.status === "done" && task.finished_at && (
-                    <div className={`mt-4 p-4 rounded-lg border ${
-                      isCompletedLate(task)
-                        ? 'bg-orange-50 border-orange-200' 
-                        : 'bg-green-50 border-green-200'
-                    }`}>
+                    <div className={`mt-4 p-4 rounded-lg border ${isCompletedLate(task)
+                        ? 'bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/50'
+                        : 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/50'
+                      }`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
-                          <Label className="text-xs font-semibold mb-1 block">
+                          <Label className="text-xs font-semibold mb-1 block text-foreground">
                             Completed At
                           </Label>
-                          <p className="text-sm font-medium">
+                          <p className="text-sm font-medium text-foreground">
                             {formatFinishedAt(task.finished_at)}
                           </p>
                           {task.due_date && (
@@ -241,19 +240,19 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                           )}
 
                           {isCompletedLate(task) && task.overdue_duration && task.overdue_duration > 0 && (
-                            <p className="text-xs text-orange-600 mt-1 font-medium">
+                            <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 font-medium">
                               {formatOverdueDisplay(task)}
                             </p>
                           )}
                         </div>
                         <div>
                           {isCompletedLate(task) ? (
-                            <Badge variant="outline" className="gap-1.5 bg-orange-100 text-orange-800 border-orange-300 whitespace-nowrap">
+                            <Badge variant="outline" className="gap-1.5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-700 whitespace-nowrap">
                               <AlertTriangle className="w-3.5 h-3.5" />
                               Completed Late
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="gap-1.5 bg-green-100 text-green-800 border-green-300 whitespace-nowrap">
+                            <Badge variant="outline" className="gap-1.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700 whitespace-nowrap">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               On Time
                             </Badge>
@@ -266,6 +265,7 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                   <Separator />
                 </>
               )}
+
 
               {/* DESCRIPTION SECTION */}
               {task.description && (
