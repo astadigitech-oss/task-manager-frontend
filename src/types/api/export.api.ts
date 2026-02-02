@@ -11,12 +11,12 @@ export interface ExportPDFParams {
         projectName: string;
         period: string;
         tasks: TaskApi[];
-        inProgress?: TaskApi[];
+        onProgress?: TaskApi[];
         completed?: TaskApi[];
         overdue?: TaskApi[];
         past?: {
             completed: TaskApi[];
-            inProgress: TaskApi[];
+            onProgress: TaskApi[];
         };
         upcoming?: {
             starting: TaskApi[];

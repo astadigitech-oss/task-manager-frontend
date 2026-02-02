@@ -4,7 +4,9 @@ export type Position =
     | "fullstack"
     | "ui_ux"
     | "project_management"
-    | "devops";
+    | "devops"
+    | "management"
+    | "top_management";
 
 export const positionConfig: Record<
     Position,
@@ -33,5 +35,13 @@ export const positionConfig: Record<
     "devops": {
         label: "DevOps Engineer",
         color: "position-devops",
+    },
+    "management": {
+        label: "Management",
+        color: "position-management",
+    },
+    "top_management": {
+        label: "Top Management",
+        color: "position-top-management",
     },
 };

@@ -122,32 +122,6 @@ export function getWeeklyBackwardExportData(
     
     const projectTasks = filterTasksByProject(tasks, projectId);
 
-    // Tasks yang masih on progress dengan aktivitas dalam 7 hari terakhir
-    const onProgress = projectTasks.filter(task => {
-        if (task.status === "done" || task.status === "canceled") return false;
-        
-        // Check due date
-        const dueDate = parseDate(task.due_date);
-        if (dueDate && isWithinInterval(dueDate, { start: weekAgo, end: now })) {
-            return true;
-        }
-        
-        // Check start date
-        const startDate = parseDate(task.start_date);
-        if (startDate && isWithinInterval(startDate, { start: weekAgo, end: now })) {
-            return true;
-        }
-        
-        // Check created date
-        const createdAt = parseDate(task.created_at);
-        if (createdAt && isWithinInterval(createdAt, { start: weekAgo, end: now })) {
-            return true;
-        }
-        
-        return false;
-    });
-
-    // Tasks yang completed dalam 7 hari terakhir
     const completed = projectTasks.filter(task => {
         if (task.status !== "done") return false;
         
@@ -164,7 +138,30 @@ export function getWeeklyBackwardExportData(
         return false;
     });
 
-    // Tasks yang completed late
+    const completedIds = new Set(completed.map(t => t.id));
+
+    const onProgress = projectTasks.filter(task => {
+        if (completedIds.has(task.id)) return false;
+        if (task.status === "done" || task.status === "canceled") return false;
+        
+        const dueDate = parseDate(task.due_date);
+        if (dueDate && isWithinInterval(dueDate, { start: weekAgo, end: now })) {
+            return true;
+        }
+        
+        const startDate = parseDate(task.start_date);
+        if (startDate && isWithinInterval(startDate, { start: weekAgo, end: now })) {
+            return true;
+        }
+        
+        const createdAt = parseDate(task.created_at);
+        if (createdAt && isWithinInterval(createdAt, { start: weekAgo, end: now })) {
+            return true;
+        }
+        
+        return false;
+    });
+
     const overdue = completed.filter(task => isCompletedLate(task));
 
     return {
@@ -188,17 +185,6 @@ export function getWeeklyForwardExportData(
     
     const projectTasks = filterTasksByProject(tasks, projectId);
 
-    // Tasks yang due dalam 7 hari ke depan dan masih progress
-    const onProgress = projectTasks.filter(task => {
-        if (task.status === "done" || task.status === "canceled") return false;
-        
-        const dueDate = parseDate(task.due_date);
-        if (!dueDate) return false;
-        
-        return isWithinInterval(dueDate, { start: now, end: weekAhead });
-    });
-
-    // Tasks yang sudah done dengan due date dalam 7 hari ke depan
     const completed = projectTasks.filter(task => {
         if (task.status !== "done") return false;
         
@@ -208,8 +194,10 @@ export function getWeeklyForwardExportData(
         return isWithinInterval(dueDate, { start: now, end: weekAhead });
     });
 
-    // Tasks yang overdue dalam periode ini
+    const completedIds = new Set(completed.map(t => t.id));
+
     const overdue = projectTasks.filter(task => {
+        if (completedIds.has(task.id)) return false; // ← Prevent duplicate
         if (task.status === "done" || task.status === "canceled") return false;
         
         const dueDate = parseDate(task.due_date);
@@ -217,6 +205,19 @@ export function getWeeklyForwardExportData(
         
         return isWithinInterval(dueDate, { start: now, end: weekAhead }) && 
             isTaskOverdue(task);
+    });
+
+    const overdueIds = new Set(overdue.map(t => t.id));
+
+    const onProgress = projectTasks.filter(task => {
+        if (completedIds.has(task.id)) return false;  // ← Prevent duplicate
+        if (overdueIds.has(task.id)) return false;    // ← Prevent duplicate
+        if (task.status === "done" || task.status === "canceled") return false;
+        
+        const dueDate = parseDate(task.due_date);
+        if (!dueDate) return false;
+        
+        return isWithinInterval(dueDate, { start: now, end: weekAhead });
     });
 
     return {
@@ -259,83 +260,91 @@ export function getAgendaExportData(
     
     const projectTasks = filterTasksByProject(tasks, projectId);
 
+    const pastCompleted = projectTasks.filter(task => {
+        if (task.status !== "done") return false;
+        
+        const dueDate = parseDate(task.due_date);
+        if (dueDate && isWithinInterval(dueDate, { start: weekAgo, end: now })) {
+            return true;
+        }
+        
+        const createdAt = parseDate(task.created_at);
+        if (createdAt && isWithinInterval(createdAt, { start: weekAgo, end: now })) {
+            return true;
+        }
+        
+        return false;
+    });
+
+    const pastCompletedIds = new Set(pastCompleted.map(t => t.id));
+
+    const pastOnProgress = projectTasks.filter(task => {
+        if (pastCompletedIds.has(task.id)) return false; // ← Prevent duplicate
+        if (task.status === "done" || task.status === "canceled") return false;
+        
+        const dueDate = parseDate(task.due_date);
+        if (dueDate && isWithinInterval(dueDate, { start: weekAgo, end: now })) {
+            return true;
+        }
+        
+        const startDate = parseDate(task.start_date);
+        if (startDate && isWithinInterval(startDate, { start: weekAgo, end: now })) {
+            return true;
+        }
+        
+        const createdAt = parseDate(task.created_at);
+        if (createdAt && isWithinInterval(createdAt, { start: weekAgo, end: now })) {
+            return true;
+        }
+        
+        return false;
+    });
+
+    const upcomingStarting = projectTasks.filter(task => {
+        if (task.status === "done" || task.status === "canceled") return false;
+        
+        const startDate = parseDate(task.start_date);
+        if (!startDate) return false;
+        
+        if (isFuture(startDate) && isWithinInterval(startDate, { start: now, end: weekAhead })) {
+            return true;
+        }
+        
+        if (isPast(startDate)) {
+            const dueDate = parseDate(task.due_date);
+            if (!dueDate) return false;
+            
+            if (isFuture(dueDate) && isWithinInterval(dueDate, { start: now, end: weekAhead })) {
+                return true;
+            }
+        }
+        
+        return false;
+    });
+
+    const upcomingStartingIds = new Set(upcomingStarting.map(t => t.id));
+
+    const upcomingDue = projectTasks.filter(task => {
+        if (upcomingStartingIds.has(task.id)) return false; // ← Prevent duplicate
+        if (task.status === "done" || task.status === "canceled") return false;
+        
+        const dueDate = parseDate(task.due_date);
+        if (!dueDate) return false;
+        
+        return isWithinInterval(dueDate, { start: now, end: weekAhead });
+    });
+
     return {
         type: "agenda",
         title: "Agenda Report (2 Weeks View)",
         period: `${format(weekAgo, "MMM dd")} - ${format(weekAhead, "MMM dd, yyyy")}`,
         past: {
-            // Completed dalam 7 hari terakhir
-            completed: projectTasks.filter(task => {
-                if (task.status !== "done") return false;
-                
-                const dueDate = parseDate(task.due_date);
-                if (dueDate && isWithinInterval(dueDate, { start: weekAgo, end: now })) {
-                    return true;
-                }
-                
-                const createdAt = parseDate(task.created_at);
-                if (createdAt && isWithinInterval(createdAt, { start: weekAgo, end: now })) {
-                    return true;
-                }
-                
-                return false;
-            }),
-            // On progress dengan aktivitas dalam 7 hari terakhir
-            onProgress: projectTasks.filter(task => {
-                if (task.status === "done" || task.status === "canceled") return false;
-                
-                const dueDate = parseDate(task.due_date);
-                if (dueDate && isWithinInterval(dueDate, { start: weekAgo, end: now })) {
-                    return true;
-                }
-                
-                const startDate = parseDate(task.start_date);
-                if (startDate && isWithinInterval(startDate, { start: weekAgo, end: now })) {
-                    return true;
-                }
-                
-                const createdAt = parseDate(task.created_at);
-                if (createdAt && isWithinInterval(createdAt, { start: weekAgo, end: now })) {
-                    return true;
-                }
-                
-                return false;
-            }),
+            completed: pastCompleted,
+            onProgress: pastOnProgress,
         },
         upcoming: {
-            // show task yang akan mulai dalam 7 hari ke depan
-            starting: projectTasks.filter(task => {
-                if (task.status === "done" || task.status === "canceled") return false;
-                
-                const startDate = parseDate(task.start_date);
-                if (!startDate) return false;
-                
-                if (isFuture(startDate) && isWithinInterval(startDate, { start: now, end: weekAhead })) {
-                    return true;
-                }
-                
-                if (isPast(startDate)) {
-                    const dueDate = parseDate(task.due_date);
-                    if (!dueDate) return false;
-                    
-                    // Due date untuk minggu kedepannya.
-                    if (isFuture(dueDate) && isWithinInterval(dueDate, { start: now, end: weekAhead })) {
-                        return true;
-                    }
-                }
-                
-                return false;
-            }),
-            
-            due: projectTasks.filter(task => {
-                
-                if (task.status === "done" || task.status === "canceled") return false;
-                
-                const dueDate = parseDate(task.due_date);
-                if (!dueDate) return false;
-                
-                return isWithinInterval(dueDate, { start: now, end: weekAhead });
-            }),
+            starting: upcomingStarting,
+            due: upcomingDue,
         },
     };
 }
@@ -371,7 +380,7 @@ export function getExportData(
     }
 }
 
-// ============================================
+// ============================================y
 // TASK FORMATTING HELPERS
 // ============================================
 
@@ -381,7 +390,6 @@ export function formatTaskDeadline(task: TaskApi): string {
     const dueDate = parseDate(task.due_date);
     if (!dueDate) return "Invalid date";
 
-    // Parse time dari due_date jika ada (format ISO 8601)
     const hasTime = task.due_date.includes('T');
     
     if (hasTime) {

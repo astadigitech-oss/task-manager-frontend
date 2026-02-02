@@ -140,7 +140,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                 text += `     Notes: ${formatTaskNotes(task)}\n`;
             });
 
-            text += `\nIn Progress (${data.past.onProgress.length})\n`;
+            text += `\nOn Progress (${data.past.onProgress.length})\n`;
             data.past.onProgress.forEach((task, i) => {
                 text += `  ${i + 1}. ${task.title} - ${task.status.toUpperCase()}\n`;
                 text += `     Notes: ${formatTaskNotes(task)}\n`;

@@ -248,7 +248,7 @@ export function OnlineUserProvider({
                             currentWs.send(JSON.stringify({ type: "ping" }));
                             console.log("Ping sent");
                         }
-                    }, 25000);
+                    }, 25000); // Ping setiap 25 detik
                 },
 
                 onMessage: (message: UserWsEvent) => {
