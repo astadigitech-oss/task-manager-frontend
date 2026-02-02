@@ -79,7 +79,7 @@ export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) 
                     ? formatLastSeen(member.last_seen)
                     : null;
                 
-                const position =(member as any).profile?.position || null;
+                const position =(member as any).position || null;
 
                 return (
                     <div
@@ -134,7 +134,7 @@ export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) 
                                 {position && positionConfig[position as Position] && (
                                     <Badge
                                         variant="outline"
-                                        className={`text-[11px] ${positionConfig[position as Position].color}`}
+                                        className={`text-[11px] ${positionConfig[position as Position]}`}
                                     >
                                         {positionConfig[position as Position].label}
                                     </Badge>
