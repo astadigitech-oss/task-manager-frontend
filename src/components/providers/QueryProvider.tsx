@@ -9,27 +9,40 @@ const createQueryClient = () => {
   return new QueryClient({
     defaultOptions: {
       queries: {
+
+        // Data dianggap "fresh" selama 10 menit, tidak perlu refetch
+        staleTime: 10 * 60 * 1000, // 10 menit
         
-        staleTime: 5 * 60 * 1000, 
-        gcTime: 10 * 60 * 1000, 
-        refetchOnWindowFocus: false, 
-        refetchOnMount: true, 
-        refetchOnReconnect: true, 
+        // Cache disimpan lebih lama untuk mengurangi network request
+        gcTime: 30 * 60 * 1000, // 30 menit
+        
+        refetchOnWindowFocus: false,
+        
+        // Gunakan cache yang ada dulu, kecuali sudah stale
+        refetchOnMount: false,
+        
+        refetchOnReconnect: true,
+        
         retry: (failureCount, error: any) => {
+          // Tidak retry untuk error client (4xx)
           if (error instanceof ApiError) {
-            if (error.status === 401) return false;
-            if (error.status === 403) return false;
-            if (error.status === 503) return false;
+            if (error.status === 401) return false; // Unauthorized
+            if (error.status === 403) return false; // Forbidden
+            if (error.status === 404) return false; // Not Found
+            if (error.status === 503) return false; // Service Unavailable
             if (error.status >= 400 && error.status < 500) return false;
 
+            // Network error - retry 1x saja
             if (error.status === 0) {
               return failureCount < 1;
             }
 
+            // Server error (5xx) - retry 2x
             if (error.status >= 500) {
               return failureCount < 2;
             }
           }
+          
           if (error?.response?.status) {
             const status = error.response.status;
             
@@ -41,8 +54,11 @@ const createQueryClient = () => {
 
           return failureCount < 1;
         },
+        
+        // OPTIMIZED: Retry delay lebih konservatif
+        // Delay max 10 detik (dari 30 detik)
         retryDelay: (attemptIndex) => {
-          return Math.min(1000 * 2 ** attemptIndex, 30000);
+          return Math.min(1000 * 2 ** attemptIndex, 10000);
         },
       },
       mutations: {

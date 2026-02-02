@@ -9,6 +9,7 @@ import { id as localeId } from "date-fns/locale";
 import { useOnlineUsers } from "@/context/OnlineUserContext";
 import { useState, useEffect } from "react";
 import { UserAvatar } from "./UserAvatar";
+import { Position, positionConfig } from "@/types/shared/position";
 
 interface TeamMembersProps {
     members: UserApi[];
@@ -72,11 +73,13 @@ export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) 
     return (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {members.map((member) => {
-                // SIMPLIFIED: Langsung pakai is_online dari member (sudah diupdate via cache)
+                
                 const isOnline = member.is_online === true;
                 const formattedLastSeen = !isOnline && member.last_seen
                     ? formatLastSeen(member.last_seen)
                     : null;
+                
+                const position =(member as any).position || null;
 
                 return (
                     <div
@@ -126,6 +129,16 @@ export function TeamMembers({ members, onDelete, isLoading }: TeamMembersProps) 
                                 >
                                     {member.role}
                                 </Badge>
+
+                                {/* Position Badge */}
+                                {position && positionConfig[position as Position] && (
+                                    <Badge
+                                        variant="outline"
+                                        className={`text-[11px] ${positionConfig[position as Position]}`}
+                                    >
+                                        {positionConfig[position as Position].label}
+                                    </Badge>
+                                )}
 
                                 {/* Online Status Badge - Only for Admin */}
                                 {canViewOnlineUsers && (
