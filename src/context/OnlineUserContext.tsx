@@ -129,6 +129,10 @@ export function OnlineUserProvider({
     const reconnectAttemptsRef = useRef(0);
     const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // ✅ DEBOUNCE untuk invalidate cache - menghindari multiple refetch
+    const invalidateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastInvalidateRef = useRef<number>(0);
 
     const [state, dispatch] = useReducer(onlineReducer, {
         onlineUsers: new Map(),
@@ -139,15 +143,36 @@ export function OnlineUserProvider({
     const isAdmin = user?.role === "admin";
     const canViewOnlineUsers = isAdmin;
 
+    // ✅ OPTIMIZED: Debounced invalidate dengan minimum interval 3 detik
     const invalidateUsersCache = useCallback(() => {
-        queryClient.invalidateQueries({
-            queryKey: ["users"],
-        });
-        queryClient.invalidateQueries({
-            queryKey: ["online-users"],
-        });
+        const now = Date.now();
+        const timeSinceLastInvalidate = now - lastInvalidateRef.current;
+        
+        // Jangan invalidate jika baru saja di-invalidate (< 3 detik)
+        if (timeSinceLastInvalidate < 3000) {
+            console.log(`⏳ Skipping invalidate (too soon: ${timeSinceLastInvalidate}ms)`);
+            return;
+        }
+
+        if (invalidateTimeoutRef.current) {
+            clearTimeout(invalidateTimeoutRef.current);
+        }
+
+        // Debounce 500ms untuk menggabungkan multiple invalidate
+        invalidateTimeoutRef.current = setTimeout(() => {
+            console.log("🔄 Invalidating users cache");
+            lastInvalidateRef.current = Date.now();
+            
+            queryClient.invalidateQueries({
+                queryKey: ["users"],
+            });
+            queryClient.invalidateQueries({
+                queryKey: ["online-users"],
+            });
+        }, 500);
     }, [queryClient]);
 
+    // ✅ OPTIMIZED: Update cache tanpa invalidate untuk perubahan kecil
     const updateUserInCache = useCallback((userId: number, isOnline: boolean, lastSeen?: string) => {
         queryClient.setQueriesData(
             { queryKey: ["users"] },
@@ -180,6 +205,7 @@ export function OnlineUserProvider({
         }
 
         try {
+            console.log("📥 Fetching online users...");
             const users = await onlineUsersService.getOnlineUsers();
 
             dispatch({
@@ -188,12 +214,12 @@ export function OnlineUserProvider({
                 timestamp: Date.now(),
             });
 
-            // Invalidate cache setelah batch sync
-            invalidateUsersCache();
+            // ✅ CHANGED: Hanya invalidate jika ada perubahan signifikan
+            // Tidak perlu invalidate di sini karena data sudah di-sync via dispatch
         } catch (error) {
             console.error("Failed to fetch online users:", error);
         }
-    }, [canViewOnlineUsers, invalidateUsersCache]);
+    }, [canViewOnlineUsers]);
 
     const connectWebSocket = useCallback(() => {
         if (wsRef.current) {
@@ -224,7 +250,7 @@ export function OnlineUserProvider({
 
             const ws = onlineUsersService.createConnection(wsUrl, {
                 onOpen: () => {
-                    console.log("WebSocket connected");
+                    console.log("✅ WebSocket connected");
                     reconnectAttemptsRef.current = 0;
 
                     if (user) {
@@ -234,7 +260,7 @@ export function OnlineUserProvider({
                             timestamp: Date.now(),
                         });
 
-                        // Update cache untuk current user
+                        // Update cache untuk current user (no invalidate)
                         updateUserInCache(user.id, true);
                     }
 
@@ -242,17 +268,18 @@ export function OnlineUserProvider({
                         fetchOnlineUsers();
                     }
 
+                    // ✅ CHANGED: Ping setiap 5 menit (lebih hemat bandwidth)
                     pingIntervalRef.current = setInterval(() => {
                         const currentWs = wsRef.current;
                         if (currentWs && currentWs.readyState === WebSocket.OPEN) {
                             currentWs.send(JSON.stringify({ type: "ping" }));
-                            console.log("Ping sent");
+                            console.log("📡 Ping sent");
                         }
-                    }, 25000); // Ping setiap 25 detik
+                    }, 5 * 60 * 1000); // 5 menit
                 },
 
                 onMessage: (message: UserWsEvent) => {
-                    console.log("WebSocket message received:", message);
+                    console.log("📨 WebSocket message:", message.type);
 
                     if (!canViewOnlineUsers) {
                         return;
@@ -261,7 +288,7 @@ export function OnlineUserProvider({
                     const timestamp = Date.now();
 
                     if (message.type === "USER_ONLINE") {
-                        console.log(`User ${message.user.id} is now ONLINE`);
+                        console.log(`✅ User ${message.user.id} is now ONLINE`);
 
                         dispatch({
                             type: "USER_ONLINE",
@@ -269,16 +296,11 @@ export function OnlineUserProvider({
                             timestamp,
                         });
 
-                        // PERBAIKAN: Update cache optimistically
+                        // ✅ OPTIMIZED: Update cache saja, tidak perlu invalidate
                         updateUserInCache(message.user.id, true);
 
-                        // Invalidate setelah 100ms untuk memastikan data fresh
-                        setTimeout(() => {
-                            invalidateUsersCache();
-                        }, 100);
-
                     } else if (message.type === "USER_OFFLINE") {
-                        console.log(` User ${message.user_id} is now OFFLINE`);
+                        console.log(`❌ User ${message.user_id} is now OFFLINE`);
 
                         dispatch({
                             type: "USER_OFFLINE",
@@ -287,21 +309,17 @@ export function OnlineUserProvider({
                             timestamp,
                         });
 
+                        // ✅ OPTIMIZED: Update cache saja, tidak perlu invalidate
                         updateUserInCache(
                             message.user_id,
                             false,
                             message.last_seen || new Date().toISOString()
                         );
-
-                        // Invalidate setelah 100ms
-                        setTimeout(() => {
-                            invalidateUsersCache();
-                        }, 100);
                     }
                 },
 
                 onError: (error) => {
-                    console.error("WebSocket error:", error);
+                    console.error("❌ WebSocket error:", error);
                 },
 
                 onClose: () => {
@@ -317,13 +335,13 @@ export function OnlineUserProvider({
                         reconnectAttemptsRef.current++;
                         const delay = WS_CONFIG.RECONNECT_DELAY_MS * reconnectAttemptsRef.current;
 
-                        console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+                        console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
 
                         reconnectTimeoutRef.current = setTimeout(() => {
                             connectWebSocket();
                         }, delay);
                     } else {
-                        console.error("Max reconnection attempts reached");
+                        console.error("❌ Max reconnection attempts reached");
                     }
                 },
             });
@@ -340,7 +358,6 @@ export function OnlineUserProvider({
         fetchOnlineUsers,
         canViewOnlineUsers,
         updateUserInCache,
-        invalidateUsersCache
     ]);
 
     const disconnectWebSocket = useCallback(() => {
@@ -356,21 +373,25 @@ export function OnlineUserProvider({
             clearInterval(pingIntervalRef.current);
         }
 
+        if (invalidateTimeoutRef.current) {
+            clearTimeout(invalidateTimeoutRef.current);
+        }
+
         onlineUsersService.closeConnection(wsRef.current);
         wsRef.current = null;
 
         dispatch({ type: "CLEAR" });
     }, []);
 
-    // Polling untuk sync periodik
+    // ✅ OPTIMIZED: Polling dikurangi menjadi 5 menit (dari 1 menit)
     useEffect(() => {
         if (isAuthenticated && token && user && canViewOnlineUsers) {
             fetchOnlineUsers();
 
             pollingIntervalRef.current = setInterval(() => {
-                console.log(" Polling online users for sync...");
+                console.log("🔄 Polling online users for sync...");
                 fetchOnlineUsers();
-            }, 60000);
+            }, 5 * 60 * 1000); // 5 menit
         }
 
         return () => {

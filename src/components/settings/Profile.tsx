@@ -98,8 +98,14 @@ export function SettingsPage() {
   };
 
   const handleCropComplete = (croppedBlob: Blob) => {
+    // Generate unique filename
+    const timestamp = Date.now();
+    const userId = user?.id || 'unknown';
+    const randomStr = Math.random().toString(36).substring(2, 8);
 
-    const croppedFile = new File([croppedBlob], "avatar.jpg", {
+    const filename = `avatar_${userId}_${timestamp}_${randomStr}.jpg`;
+
+    const croppedFile = new File([croppedBlob], filename, {
       type: "image/jpeg",
     });
 
@@ -326,19 +332,21 @@ export function SettingsPage() {
                             : "Select your position"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent>
-                        {Object.entries(positionConfig).map(([key, config]) => (
-                          <div
-                            key={key}
-                            className={`p-2 rounded-md cursor-pointer hover:bg-muted ${position === key ? "bg-muted" : ""
-                              }`}
-                            onClick={() => {
-                              setPosition(key as PositionKey);
-                            }}
-                          >
-                            <p className="text-sm">{config.label}</p>
-                          </div>
-                        ))}
+                      <PopoverContent className="max-h-70 overflow-y-auto p-2">
+                        <div className="space-y-1">
+                          {Object.entries(positionConfig).map(([key, config]) => (
+                            <div
+                              key={key}
+                              className={`p-2 rounded-md cursor-pointer hover:bg-muted transition-colors ${position === key ? "bg-muted" : ""
+                                }`}
+                              onClick={() => {
+                                setPosition(key as PositionKey);
+                              }}
+                            >
+                              <p className="text-sm">{config.label}</p>
+                            </div>
+                          ))}
+                        </div>
                       </PopoverContent>
                     </Popover>
                     {!position && (

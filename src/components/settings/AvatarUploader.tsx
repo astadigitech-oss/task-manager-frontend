@@ -31,53 +31,63 @@ export function AvatarUploader({ onAvatarChange, standalone = false }: AvatarUpl
     }, [avatarPreview]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-        if (file.size > 2 * 1024 * 1024) {
-            showWarningToast("Ukuran file maksimal 2MB");
-            return;
+    if (file.size > 2 * 1024 * 1024) {
+        showWarningToast("Ukuran file maksimal 2MB");
+        return;
+    }
+
+    if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+    }
+
+    const preview = URL.createObjectURL(file);
+    setAvatarPreview(preview);
+
+    if (onAvatarChange) {
+        onAvatarChange(file, preview);
+    }
+
+    if (standalone) {
+        // Generate unique filename
+        const timestamp = Date.now();
+        const userId = user?.id || 'unknown';
+        const ext = file.name.split('.').pop() || 'jpg';
+        const randomStr = Math.random().toString(36).substring(2, 8);
+        const uniqueFilename = `avatar_${userId}_${timestamp}_${randomStr}.${ext}`;
+        
+        // Create new file with unique name
+        const renamedFile = new File([file], uniqueFilename, { type: file.type });
+        
+        const formData = new FormData();
+        formData.append("name", user?.name || "");
+        
+        if (user?.position) {
+            formData.append("position", user.position);
         }
+        
+        formData.append("profile_image", renamedFile); // ← Use renamed file
 
-        if (avatarPreview) {
-            URL.revokeObjectURL(avatarPreview);
-        }
-
-        const preview = URL.createObjectURL(file);
-        setAvatarPreview(preview);
-
-        if (onAvatarChange) {
-            onAvatarChange(file, preview);
-        }
-
-        if (standalone) {
-            const formData = new FormData();
-            formData.append("name", user?.name || "");
-            
-            if (user?.position) {
-                formData.append("position", user.position);
-            }
-            
-            formData.append("profile_image", file);
-
-            updateProfile(formData, {
-                onSuccess: () => {
-                    showSuccessToast("Avatar berhasil diperbarui!");
-                    if (avatarPreview) {
-                        URL.revokeObjectURL(avatarPreview);
-                    }
-                    setAvatarPreview(null);
-                },
-                onError: () => {
-                    showErrorToast("Gagal mengupdate avatar!");
-                    if (avatarPreview) {
-                        URL.revokeObjectURL(avatarPreview);
-                    }
-                    setAvatarPreview(null);
+        updateProfile(formData, {
+            onSuccess: () => {
+                showSuccessToast("Avatar berhasil diperbarui!");
+                if (avatarPreview) {
+                    URL.revokeObjectURL(avatarPreview);
                 }
-            });
-        }
-    };
+                setAvatarPreview(null);
+            },
+            onError: () => {
+                showErrorToast("Gagal mengupdate avatar!");
+                if (avatarPreview) {
+                    URL.revokeObjectURL(avatarPreview);
+                }
+                setAvatarPreview(null);
+            }
+        });
+    }
+};
 
     return (
         <div className="flex items-center gap-6">
