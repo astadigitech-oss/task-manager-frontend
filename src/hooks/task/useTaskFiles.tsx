@@ -2,21 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { filesService } from "@/services/task/taskFiles.service";
 import { TaskFileApi } from "@/types/api/task.api";
 import { showErrorToast } from "@/lib/helpers/toast-helpers";
+import { fileKeys } from "@/lib/react-query/taskKeys";
 
-// ─── query keys ──────────────────────────────────────────────────────────────
-// Tambahkan ke @/lib/react-query/taskKeys.ts (atau buat fileKeys tersendiri)
-//
-//   export const fileKeys = {
-//       list: (workspace_id: number, project_id: number, task_id: number) =>
-//           ["files", "list", workspace_id, project_id, task_id] as const,
-//   };
-//
-// Di bawah kita inline dulu sebagai referensi.
-
-export const fileKeys = {
-    list: (workspace_id: number, project_id: number, task_id: number) =>
-        ["files", "list", workspace_id, project_id, task_id] as const,
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // useTaskFiles — ambil semua files dari sebuah task
@@ -46,17 +33,17 @@ export function useTaskFiles(
                 project_id!,
                 task_id!
             );
-            return res.data; // TaskFileApi[]
+            return res.data;
         },
         enabled,
         staleTime: 1000 * 60,       // 1 menit
-        gcTime: 1000 * 60 * 5,      // 5 menit (ganti cacheTime kalau react-query v4)
+        gcTime: 1000 * 60 * 5,      // 5 menit
         select: (data) => data ?? [],
     });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// useUploadTaskFiles — upload satu atau lebih file
+// Upload Hooks
 // ─────────────────────────────────────────────────────────────────────────────
 export function useUploadTaskFiles() {
     const queryClient = useQueryClient();
@@ -78,7 +65,7 @@ export function useUploadTaskFiles() {
             return filesService.upload(workspaceId, projectId, taskId, files, options);
         },
         onSuccess: (_data, variables) => {
-            // Invalidate list supaya auto-refetch
+
             queryClient.invalidateQueries({
                 queryKey: fileKeys.list(variables.workspaceId, variables.projectId, variables.taskId),
             });
@@ -91,7 +78,7 @@ export function useUploadTaskFiles() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// useDeleteTaskFile — hapus satu file
+// Delete Hooks
 // ─────────────────────────────────────────────────────────────────────────────
 export function useDeleteTaskFile() {
     const queryClient = useQueryClient();
@@ -123,8 +110,7 @@ export function useDeleteTaskFile() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// useDownloadTaskFile — trigger download
-// (tidak perlu invalidate query, murni side-effect)
+// Download Hooks
 // ─────────────────────────────────────────────────────────────────────────────
 export function useDownloadTaskFile() {
     return useMutation({
@@ -151,7 +137,7 @@ export function useDownloadTaskFile() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// useViewTaskFile — ambil blob URL untuk preview (misal di modal)
+// View Hooks
 // ─────────────────────────────────────────────────────────────────────────────
 export function useViewTaskFile() {
     return useMutation({

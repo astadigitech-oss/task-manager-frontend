@@ -94,7 +94,6 @@ export function FilesSection({
     // ── Viewer state ─────────────────────────────────────────────────────────
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerFile, setViewerFile] = useState<TaskFileApi | null>(null);
-    // ini yang SEHARUSNYA dikasih ke viewer — blob URL dari authenticated fetch
     const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
@@ -192,12 +191,9 @@ export function FilesSection({
         if (!isUploading && fileInputRef.current) fileInputRef.current.click();
     };
 
-    // ── PREVIEW: fetch lewat service (sudah berauth) → set blob URL ke viewer ─
     const handleOpenViewer = async (file: TaskFileApi) => {
         setIsLoadingPreview(true);
         try {
-            // filesService.view() sudah pakai apiClient yang punya interceptor auth
-            // → returns blob URL yang bisa langsung di-render
             const blobUrl = await filesService.view(
                 workspaceId,
                 projectId,
@@ -205,7 +201,7 @@ export function FilesSection({
                 file.id
             );
 
-            setPreviewBlobUrl(blobUrl);   // ← ini yang dikasih ke viewer
+            setPreviewBlobUrl(blobUrl); 
             setViewerFile(file);
             setViewerOpen(true);
         } catch (err) {
@@ -314,7 +310,7 @@ export function FilesSection({
                             )}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                            PDF, DOC, DOCX, XLS, XLSX, dan gambar (Max 10MB)
+                            PDF, DOC, DOCX, XLS, XLSX(Max 10MB)
                         </p>
                     </div>
                 </div>
@@ -413,17 +409,11 @@ export function FilesSection({
                 </div>
             ) : (
                 <p className="text-center text-sm text-muted-foreground py-4 border rounded-lg">
-                    Belum ada file
+                    No Files yet
                 </p>
             )}
 
             {/* ── UniversalAttachmentViewer Modal ─────────────────────────── */}
-            {/*
-                CRITICAL: url dikasih dari previewBlobUrl (hasil authenticated fetch),
-                BUKAN dari file.url langsung.
-                file.url adalah path absolut di server yang butuh auth dan
-                tidak bisa di-load langsung di browser.
-            */}
             {viewerOpen && viewerFile && previewBlobUrl && (
                 <UniversalAttachmentViewer
                     open={viewerOpen}

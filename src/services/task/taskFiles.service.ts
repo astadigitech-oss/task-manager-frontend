@@ -51,11 +51,7 @@ export const filesService = {
     },
 
     // ───────────────────────────────────────────────────────────────────────────
-    // UPLOAD — satu file per request, progress dihitung per-file
-    //
-    // onProgress callback: 0–100 per file.
-    // Kalau upload 3 file, callback akan fire 3x dari 0→100.
-    // Kalau mau overall progress, wrap di layer atas.
+    // UPLOAD
     // ───────────────────────────────────────────────────────────────────────────
     upload: async (
         workspace_id: number,
@@ -79,8 +75,7 @@ export const filesService = {
                     },
                     onUploadProgress: (e) => {
                         if (!options?.onProgress || !e.total) return;
-                        // progress per file: base dari index + progress file sekarang
-                        // misal 3 file: file ke-2 → base 33%, ditambah progress file-nya
+
                         const base = (i / files.length) * 100;
                         const current = (e.loaded / e.total) * (100 / files.length);
                         options.onProgress(Math.round(base + current));
@@ -104,7 +99,7 @@ export const filesService = {
     },
 
     // ───────────────────────────────────────────────────────────────────────────
-    // VIEW — fetch file as blob via authenticated apiClient
+    // VIEW
     // ───────────────────────────────────────────────────────────────────────────
     view: async (
         workspace_id: number,
@@ -120,7 +115,6 @@ export const filesService = {
                 responseType: "blob",
             });
 
-            // response.data sekarang Blob — buat object URL
             const blobUrl = URL.createObjectURL(response.data);
             return blobUrl;
         } catch (error) {
@@ -146,8 +140,6 @@ export const filesService = {
                 responseType: "blob",
             });
 
-            // ⚠️ BUG SEBELUMNYA: pakai response.data.headers
-            // CORRECT: headers ada di response.headers (level axios response, bukan data)
             const resolvedFilename =
                 filename ||
                 getFilenameFromContentDisposition(response.data.headers) ||
@@ -197,12 +189,11 @@ function triggerBrowserDownload(blob: Blob, filename: string): void {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    // revoke setelah delay kecil supaya download sempat start
+
     setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
-// ─── standalone helper (kalau butuh fetch di luar service) ───────────────────
-// Misal ada tempat lain yang butuh fetch file dengan raw fetch() bukan apiClient
+
 export async function fetchFileAsBlobUrl(
     url: string,
     token: string

@@ -154,14 +154,6 @@ export function ProjectDetailDialog({
                                                 </p>
                                             </div>
                                         </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleRemove(m.id)}
-                                            className="opacity-0 group-hover:opacity-100"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
                                     </div>
                                 ))
                             )}

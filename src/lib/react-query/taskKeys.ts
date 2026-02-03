@@ -50,3 +50,8 @@ export const invalidateTaskQueries = {
     },
     
 };
+
+export const fileKeys = {
+    list: (workspace_id: number, project_id: number, task_id: number) =>
+        ["files", "list", workspace_id, project_id, task_id] as const,
+};

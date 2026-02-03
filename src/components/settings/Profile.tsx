@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,9 +40,10 @@ export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
-  const { user} = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const { mutate: updateProfile, isPending } = useUpdateProfile();
   const { data: profileData, isLoading: isLoadingProfile } = useGetProfile();
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [position, setPosition] = useState<PositionKey | "">("");
@@ -61,20 +62,57 @@ export function SettingsPage() {
 
   const [isDirty, setIsDirty] = useState(false);
 
+  const avatarUrl = useMemo(() => {
+    if (avatarPreview) return avatarPreview;
+
+    const currentUser = profileData || user;
+    if (!currentUser?.avatar) return undefined;
+
+    return resolveImageUrl(
+      currentUser.avatar,
+      true,
+      currentUser.updated_at
+    );
+  }, [avatarPreview, profileData?.avatar, profileData?.updated_at, user?.avatar, user?.updated_at]);
+
+  useEffect(() => {
+    if (profileData && user) {
+      const hasChanges =
+        profileData.name !== user.name ||
+        profileData.avatar !== user.avatar ||
+        profileData.position !== user.position ||
+        profileData.updated_at !== user.updated_at;
+
+      if (hasChanges) {
+        updateUser({
+          name: profileData.name,
+          avatar: profileData.avatar,
+          position: profileData.position,
+          updated_at: profileData.updated_at,
+        });
+      }
+    }
+  }, [
+    profileData?.name,
+    profileData?.avatar,
+    profileData?.position,
+    profileData?.updated_at,
+
+  ]);
+
   useEffect(() => {
     if (profileData) {
-      const initialData = {
+      setFullName(profileData.name);
+      setEmail(profileData.email);
+      setPosition((profileData.position as PositionKey) || "");
+
+      setInitialProfile({
         fullName: profileData.name,
         email: profileData.email,
         position: (profileData.position as PositionKey) || "",
-      };
-
-      setFullName(initialData.fullName);
-      setEmail(initialData.email);
-      setPosition(initialData.position);
-      setInitialProfile(initialData);
+      });
     }
-  }, [profileData]);
+  }, [profileData?.id]);
 
   useEffect(() => {
     const hasChanged =
@@ -84,6 +122,7 @@ export function SettingsPage() {
 
     setIsDirty(hasChanged);
   }, [fullName, position, avatarFile, initialProfile]);
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -99,7 +138,7 @@ export function SettingsPage() {
   };
 
   const handleCropComplete = (croppedBlob: Blob) => {
-    // Generate unique filename
+
     const timestamp = Date.now();
     const userId = user?.id || 'unknown';
     const randomStr = Math.random().toString(36).substring(2, 8);
@@ -161,7 +200,21 @@ export function SettingsPage() {
       formData.append("profile_image", avatarFile);
     }
 
-    updateProfile(formData);
+    updateProfile(formData, {
+      onSuccess: () => {
+        if (avatarPreview) {
+          URL.revokeObjectURL(avatarPreview);
+        }
+        setAvatarFile(null);
+        setAvatarPreview(null);
+
+        setInitialProfile({
+          fullName,
+          email,
+          position,
+        });
+      }
+    });
   };
 
   const handleCancel = () => {
@@ -253,15 +306,11 @@ export function SettingsPage() {
                   <div className="relative">
                     <Avatar className="h-24 w-24">
                       <AvatarImage
-                        src={
-                          avatarPreview ||
-                          resolveImageUrl(user?.avatar, true)
-                        }
-                        alt={user?.name}
-                        key={`avatar-${user?.updated_at}`}
+                        src={avatarUrl}
+                        alt={user?.name || 'User'}
                       />
                       <AvatarFallback className="text-2xl">
-                        {getInitials(user?.name)}
+                        {getInitials(user?.name || profileData?.name)}
                       </AvatarFallback>
                     </Avatar>
 

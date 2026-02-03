@@ -4,17 +4,20 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { showSuccessToast, showErrorToast } from "@/lib/helpers/toast-helpers";
 
 export function useGetProfile() {
-    const { user, updateUser } = useAuthStore();
+    const { user } = useAuthStore();
 
     return useQuery({
-        queryKey: ["profile"],
+        queryKey: ["profile", user?.id],
         queryFn: async () => {
             const profile = await profileService.getMyProfile(user ?? undefined);
-            updateUser(profile);
             return profile;
         },
         enabled: !!user,
-        staleTime: 5 * 60 * 1000,
+        staleTime: 10 * 60 * 1000, 
+        gcTime: 15 * 60 * 1000, 
+        refetchOnWindowFocus: false,
+        refetchOnMount: false, 
+
     });
 }
 
@@ -24,14 +27,30 @@ export function useUpdateProfile() {
 
     return useMutation({
         mutationFn: (formData: FormData) => profileService.updateMyProfile(formData),
-        onSuccess: (data) => {
-            updateUser(data);
-            queryClient.invalidateQueries({ queryKey: ["profile"] });
+        onSuccess: (updatedProfile) => {
+            queryClient.setQueryData(
+                ["profile", updatedProfile.id], 
+                updatedProfile
+            );
+
+            updateUser({
+                name: updatedProfile.name,
+                avatar: updatedProfile.avatar,
+                position: updatedProfile.position,
+                updated_at: updatedProfile.updated_at,
+            });
+
+            queryClient.invalidateQueries({ 
+                queryKey: ["profile"],
+                refetchType: 'none'
+            });
+            
             showSuccessToast("Profile berhasil diupdate");
         },
-        onError: (error) => {
+        onError: (error: any) => {
             console.error("Profile update error:", error);
-            showErrorToast("Gagal mengupdate profile");
+            const message = error.response?.data?.message || "Gagal mengupdate profile";
+            showErrorToast(message);
         },
     });
 }

@@ -135,10 +135,10 @@ export function isPdfFile(file: TaskFileApi): boolean {
 
 export function isOfficeFile(file: TaskFileApi): boolean {
     const officeMimes = [
-        "application/msword",                                          // .doc
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
-        "application/vnd.ms-excel",                                    // .xls
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",       // .xlsx
+        "application/msword",                                          
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",                            
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ];
     return officeMimes.includes(file.mime_type);
 }

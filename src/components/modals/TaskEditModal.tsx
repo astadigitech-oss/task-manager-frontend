@@ -414,19 +414,6 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                         </div>
                                     )}
                                 </div>
-
-                                {/* <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setShowActivity(!showActivity)}
-                                    className={cn("gap-2", showActivity && "bg-muted")}
-                                >
-                                    <Activity className="w-4 h-4" />
-                                    Activity
-                                    <ChevronRight
-                                        className={cn("w-4 h-4 transition-transform", showActivity && "rotate-180")}
-                                    />
-                                </Button> */}
                             </div>
 
                             {/* STATUS AND PRIORITY */}
