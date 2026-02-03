@@ -56,7 +56,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 avatar={user?.avatar}
                 size="sm"
                 className="cursor-pointer ring-2 ring-transparent hover:ring-input transition-all"
-                bustCache={true}
               />
             </button>
           </DropdownMenuTrigger>

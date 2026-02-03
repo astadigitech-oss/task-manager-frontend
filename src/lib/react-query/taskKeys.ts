@@ -42,4 +42,11 @@ export const invalidateTaskQueries = {
             queryKey: taskKeys.images(workspaceId, projectId, taskId)
         });
     },
+
+    taskFiles: (queryClient: any, workspaceId: number, projectId: number, taskId: number) => {
+        queryClient.invalidateQueries({
+            queryKey: taskKeys.images(workspaceId, projectId, taskId)
+        });
+    },
+    
 };

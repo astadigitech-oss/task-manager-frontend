@@ -27,7 +27,7 @@ import {
     useDeleteTaskImage
 } from "@/context/TaskContext";
 import { useProjectMembers } from "@/hooks/project/useProjectMembers";
-import type { TaskApi } from "@/types/api/task.api";
+import type { TaskApi, TaskFileApi } from "@/types/api/task.api";
 import type { ProjectMemberApi } from "@/types/api/project.api";
 import type { TaskStatus } from "@/types/shared/status";
 import type { TaskPriority } from "@/types/shared/priority";
@@ -38,6 +38,8 @@ import { ImageLightBoxModal } from "./ImageLightBoxModal";
 import { buildTaskPayload } from "@/lib/mapper/task.mapper";
 import { useQueryClient } from "@tanstack/react-query";
 import { taskKeys } from "@/lib/react-query/taskKeys";
+import { FilesSection } from "../task/task-detail/FilesSection";
+import { useDeleteTaskFile, useDownloadTaskFile, useTaskFiles, useUploadTaskFiles } from "@/hooks/task/useTaskFiles";
 
 interface TaskEditModalProps {
     task: TaskApi;
@@ -84,6 +86,13 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
     const [dueTime, setDueTime] = useState(task.due_time || "");
     const [hasChanges, setHasChanges] = useState(false);
     // const [showActivity, setShowActivity] = useState(false);
+
+    const { data: taskFiles = [] } = useTaskFiles(workspace_id, task.project_id, task.id);
+    const uploadFilesMutation  = useUploadTaskFiles();
+    const deleteFileMutation   = useDeleteTaskFile();
+    const downloadFileMutation = useDownloadTaskFile();
+
+    const [fileUploadProgress, setFileUploadProgress] = useState(0);
 
     const [localAssignedIds, setLocalAssignedIds] = useState<number[]>(
         task.task_members?.map(m => m.user_id) || []
@@ -311,6 +320,54 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
             }
         );
     }, [workspace_id, task.project_id, task.id, deleteImageMutation]);
+
+    const handleFileUpload = useCallback(async (files: File[]) => {
+        if (files.length === 0) return;
+        try {
+            await uploadFilesMutation.mutateAsync({
+                workspaceId: workspace_id,
+                projectId: task.project_id,
+                taskId: task.id,
+                files,
+                options: {
+                    onProgress: (progress) => setFileUploadProgress(progress),
+                },
+            });
+            setFileUploadProgress(0);
+        } catch (err) {
+            console.error("File upload failed:", err);
+            setFileUploadProgress(0);
+        }
+    }, [workspace_id, task.project_id, task.id, uploadFilesMutation]);
+
+    const handleDownloadFile = useCallback((file: TaskFileApi) => {
+        downloadFileMutation.mutate({
+            workspaceId: workspace_id,
+            projectId: task.project_id,
+            taskId: task.id,
+            fileId: file.id,
+            filename: file.filename,
+        });
+    }, [workspace_id, task.project_id, task.id, downloadFileMutation]);
+
+    const handleRemoveFile = useCallback((fileId: number) => {
+        showConfirmToast(
+            "Hapus file?",
+            "File yang dihapus tidak dapat dikembalikan.",
+            async () => {
+                try {
+                    await deleteFileMutation.mutateAsync({
+                        workspaceId: workspace_id,
+                        projectId: task.project_id,
+                        taskId: task.id,
+                        fileId,
+                    });
+                } catch (err) {
+                    console.error("Failed to delete file:", err);
+                }
+            }
+        );
+    }, [workspace_id, task.project_id, task.id, deleteFileMutation]);
 
     const handlePointerDownOutside = (e: Event) => {
         const target = e.target as HTMLElement;
@@ -571,16 +628,23 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                 />
                             )}
 
-                            {/* ACTIVITY SECTION */}
-                            {/* {showActivity && (
-                                <>
-                                    <Separator />
-                                    <div className="space-y-3">
-                                        <Label>Activity</Label>
-                                        <p className="text-sm text-muted-foreground">Activity log coming soon...</p>
-                                    </div>
-                                </>
-                            )} */}
+                            <Separator />
+
+                            {/* FILES / DOCUMENTS SECTION */}
+                            {workspace_id > 0 && (
+                                <FilesSection
+                                    files={taskFiles}
+                                    onFileUpload={handleFileUpload}
+                                    onDownloadFile={handleDownloadFile}
+                                    onRemoveFile={handleRemoveFile}
+                                    readOnly={!canEdit}
+                                    isUploading={uploadFilesMutation.isPending}
+                                    uploadProgress={fileUploadProgress}
+                                    workspaceId={workspace_id}
+                                    projectId={task.project_id}
+                                    taskId={task.id}
+                                />
+                            )}
                         </div>
                     </div>
 

@@ -1,9 +1,9 @@
 import { apiClient } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { ApiError } from "@/lib/api/interceptors";
-import { ProfileApiResponse } from "@/types/api/profile.api";
+import { ProfileApiResponse, ProfileGetResponse } from "@/types/api/profile.api";
 import { UserProfile } from "@/types/api/user.api";
-import { apiProfileToUserProfile } from "@/lib/utils/converters";
+import { apiProfileToUserProfile, getProfileToUserProfile } from "@/lib/utils/converters";
 
 const handleApiError = (error: any, customMessage?: string) => {
     if (error instanceof ApiError) {
@@ -14,6 +14,20 @@ const handleApiError = (error: any, customMessage?: string) => {
 
 export const profileService = {
     /**
+     * Get current user profile
+     */
+    getMyProfile: async (existingUser?: UserProfile): Promise<UserProfile> => {
+        try {
+            const response = await apiClient.get<ProfileGetResponse>(
+                API_ENDPOINTS.PROFILE.GET
+            );
+            return getProfileToUserProfile(response.data, existingUser);
+        } catch (error) {
+            throw handleApiError(error, "Gagal mengambil profile");
+        }
+    },
+
+    /**
      * Update profile (SUPPORT FormData)
      */
     updateMyProfile: async (data: FormData): Promise<UserProfile> => {
@@ -22,18 +36,10 @@ export const profileService = {
                 API_ENDPOINTS.PROFILE.UPDATE,
                 data
             );
-            const converted = apiProfileToUserProfile(response.data);
-
-            return converted;
+            return apiProfileToUserProfile(response.data);
         } catch (error) {
-            console.error(" profileService error:", error);
+            console.error("profileService error:", error);
             throw handleApiError(error, "Gagal mengupdate profile");
         }
-    },
-    getMyProfile: async (): Promise<UserProfile> => {
-        const res = await apiClient.get<ProfileApiResponse>(
-            API_ENDPOINTS.PROFILE.UPDATE
-        );
-        return apiProfileToUserProfile(res.data);
     },
 };

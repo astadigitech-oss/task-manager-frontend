@@ -22,6 +22,7 @@ export const API_ENDPOINTS = {
   // profile endpoint
   PROFILE: {
     UPDATE: '/api/profile?name',
+    GET: '/api/profile',
   },
 
 
@@ -114,14 +115,19 @@ export const API_ENDPOINTS = {
     }
   },
 
-
-  // members endpoint for user
-  // MEMBERS: {
-  //   LIST: '/api/users',
-  //   DETAIL: (id: number) => `/api/users/${id}`,
-  //   UPDATE: (id: number) => `/api/users/${id}`,
-  //   DELETE: (id: number) => `/api/users/${id}`,
-  // },
+  // File 
+  FILES: {
+    LIST: (workspace_id: number, project_id: number, task_id: number) =>
+      `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}/files`,
+    UPLOAD: (workspace_id: number, project_id: number, task_id: number) =>
+      `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}/files`,
+    VIEW: (workspace_id: number, project_id: number, task_id: number, file_id: number) =>
+      `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}/files/${file_id}/view`,
+    DOWNLOAD: (workspace_id: number, project_id: number, task_id: number, file_id: number) =>
+      `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}/files/${file_id}/download`,
+    DELETE: (workspace_id: number, project_id: number, task_id: number, file_id: number) =>
+      `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}/files/${file_id}`,
+  },
 
   EXPORT: {
     DAILY: (project_id: number) => `/api/projects/${project_id}/export/daily`,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { AlertTriangle, Flag, Layout, Maximize2, CheckCircle2 } from "lucide-react";
 import { resolveImageUrl } from "@/lib/helpers/imageUrlHelper";
@@ -12,7 +12,7 @@ import { useTaskImages } from "@/context/TaskContext";
 import { useProject } from "@/context/ProjectContext";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProjectMembers } from "@/hooks/project/useProjectMembers";
-import type { TaskApi } from "@/types/api/task.api";
+import type { TaskApi, TaskFileApi } from "@/types/api/task.api";
 import type { ProjectMemberApi } from "@/types/api/project.api";
 import { statusConfig, priorityConfig } from "@/constants/task";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -25,6 +25,8 @@ import {
   formatFinishedAt,
   formatOverdueDisplay,
 } from "@/lib/mapper/task.mapper";
+import { FilesSection } from "../task/task-detail/FilesSection";
+import { useDownloadTaskFile, useTaskFiles } from "@/hooks/task/useTaskFiles";
 
 interface TaskDetailModalProps {
   task: TaskApi;
@@ -48,6 +50,9 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
 
   const { members: projectMembers = [] } = useProjectMembers(task.project_id);
 
+  const { data: taskFiles = [] } = useTaskFiles(workspace_id, task.project_id, task.id);
+  const downloadFileMutation = useDownloadTaskFile();
+  
   const taskMembers = task.task_members || [];
 
   const canEdit = useMemo(() => {
@@ -90,6 +95,18 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
         .filter((url): url is string => Boolean(url)),
     [taskImages]
   );
+
+
+
+  const handleDownloadFile = useCallback((file: TaskFileApi) => {
+    downloadFileMutation.mutate({
+      workspaceId: workspace_id,
+      projectId: task.project_id,
+      taskId: task.id,
+      fileId: file.id,
+      filename: file.filename,
+    });
+  }, [workspace_id, task.project_id, task.id, downloadFileMutation]);
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -222,8 +239,8 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                   {/* FINISHED AT SECTION */}
                   {task.status === "done" && task.finished_at && (
                     <div className={`mt-4 p-4 rounded-lg border ${isCompletedLate(task)
-                        ? 'bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/50'
-                        : 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/50'
+                      ? 'bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/50'
+                      : 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/50'
                       }`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
@@ -335,6 +352,23 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                       })}
                     </div>
                   </div>
+                </>
+              )}
+
+              {/* FILES / DOCUMENTS SECTION */}
+              {taskFiles?.length > 0 && (
+                <>
+                  <Separator />
+                  <FilesSection
+                    files={taskFiles}
+                    onFileUpload={async () => { }}   // read-only, tidak digunakan
+                    onDownloadFile={handleDownloadFile}
+                    onRemoveFile={() => { }}          // read-only
+                    readOnly={true}
+                    workspaceId={workspace_id}
+                    projectId={task.project_id}
+                    taskId={task.id}
+                  />
                 </>
               )}
             </div>

@@ -58,7 +58,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 avatar={user?.avatar}
                 size="sm"
                 className="h-8 w-8"
-                bustCache={true}
               />
             </button>
           </DropdownMenuTrigger>

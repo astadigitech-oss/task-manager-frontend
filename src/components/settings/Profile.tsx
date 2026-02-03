@@ -26,7 +26,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { positionConfig } from "@/types/shared/position";
-import { useUpdateProfile } from "@/hooks/api/useProfile";
+import { useGetProfile, useUpdateProfile } from "@/hooks/api/useProfile";
 import { resolveImageUrl } from "@/lib/utils/media";
 import { getInitials } from "@/lib/helpers/avatar";
 import { AvatarCropDialog } from "@/components/settings/AvatarCropDialog";
@@ -40,9 +40,9 @@ export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
-  const { user, token } = useAuthStore();
+  const { user} = useAuthStore();
   const { mutate: updateProfile, isPending } = useUpdateProfile();
-
+  const { data: profileData, isLoading: isLoadingProfile } = useGetProfile();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [position, setPosition] = useState<PositionKey | "">("");
@@ -51,6 +51,7 @@ export function SettingsPage() {
 
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [selectedImageSrc, setSelectedImageSrc] = useState<string>("");
+
 
   const [initialProfile, setInitialProfile] = useState({
     fullName: "",
@@ -61,19 +62,19 @@ export function SettingsPage() {
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (profileData) {
+      const initialData = {
+        fullName: profileData.name,
+        email: profileData.email,
+        position: (profileData.position as PositionKey) || "",
+      };
 
-    const initialData = {
-      fullName: user.name,
-      email: user.email,
-      position: (user.position as PositionKey) || "",
-    };
-
-    setFullName(initialData.fullName);
-    setEmail(initialData.email);
-    setPosition(initialData.position);
-    setInitialProfile(initialData);
-  }, [user]);
+      setFullName(initialData.fullName);
+      setEmail(initialData.email);
+      setPosition(initialData.position);
+      setInitialProfile(initialData);
+    }
+  }, [profileData]);
 
   useEffect(() => {
     const hasChanged =

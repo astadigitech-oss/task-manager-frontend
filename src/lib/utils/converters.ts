@@ -1,10 +1,7 @@
-import { ProfileApiResponse } from "@/types/api/profile.api";
+import { ProfileApiResponse, ProfileGetResponse } from "@/types/api/profile.api";
 import { UserProfile, UserApi } from "@/types/api/user.api";
 import { Role } from "@/types/shared/role";
 
-/**
- * Simpan path
- */
 function normalizeProfileImage(path?: string | null): string | null {
   if (!path) return null;
   
@@ -16,8 +13,29 @@ function normalizeProfileImage(path?: string | null): string | null {
   return path;
 }
 
+// Converter untuk GET profile response
+export function getProfileToUserProfile(response: ProfileGetResponse, existingUser?: UserProfile): UserProfile {
+  const normalizedAvatar = normalizeProfileImage(response.data.avatar);
+
+  return {
+    id: existingUser?.id ?? 0,
+    name: response.data.name,
+    email: response.data.email,
+    role: existingUser?.role ?? "member" as Role,
+    avatar: normalizedAvatar,
+    position: response.data.position,
+    is_online: existingUser?.is_online ?? false,
+    last_seen: existingUser?.last_seen ?? null,
+    created_at: existingUser?.created_at ?? "",
+    updated_at: existingUser?.updated_at ?? "",
+    projectsCount: existingUser?.projectsCount ?? 0,
+    tasksCompleted: existingUser?.tasksCompleted ?? 0,
+  };
+}
+
+// Converter untuk UPDATE profile response
 export function apiProfileToUserProfile(api: ProfileApiResponse): UserProfile {
-  const normalizedAvatar = normalizeProfileImage(api.profile_image || api.profile_img || api.user_profile_image);
+  const normalizedAvatar = normalizeProfileImage(api.profile_image || api.profile_img || null);
 
   return {
     id: Number(api.id),
@@ -36,7 +54,7 @@ export function apiProfileToUserProfile(api: ProfileApiResponse): UserProfile {
 }
 
 export function apiUserToUserApi(apiUser: any): UserApi {
-  const normalizedAvatar = normalizeProfileImage(apiUser.profile_image);
+  const normalizedAvatar = normalizeProfileImage(apiUser.profile_image || apiUser.avatar || apiUser.profile_img || null);
 
   return {
     id: Number(apiUser.id),
