@@ -37,20 +37,6 @@ export const useLogin = () => {
       }
       loginStore({ user, token });
 
-      // ============================
-      // Silent PUT profile
-      // ============================
-      try {
-        const formData = new FormData();
-
-        formData.append("name", user.name);
-
-        const fullProfile = await profileService.updateMyProfile(formData);
-        updateUser(fullProfile);
-      } catch (e) {
-        console.error("Silent profile sync failed:", e);
-      }
-
       showSuccessToast("Login berhasil!");
       router.replace(`/${user.role}/dashboard`);
     },

@@ -1,9 +1,15 @@
+// services/onlineUsers.service.ts
 import { apiClient } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { UserApi } from "@/types/api/user.api";
 import { WS_BASE_URL } from "@/constants/api";
 
 interface OnlineUsersResponse {
+    success: boolean;
+    data: UserApi[];
+}
+
+interface WorkspaceOnlineUsersResponse {
     success: boolean;
     data: UserApi[];
 }
@@ -15,57 +21,85 @@ interface WebSocketConfig {
 
 export const onlineUsersService = {
     /**
-     * Fetch list of online users dari API
-     * API: GET /users/online-status
+     * Fetch list of ALL online users (ADMIN ONLY)
+     * API: GET /api/online-users
      */
     getOnlineUsers: async (): Promise<UserApi[]> => {
         try {
             const response = await apiClient.get<OnlineUsersResponse>(
-                API_ENDPOINTS.ONLINE_USERS.LIST
+                API_ENDPOINTS.ONLINE_USERS.ADMIN
             );
 
             if (response.data.success && response.data.data) {
-                console.log("Online users fetched:", response.data.data.length);
+                console.log("✅ All online users fetched:", response.data.data.length);
                 return response.data.data;
             }
 
             return [];
         } catch (err) {
-            console.error("Failed to fetch online users:", err);
+            console.error("❌ Failed to fetch all online users:", err);
             return [];
         }
     },
 
     /**
-     * Build WebSocket URL untuk aktivasi status online
-     * ini digunakan untuk membuat koneksi WebSocket
+     * Fetch online users in specific workspace (MEMBER & ADMIN)
+     * API: GET /api/workspaces/{workspace_id}/online-members
+     */
+    getWorkspaceOnlineUsers: async (
+        workspace_id: number
+    ): Promise<UserApi[]> => {
+        try {
+            const response = await apiClient.get<WorkspaceOnlineUsersResponse>(
+                API_ENDPOINTS.ONLINE_USERS.USER(workspace_id)
+            );
+
+            if (response.data.success && response.data.data) {
+                console.log(
+                    `✅ Workspace ${workspace_id} online users:`,
+                    response.data.data.length
+                );
+                return response.data.data;
+            }
+
+            return [];
+        } catch (err) {
+            console.error(
+                `❌ Failed to fetch workspace ${workspace_id} online users:`,
+                err
+            );
+            return [];
+        }
+    },
+
+    /**
+     * Build WebSocket URL
      */
     buildWebSocketUrl: (config: WebSocketConfig): string | null => {
         if (!WS_BASE_URL) {
-            console.error("WS_BASE_URL not configured");
+            console.error("❌ WS_BASE_URL not configured");
             return null;
         }
 
         if (!config.token || !config.workspace_id) {
-            console.error(
-                "Missing required WebSocket config",
-                { token: !!config.token, workspace_id: !!config.workspace_id }
-            );
+            console.error("❌ Missing required WebSocket config", {
+                token: !!config.token,
+                workspace_id: !!config.workspace_id,
+            });
             return null;
         }
 
-        // url utama untuk koneksi WebSocket
         const wsUrl = `${WS_BASE_URL}${API_ENDPOINTS.ONLINE_USERS.WS(
             config.token,
             config.workspace_id
         )}`;
 
-        console.log("WebSocket URL built (token hidden)");
+        console.log("🔗 WebSocket URL built for workspace", config.workspace_id);
         return wsUrl;
     },
 
     /**
-     * Create WebSocket connection untuk aktivasi status online
+     * Create WebSocket connection
      */
     createConnection: (
         url: string,
@@ -82,34 +116,52 @@ export const onlineUsersService = {
             const ws = new WebSocket(url);
 
             ws.onopen = () => {
-                console.log("WebSocket connected - User is now ONLINE");
+                console.log("✅ WebSocket connected");
                 handlers.onOpen?.();
             };
 
             ws.onmessage = (event) => {
                 try {
                     const message = JSON.parse(event.data);
-                    console.log("WebSocket message:", message);
                     handlers.onMessage?.(message);
                 } catch (err) {
-                    console.error("Failed to parse WebSocket message:", err);
+                    console.error("❌ Failed to parse WebSocket message:", err);
                 }
             };
 
             ws.onerror = (error) => {
-                console.error("WebSocket error:", error);
+                console.error("❌ WebSocket error:", error);
                 handlers.onError?.(error);
             };
 
             ws.onclose = () => {
-                console.log("🔌 WebSocket disconnected - User is now OFFLINE");
+                console.log("🔌 WebSocket disconnected");
                 handlers.onClose?.();
             };
 
             return ws;
         } catch (err) {
-            console.error("Failed to create WebSocket:", err);
+            console.error("❌ Failed to create WebSocket:", err);
             return null;
+        }
+    },
+
+    /**
+     * Send ping through WebSocket
+     */
+    sendWebSocketPing: (ws: WebSocket | null): boolean => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            console.warn("⚠️ Cannot send ping: WebSocket not connected");
+            return false;
+        }
+
+        try {
+            ws.send(JSON.stringify({ type: "ping" }));
+            console.log("💓 WebSocket ping sent");
+            return true;
+        } catch (err) {
+            console.error("❌ Failed to send WebSocket ping:", err);
+            return false;
         }
     },
 

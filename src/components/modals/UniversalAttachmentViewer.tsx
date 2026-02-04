@@ -76,6 +76,14 @@ export function UniversalAttachmentViewer({
 
     // PDF PREVIEW
     if (ext === "pdf") {
+      if (!fileUrl.startsWith("blob:")) {
+        return (
+          <div className="text-center text-muted">
+            Preview tidak tersedia. File belum dimuat dengan benar.
+          </div>
+        );
+      }
+
       return (
         <iframe
           src={`${fileUrl}#toolbar=1`}
@@ -84,6 +92,7 @@ export function UniversalAttachmentViewer({
         />
       );
     }
+
 
     // TXT PREVIEW
     if (ext === "txt") {

@@ -1,4 +1,8 @@
-export function resolveImageUrl(path?: string | null, bustCache = false): string | undefined {
+export function resolveImageUrl(
+  path?: string | null, 
+  bustCache = false,
+  updatedAt?: string | Date
+): string | undefined {
   if (!path) return undefined;
 
   if (!path.includes('/') && !path.startsWith('http') && !path.startsWith('blob:') && !path.startsWith('data:')) {
@@ -11,9 +15,11 @@ export function resolveImageUrl(path?: string | null, bustCache = false): string
   }
 
   if (path.startsWith("http")) {
-    if (bustCache) {
+    if (bustCache && updatedAt) {
+      // Gunakan timestamp dari updatedAt, bukan Date.now()
+      const timestamp = new Date(updatedAt).getTime();
       const separator = path.includes("?") ? "&" : "?";
-      return `${path}${separator}t=${Date.now()}`;
+      return `${path}${separator}t=${timestamp}`;
     }
     return path;
   }
@@ -32,8 +38,9 @@ export function resolveImageUrl(path?: string | null, bustCache = false): string
 
   let fullUrl = `${baseUrl}/${relativePath}`;
 
-  if (bustCache) {
-    return `${fullUrl}?t=${Date.now()}`;
+  if (bustCache && updatedAt) {
+    const timestamp = new Date(updatedAt).getTime();
+    return `${fullUrl}?t=${timestamp}`;
   }
 
   return fullUrl;

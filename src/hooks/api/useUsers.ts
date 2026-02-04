@@ -68,11 +68,14 @@ export function useUsers(
             !isMember &&
             (isWorkspaceMode ? !!workspaceId : true),
 
-        staleTime: isAdmin ? 10 * 1000 : 5 * 60 * 1000,
+        // OPTIMIZED: Longer stale time
+        staleTime: 30 * 1000, // 30 detik (dari 10 detik)
 
-        refetchInterval: isAdmin ? 30 * 1000 : false,
+        // OPTIMIZED: Disable auto refetch for admin
+        refetchInterval: false, // Disable auto polling
 
-        refetchOnWindowFocus: isAdmin,
+        // OPTIMIZED: Only refetch on window focus for admin if really needed
+        refetchOnWindowFocus: false,
 
         ...options,
     });

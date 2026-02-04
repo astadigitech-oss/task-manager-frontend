@@ -16,7 +16,7 @@ export interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
@@ -34,15 +34,26 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== "undefined") {
           document.cookie = `token=Bearer ${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
           document.cookie = `role=${user.role}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
-
           window.dispatchEvent(new Event('user-logged-in'));
         }
       },
 
       updateUser: (updatedFields) => {
-        set((state) => ({
-          user: state.user ? { ...state.user, ...updatedFields } : null,
-        }));
+        set((state) => {
+          if (!state.user) return state;
+          
+          // Cek apakah ada perubahan sebenarnya
+          const hasChanges = Object.keys(updatedFields).some(
+            key => updatedFields[key as keyof typeof updatedFields] !== state.user![key as keyof UserProfile]
+          );
+          
+          // Hanya update jika ada perubahan
+          if (!hasChanges) return state;
+          
+          return {
+            user: { ...state.user, ...updatedFields }
+          };
+        });
       },
 
       logout: () => {

@@ -37,6 +37,8 @@ export const SUCCESS_MESSAGES = {
 
 export const WS_CONFIG = {
     MAX_RECONNECT_ATTEMPTS: 5,
-    RECONNECT_DELAY_MS: 3000,
-    PING_INTERVAL_MS: 30000,
+    RECONNECT_DELAY_MS: 1000, //  detik
+    PING_INTERVAL_MS: 5 * 60 * 1000, // 5 menit
+    HTTP_PING_INTERVAL_MS: 5 * 60 * 1000, // 5 menit
+    POLLING_INTERVAL_MS: 5 * 60 * 1000, // 5 menit
 } as const;

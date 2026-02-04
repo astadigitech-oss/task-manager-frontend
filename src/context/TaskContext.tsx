@@ -29,6 +29,13 @@ import {
     useDeleteTaskImage
 } from "@/hooks/task/useTaskImages";
 import { normalizeTask } from "@/lib/utils/normalizeTask";
+import {
+    useTaskFiles,
+    useUploadTaskFiles,
+    useDeleteTaskFile,
+    useDownloadTaskFile,
+    useViewTaskFile,
+} from "@/hooks/task/useTaskFiles";
 
 interface TaskContextType {
     selectedProjectId: number | null;
@@ -113,4 +120,9 @@ export {
     useUploadTaskImage,
     useUploadMultipleTaskImages,
     useDeleteTaskImage,
+    useTaskFiles,
+    useUploadTaskFiles,
+    useDeleteTaskFile,
+    useDownloadTaskFile,
+    useViewTaskFile,
 };
