@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { resolveImageUrl } from "@/lib/utils/media";
 import { getInitials } from "@/lib/helpers/avatar";
 import { cn } from "@/lib/utils/utils";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface UserAvatarProps {
     name?: string | null;
@@ -21,31 +21,31 @@ const sizeClasses = {
     xl: "h-24 w-24 text-2xl",
 };
 
-export function UserAvatar({ 
-    name, 
-    avatar, 
-    size = "md", 
-    className, 
-    bustCache = false 
+export function UserAvatar({
+    name,
+    avatar,
+    size = "md",
+    className,
+    bustCache = false
 }: UserAvatarProps) {
     const [hasError, setHasError] = useState(false);
 
     // Resolve URL dengan validasi
     const resolvedUrl = useMemo(() => {
         if (!avatar) return undefined;
-        
+
         const resolved = resolveImageUrl(avatar, bustCache);
-        
+
         // Jika resolveImageUrl return undefined (invalid path), log warning
         if (!resolved && avatar) {
             console.warn(`[UserAvatar] Invalid avatar path for ${name}:`, avatar);
         }
-        
+
         return resolved;
     }, [avatar, bustCache, name]);
 
     // Reset error state ketika avatar berubah
-    useMemo(() => {
+    useEffect(() => {
         setHasError(false);
     }, [avatar]);
 
@@ -60,6 +60,7 @@ export function UserAvatar({
         <Avatar className={cn(sizeClasses[size], className)}>
             {resolvedUrl && !hasError ? (
                 <AvatarImage
+                    key={resolvedUrl}
                     src={resolvedUrl}
                     alt={name || "User"}
                     onError={handleError}

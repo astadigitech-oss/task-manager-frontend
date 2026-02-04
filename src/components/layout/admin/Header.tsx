@@ -13,6 +13,8 @@ import {
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter } from "next/navigation";
 import { UserAvatar } from "@/components/shared/UserAvatar";
+import { useEffect } from "react";
+import { useGetProfile } from "@/hooks/api/useProfile";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -20,7 +22,9 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout ,updateUser } = useAuthStore();
+
+  const { data: profileData } = useGetProfile();
 
   const handleLogout = () => {
     logout();
@@ -28,6 +32,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
   };
 
   const settingsPath = user?.role === "admin" ? "/admin/settings" : "/member/settings";
+
+  useEffect(() => {
+  if (profileData) {
+    updateUser({
+      avatar: profileData.avatar,
+      name: profileData.name,
+      updated_at: profileData.updated_at,
+    });
+  }
+}, [profileData?.updated_at]);
 
   return (
     <header className="flex items-center justify-between bg-background border-b border-border shadow-sm px-6 py-4">
@@ -58,6 +72,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 avatar={user?.avatar}
                 size="sm"
                 className="h-8 w-8"
+                bustCache={true}
               />
             </button>
           </DropdownMenuTrigger>

@@ -52,7 +52,7 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
 
   const { data: taskFiles = [] } = useTaskFiles(workspace_id, task.project_id, task.id);
   const downloadFileMutation = useDownloadTaskFile();
-  
+
   const taskMembers = task.task_members || [];
 
   const canEdit = useMemo(() => {
@@ -311,6 +311,23 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                 )}
               </div>
 
+              {/* FILES / DOCUMENTS SECTION */}
+              {taskFiles?.length > 0 && (
+                <>
+                  <Separator />
+                  <FilesSection
+                    files={taskFiles}
+                    onFileUpload={async () => { }}   
+                    onDownloadFile={handleDownloadFile}
+                    onRemoveFile={() => { }}          
+                    readOnly={true}
+                    workspaceId={workspace_id}
+                    projectId={task.project_id}
+                    taskId={task.id}
+                  />
+                </>
+              )}
+
               {/* ATTACHMENTS SECTION */}
               {taskImages?.length > 0 && (
                 <>
@@ -352,23 +369,6 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                       })}
                     </div>
                   </div>
-                </>
-              )}
-
-              {/* FILES / DOCUMENTS SECTION */}
-              {taskFiles?.length > 0 && (
-                <>
-                  <Separator />
-                  <FilesSection
-                    files={taskFiles}
-                    onFileUpload={async () => { }}   // read-only, tidak digunakan
-                    onDownloadFile={handleDownloadFile}
-                    onRemoveFile={() => { }}          // read-only
-                    readOnly={true}
-                    workspaceId={workspace_id}
-                    projectId={task.project_id}
-                    taskId={task.id}
-                  />
                 </>
               )}
             </div>

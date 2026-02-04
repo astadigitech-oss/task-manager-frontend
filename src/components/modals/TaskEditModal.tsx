@@ -599,6 +599,24 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
 
                             <Separator />
 
+                            {/* FILES / DOCUMENTS SECTION */}
+                            {workspace_id > 0 && (
+                                <FilesSection
+                                    files={taskFiles}
+                                    onFileUpload={handleFileUpload}
+                                    onDownloadFile={handleDownloadFile}
+                                    onRemoveFile={handleRemoveFile}
+                                    readOnly={!canEdit}
+                                    isUploading={uploadFilesMutation.isPending}
+                                    uploadProgress={fileUploadProgress}
+                                    workspaceId={workspace_id}
+                                    projectId={task.project_id}
+                                    taskId={task.id}
+                                />
+                            )}
+
+                            <Separator />
+
                             {/* IMAGES SECTION */}
                             {workspace_id > 0 && (
                                 <AttachmentsSection
@@ -615,23 +633,6 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                 />
                             )}
 
-                            <Separator />
-
-                            {/* FILES / DOCUMENTS SECTION */}
-                            {workspace_id > 0 && (
-                                <FilesSection
-                                    files={taskFiles}
-                                    onFileUpload={handleFileUpload}
-                                    onDownloadFile={handleDownloadFile}
-                                    onRemoveFile={handleRemoveFile}
-                                    readOnly={!canEdit}
-                                    isUploading={uploadFilesMutation.isPending}
-                                    uploadProgress={fileUploadProgress}
-                                    workspaceId={workspace_id}
-                                    projectId={task.project_id}
-                                    taskId={task.id}
-                                />
-                            )}
                         </div>
                     </div>
 
