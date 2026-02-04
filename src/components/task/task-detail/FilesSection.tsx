@@ -124,7 +124,7 @@ export function FilesSection({
             const ext = getFileExtension(file.name);
 
             if (!ALLOWED_EXTENSIONS.includes(ext)) {
-                showErrorToast("Untuk saat ini hanya format .pdf saja yang bisa di upload")
+                showErrorToast(`Format "${ext}" tidak didukung`, "hanya PDF untuk saat ini.",)
                 return;
             }
 
@@ -202,7 +202,7 @@ export function FilesSection({
             setViewerFile(file);
             setViewerOpen(true);
         } catch (err) {
-            toast.error("Gagal membuka preview file");
+            showErrorToast("Gagal membuka preview file");
             console.error(err);
         } finally {
             setIsLoadingPreview(false);
