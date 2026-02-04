@@ -47,7 +47,7 @@ export function MemberSidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
     projects,
     isLoading: isLoadingProjects,
   } = useProject();
-  
+
   // Filter menu items untuk member (isAdmin = false)
   const menuItems = getFilteredMenuItems(false);
 
@@ -260,21 +260,24 @@ export function MemberSidebar({ isOpen, onClose, onNavigate }: SidebarProps) {
                               className={cn(
                                 "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors",
                                 selected
-                                  ? "bg-primary/10 text-primary"
+                                  ? "bg-primary/10 text-primary font-medium ring-2 ring-primary/20"
                                   : "hover:bg-sidebar-accent"
                               )}
                             >
                               <Folder
                                 className="h-4 w-4 shrink-0"
                                 style={{ color: workspaceColor }}
-                                fill={workspaceColor}
+                                fill={selected ? workspaceColor : "none"}
                               />
-                              <span
-                                className="text-sm leading-snug wrap-break-word line-clamp-2 flex-1"
-                              >
+                              <span className="text-sm leading-snug wrap-break-word line-clamp-2 flex-1">
                                 {highlightText(ws.name)}
                               </span>
-                              <span className="text-xs bg-sidebar-accent px-1.5 py-0.5 rounded shrink-0">
+                              <span className={cn(
+                                "text-xs px-1.5 py-0.5 rounded shrink-0",
+                                selected
+                                  ? "bg-primary/20 text-primary font-medium"
+                                  : "bg-sidebar-accent"
+                              )}>
                                 {projectCount}
                               </span>
                             </button>
