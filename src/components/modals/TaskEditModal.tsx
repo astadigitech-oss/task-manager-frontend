@@ -27,7 +27,7 @@ import {
     useDeleteTaskImage
 } from "@/context/TaskContext";
 import { useProjectMembers } from "@/hooks/project/useProjectMembers";
-import type { TaskApi, TaskFileApi } from "@/types/api/task.api";
+import type { TaskApi, TaskFileApi, TaskRequest } from "@/types/api/task.api";
 import type { ProjectMemberApi } from "@/types/api/project.api";
 import type { TaskStatus } from "@/types/shared/status";
 import type { TaskPriority } from "@/types/shared/priority";
@@ -68,6 +68,8 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
     const isAdmin = role === "admin";
     const isMember = role === "member";
 
+    // TaskDetailModal.tsx
+
     const canEditTask = isAdmin || isMember;
     const canEdit = isAdmin;
     const canDeleteTask = isAdmin;
@@ -85,11 +87,14 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
     const [dueDate, setDueDate] = useState<string | undefined>(task.due_date);
     const [dueTime, setDueTime] = useState(task.due_time || "");
     const [hasChanges, setHasChanges] = useState(false);
-    // const [showActivity, setShowActivity] = useState(false);
-
-    const { data: taskFiles = [] } = useTaskFiles(workspace_id, task.project_id, task.id);
-    const uploadFilesMutation  = useUploadTaskFiles();
-    const deleteFileMutation   = useDeleteTaskFile();
+    
+    const { data: taskFiles = [] } = useTaskFiles(
+        isAdmin ? workspace_id : null,
+        isAdmin ? task.project_id : null,
+        isAdmin ? task.id : null
+    );
+    const uploadFilesMutation = useUploadTaskFiles();
+    const deleteFileMutation = useDeleteTaskFile();
     const downloadFileMutation = useDownloadTaskFile();
 
     const [fileUploadProgress, setFileUploadProgress] = useState(0);
@@ -157,23 +162,34 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
             showWarningToast("Task belum di-assign", "Task akan disimpan tanpa assignee.");
         }
 
-        const payload = buildTaskPayload({
-            title: title.trim(),
-            description: description.trim(),
-            notes: notes.trim(),
-            status,
-            priority,
-            startDate: startDate,
-            dueDate: dueDate,
-            dueTime: dueTime || undefined,
-        }, 'update');
+        let payload: Partial<TaskRequest>;
+
+        if (isMember) {
+            // MEMBER
+            payload = {
+                status,
+                notes: notes.trim(),
+            };
+        } else {
+            // ADMIN
+            payload = buildTaskPayload({
+                title: title.trim(),
+                description: description.trim(),
+                notes: notes.trim(),
+                status,
+                priority,
+                startDate,
+                dueDate,
+                dueTime: dueTime || undefined,
+            }, "update");
+        }
 
         try {
-            const result = await updateMutation.mutateAsync({
+            await updateMutation.mutateAsync({
                 workspaceId: workspace_id,
                 projectId: task.project_id,
                 taskId: task.id,
-                payload
+                payload,
             });
 
             setHasChanges(false);
@@ -600,13 +616,13 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                             <Separator />
 
                             {/* FILES / DOCUMENTS SECTION */}
-                            {workspace_id > 0 && (
+                            {isAdmin && workspace_id > 0 && (
                                 <FilesSection
                                     files={taskFiles}
                                     onFileUpload={handleFileUpload}
                                     onDownloadFile={handleDownloadFile}
                                     onRemoveFile={handleRemoveFile}
-                                    readOnly={!canEdit}
+                                    readOnly={false}
                                     isUploading={uploadFilesMutation.isPending}
                                     uploadProgress={fileUploadProgress}
                                     workspaceId={workspace_id}

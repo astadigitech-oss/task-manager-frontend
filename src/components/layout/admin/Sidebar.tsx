@@ -217,13 +217,21 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
         )}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 p-6 border-b shrink-0">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold">A</span>
+        <div className="flex items-center justify-center gap-3 mt-1 border-b shrink-0">
+          <div className="relative w-15 h-15 shrink-0">
+            <img
+              src="/assets/logo_hitam.png"
+              alt="ASTA Logo"
+              className="w-full h-full object-contain dark:hidden"
+            />
+            <img
+              src="/assets/logo_putih.png"
+              alt="ASTA Logo"
+              className="w-full h-full object-contain hidden dark:block"
+            />
           </div>
-          <div>
-            <span className="text-xl font-bold">ASTA</span>
-            <span className="block text-[10px] text-muted-foreground">
+          <div className="flex flex-col">
+            <span className="text-[14px] font-bold text-foreground leading-tight">
               TASK MANAGER
             </span>
           </div>

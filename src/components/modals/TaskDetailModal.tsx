@@ -40,6 +40,10 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
   const { projects } = useProject();
   const { user } = useAuthStore();
 
+  const role = user?.role;
+
+  const isAdmin = role === "admin";
+
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
 
@@ -50,7 +54,11 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
 
   const { members: projectMembers = [] } = useProjectMembers(task.project_id);
 
-  const { data: taskFiles = [] } = useTaskFiles(workspace_id, task.project_id, task.id);
+      const { data: taskFiles = [] } = useTaskFiles(
+        isAdmin ? workspace_id : null,
+        isAdmin ? task.project_id : null,
+        isAdmin ? task.id : null
+    );
   const downloadFileMutation = useDownloadTaskFile();
 
   const taskMembers = task.task_members || [];
@@ -312,14 +320,14 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
               </div>
 
               {/* FILES / DOCUMENTS SECTION */}
-              {taskFiles?.length > 0 && (
+              {isAdmin && workspace_id > 0 && (
                 <>
                   <Separator />
                   <FilesSection
                     files={taskFiles}
-                    onFileUpload={async () => { }}   
+                    onFileUpload={async () => { }}
                     onDownloadFile={handleDownloadFile}
-                    onRemoveFile={() => { }}          
+                    onRemoveFile={() => { }}
                     readOnly={true}
                     workspaceId={workspace_id}
                     projectId={task.project_id}
