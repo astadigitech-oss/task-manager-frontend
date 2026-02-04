@@ -21,9 +21,10 @@ import { toast } from "sonner";
 import { TaskFileApi, formatFileSize, getFileExtension } from "@/types/api/task.api";
 import { UniversalAttachmentViewer } from "@/components/modals/UniversalAttachmentViewer";
 import { filesService } from "@/services/task/taskFiles.service";
+import { showErrorToast } from "@/lib/helpers/toast-helpers";
 
 // ─── mime / ext yang diizinkan ────────────────────────────────────────────────
-const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "pdf", "doc", "docx", "xls", "xlsx"];
+const ALLOWED_EXTENSIONS = ["pdf"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -123,16 +124,12 @@ export function FilesSection({
             const ext = getFileExtension(file.name);
 
             if (!ALLOWED_EXTENSIONS.includes(ext)) {
-                toast.error(`Format "${ext}" tidak didukung`, {
-                    description: "Diizinkan: PDF, DOC, DOCX, XLS, XLSX, dan gambar.",
-                });
+                showErrorToast(`Format "${ext}" tidak didukung`, "hanya PDF untuk saat ini.",)
                 return;
             }
 
             if (file.size > MAX_FILE_SIZE) {
-                toast.error(`${file.name} terlalu besar`, {
-                    description: `Maksimal ukuran file adalah ${formatFileSize(MAX_FILE_SIZE)}.`,
-                });
+                showErrorToast(`Maksimal ukuran file adalah ${formatFileSize(MAX_FILE_SIZE)}.`)
                 return;
             }
 
@@ -205,7 +202,7 @@ export function FilesSection({
             setViewerFile(file);
             setViewerOpen(true);
         } catch (err) {
-            toast.error("Gagal membuka preview file");
+            showErrorToast("Gagal membuka preview file");
             console.error(err);
         } finally {
             setIsLoadingPreview(false);
@@ -258,7 +255,7 @@ export function FilesSection({
                     ref={fileInputRef}
                     type="file"
                     multiple
-                    accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx"
+                    accept=".pdf"
                     className="hidden"
                     onChange={handleFileSelect}
                     disabled={readOnly || isUploading}

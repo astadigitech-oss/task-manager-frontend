@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
-            ...(process.env.NODE_ENV === "development"
+            ...(process.env.NODE_ENV
                 ? { duplex: "half" }
                 : {}),
         });

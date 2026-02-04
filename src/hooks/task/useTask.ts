@@ -10,22 +10,22 @@ import { ApiError } from "@/lib/api/interceptors";
 function calculateOptimisticOverdue(task: TaskApi): number {
 
     if (!task.due_date) return 0;
-    
+
     const now = new Date();
     const [year, month, day] = task.due_date.split('-').map(Number);
     const dueDate = new Date(year, month - 1, day);
-    
+
     if (task.due_time) {
         const [hours, minutes] = task.due_time.split(':').map(Number);
         dueDate.setHours(hours, minutes, 0, 0);
     } else {
         dueDate.setHours(23, 59, 59, 999);
     }
-    
+
     const diffMs = now.getTime() - dueDate.getTime();
-    
+
     if (diffMs <= 0) return 0;
-    
+
     return Math.floor(diffMs / (1000 * 60));
 }
 
@@ -56,11 +56,10 @@ export function useTasks(
 
                 return res.data.map(mapTask);
             } catch (error) {
-
                 if (error instanceof ApiError && error.status === 403) {
                     const errorMessage = error.data?.error || error.message;
 
-                    if (errorMessage.includes('tidak ditemukan')) {
+                    if (errorMessage.includes('tidak ditemukan') || errorMessage.includes('not found')) {
                         return [];
                     }
 
@@ -276,12 +275,12 @@ export function useUpdateTask() {
 
                         if (payload.status === "done" && task.status !== "done") {
                             updates.finished_at = new Date().toISOString();
-                            
+
                             const overdueMins = calculateOptimisticOverdue(task);
                             updates.overdue_duration = overdueMins;
                             updates.is_overdue = overdueMins > 0;
                         }
-                        
+
                         if (task.status === "done" && payload.status && payload.status !== "done") {
                             updates.finished_at = undefined;
                             updates.overdue_duration = 0;
@@ -322,7 +321,7 @@ export function useUpdateTask() {
         onSuccess: (updatedTask, variables) => {
             queryClient.setQueryData<TaskApi[]>(
                 taskKeys.list(variables.workspaceId, variables.projectId),
-                (old = []) => old.map(task => 
+                (old = []) => old.map(task =>
                     task.id === variables.taskId ? updatedTask : task
                 )
             );
