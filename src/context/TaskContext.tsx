@@ -7,10 +7,10 @@ import {
     useCallback,
     ReactNode,
     useEffect,
+    useRef,
 } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { TaskApi } from "@/types/api/task.api";
-
 import {
     useTasks,
     useCreateTask,
@@ -36,13 +36,13 @@ import {
     useDownloadTaskFile,
     useViewTaskFile,
 } from "@/hooks/task/useTaskFiles";
+import { useWorkspace } from "@/context/WorkspaceContext"; // TAMBAHKAN INI
 
 interface TaskContextType {
     selectedProjectId: number | null;
     selectedWorkspaceId: number | null;
     setSelectedProjectId: (id: number | null) => void;
     setSelectedWorkspaceId: (id: number | null) => void;
-
     tasks: TaskApi[];
     isLoading: boolean;
     refetchTasks: () => void;
@@ -50,12 +50,17 @@ interface TaskContextType {
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
-
 export function TaskProvider({ children }: { children: ReactNode }) {
     const { isAuthenticated, isHydrated } = useAuthStore();
+    const { selectedWorkspaceId: contextWorkspaceId } = useWorkspace(); // AMBIL DARI WORKSPACE CONTEXT
 
     const [selectedProjectId, setSelectedProjectIdState] = useState<number | null>(null);
     const [selectedWorkspaceId, setSelectedWorkspaceIdState] = useState<number | null>(null);
+    
+    // Ref untuk tracking perubahan workspace dari context
+    const lastContextWorkspaceId = useRef<number | null>(null);
+    // Ref untuk tracking perubahan workspace lokal
+    const lastLocalWorkspaceId = useRef<number | null>(null);
 
     const setSelectedProjectId = useCallback((id: number | null) => {
         setSelectedProjectIdState(id);
@@ -64,6 +69,36 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     const setSelectedWorkspaceId = useCallback((id: number | null) => {
         setSelectedWorkspaceIdState(id);
     }, []);
+
+    // Effect 1: Sync dengan WorkspaceContext - reset project jika workspace berubah dari sidebar
+    useEffect(() => {
+        // Jika workspace dari context berubah dan berbeda dengan yang tersimpan
+        if (contextWorkspaceId !== lastContextWorkspaceId.current) {
+            console.log(`[TaskContext] Workspace changed from context: ${lastContextWorkspaceId.current} -> ${contextWorkspaceId}`);
+            
+            // Update refs
+            lastContextWorkspaceId.current = contextWorkspaceId;
+            lastLocalWorkspaceId.current = contextWorkspaceId;
+            
+            // Reset state
+            setSelectedWorkspaceIdState(contextWorkspaceId);
+            setSelectedProjectIdState(null); // RESET PROJECT!
+        }
+    }, [contextWorkspaceId]);
+
+    // Effect 2: Track perubahan workspace lokal (dari ProjectBoardLayout)
+    useEffect(() => {
+        // Jika workspace lokal berubah karena ProjectBoardLayout set workspace
+        if (selectedWorkspaceId !== lastLocalWorkspaceId.current) {
+            console.log(`[TaskContext] Workspace changed locally: ${lastLocalWorkspaceId.current} -> ${selectedWorkspaceId}`);
+            lastLocalWorkspaceId.current = selectedWorkspaceId;
+            
+            // Update context ref juga agar tidak conflict
+            if (selectedWorkspaceId !== lastContextWorkspaceId.current) {
+                lastContextWorkspaceId.current = selectedWorkspaceId;
+            }
+        }
+    }, [selectedWorkspaceId]);
 
     const { data = [], isLoading, refetch } = useTasks(
         selectedWorkspaceId,
@@ -80,10 +115,12 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         if (!isHydrated) return;
 
         if (!isAuthenticated) {
-            setSelectedProjectId(null);
-            setSelectedWorkspaceId(null);
+            setSelectedProjectIdState(null);
+            setSelectedWorkspaceIdState(null);
+            lastContextWorkspaceId.current = null;
+            lastLocalWorkspaceId.current = null;
         }
-    }, [isAuthenticated, isHydrated, setSelectedProjectId, setSelectedWorkspaceId]);
+    }, [isAuthenticated, isHydrated]);
 
     return (
         <TaskContext.Provider
