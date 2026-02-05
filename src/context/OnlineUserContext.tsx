@@ -32,7 +32,6 @@ function onlineReducer(state: OnlineState, action: OnlineAction): OnlineState {
         case "USER_ONLINE": {
             const lastUpdate = state.lastUpdated[action.user.id] || 0;
             if (action.timestamp < lastUpdate) {
-                console.warn(`Ignoring stale online update for user ${action.user.id}`);
                 return state;
             }
 
@@ -54,7 +53,6 @@ function onlineReducer(state: OnlineState, action: OnlineAction): OnlineState {
         case "USER_OFFLINE": {
             const lastUpdate = state.lastUpdated[action.userId] || 0;
             if (action.timestamp < lastUpdate) {
-                console.warn(`Ignoring stale offline update for user ${action.userId}`);
                 return state;
             }
 
@@ -125,10 +123,10 @@ function isWebSocketOpen(ws: WebSocket | null): boolean {
 
 export function OnlineUserProvider({
     children,
-    workspaceId = null,
+    workspaceId,
 }: {
     children: ReactNode;
-    workspaceId?: number | null;
+    workspaceId: number | null; //optional
 }) {
     const { isAuthenticated, user, token } = useAuthStore();
     const queryClient = useQueryClient();
@@ -139,7 +137,6 @@ export function OnlineUserProvider({
     const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const currentWorkspaceRef = useRef<number | null>(null);
 
-    // Debounce cache invalidation
     const invalidateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const lastInvalidateRef = useRef<number>(0);
 
@@ -151,21 +148,19 @@ export function OnlineUserProvider({
 
     const isAdmin = user?.role === "admin";
     const canViewOnlineUsers = isAuthenticated;
+
     const shouldConnect =
         isAuthenticated &&
         token &&
         user &&
-        workspaceId !== null &&
-        workspaceId !== undefined;
+        (isAdmin || workspaceId !== null);
 
-    // OPTIMIZED: Debounced cache invalidation
+    // Debounced cache invalidation
     const invalidateUsersCache = useCallback(() => {
         const now = Date.now();
         const timeSinceLastInvalidate = now - lastInvalidateRef.current;
 
-        // Minimal 5 detik antara invalidate
-        if (timeSinceLastInvalidate < 5000) {
-            console.log(`Skipping cache invalidate (too soon: ${timeSinceLastInvalidate}ms)`);
+        if (timeSinceLastInvalidate < 2000) {
             return;
         }
 
@@ -173,9 +168,8 @@ export function OnlineUserProvider({
             clearTimeout(invalidateTimeoutRef.current);
         }
 
-        // Debounce 1 detik
         invalidateTimeoutRef.current = setTimeout(() => {
-            console.log("Invalidating users cache");
+            console.log(" Invalidating users cache");
             lastInvalidateRef.current = Date.now();
 
             queryClient.invalidateQueries({
@@ -184,11 +178,12 @@ export function OnlineUserProvider({
         }, 1000);
     }, [queryClient]);
 
-    // OPTIMIZED: Update user in cache WITHOUT invalidating entire cache
+    // Update user in cache WITHOUT invalidating entire cache
     const updateUserInCache = useCallback(
         (userId: number, isOnline: boolean, lastSeen?: string) => {
-            console.log(`Updating cache for user ${userId}: ${isOnline ? "ONLINE" : "OFFLINE"}`);
+            console.log(` Updating cache for user ${userId}: ${isOnline ? "ONLINE" : "OFFLINE"}`);
 
+            // Update query dengan key ["users"] (dari useUsers)
             queryClient.setQueriesData({ queryKey: ["users"] }, (oldData: any) => {
                 if (!oldData?.data?.users) return oldData;
 
@@ -210,6 +205,12 @@ export function OnlineUserProvider({
                     },
                 };
             });
+
+            // TAMBAHAN: Invalidate queries untuk force re-render
+            queryClient.invalidateQueries({
+                queryKey: ["users"],
+                refetchType: 'none' // Jangan fetch ulang, cukup re-render dengan data baru
+            });
         },
         [queryClient]
     );
@@ -219,19 +220,20 @@ export function OnlineUserProvider({
             return;
         }
 
-        if (workspaceId === null || workspaceId === undefined) {
-            console.warn("⚠️ Cannot fetch online users: No active workspace");
-            return;
-        }
-
         try {
-            console.log(`📡 Fetching online users for workspace ${workspaceId}...`);
-
             let users: UserApi[];
 
             if (isAdmin) {
+                // Admin can fetch all online users globally
+                console.log(`Fetching ALL online users (ADMIN)...`);
                 users = await onlineUsersService.getOnlineUsers();
             } else {
+                // Members need workspace
+                if (!workspaceId) {
+                    console.warn("Member cannot fetch online users without workspace");
+                    return;
+                }
+                console.log(`Fetching online users for workspace ${workspaceId}...`);
                 users = await onlineUsersService.getWorkspaceOnlineUsers(workspaceId);
             }
 
@@ -241,12 +243,10 @@ export function OnlineUserProvider({
                 timestamp: Date.now(),
             });
 
-            console.log(`✅ Fetched ${users.length} online users`);
-
-            // Invalidate cache setelah batch sync
+            console.log(`Fetched ${users.length} online users`);
             invalidateUsersCache();
         } catch (error) {
-            console.error("❌ Failed to fetch online users:", error);
+            console.error("Failed to fetch online users:", error);
         }
     }, [canViewOnlineUsers, workspaceId, isAdmin, invalidateUsersCache]);
 
@@ -264,43 +264,55 @@ export function OnlineUserProvider({
         }
 
         if (!shouldConnect) {
-            console.warn("⚠️ Cannot connect WebSocket:", {
+            console.warn("Cannot connect WebSocket - missing requirements", {
                 isAuthenticated,
                 hasToken: !!token,
                 hasUser: !!user,
-                hasWorkspace: workspaceId !== null && workspaceId !== undefined,
+                isAdmin,
+                workspaceId,
             });
             return;
         }
 
-        // Check if already connected to same workspace
-        const currentWs = wsRef.current;
+        // For members, workspace is required
+        if (!isAdmin && !workspaceId) {
+            console.warn("Member cannot connect without workspace");
+            return;
+        }
+
+        // Check if already connected to same workspace (or global for admin)
+        const targetWorkspace = isAdmin ? (workspaceId || null) : workspaceId;
         if (
-            currentWorkspaceRef.current === workspaceId &&
-            isWebSocketOpen(currentWs)
+            currentWorkspaceRef.current === targetWorkspace &&
+            isWebSocketOpen(wsRef.current)
         ) {
-            console.log(`✅ Already connected to workspace ${workspaceId}`);
+            console.log(
+                targetWorkspace
+                    ? ` Already connected to workspace ${targetWorkspace}`
+                    : `Already connected (GLOBAL/ADMIN)`
+            );
             return;
         }
 
         try {
-            console.log(`🔌 Connecting WebSocket to workspace ${workspaceId}...`);
+            const connectionMode = isAdmin && !workspaceId ? "GLOBAL/ADMIN" : `workspace ${workspaceId}`;
+            console.log(`🔌 Connecting WebSocket to ${connectionMode}...`);
 
             const wsUrl = onlineUsersService.buildWebSocketUrl({
                 token: token!,
-                workspace_id: workspaceId!,
+                workspace_id: workspaceId || undefined, // undefined for admin global
             });
 
             if (!wsUrl) {
-                console.error("❌ Failed to build WebSocket URL");
+                console.error(" Failed to build WebSocket URL");
                 return;
             }
 
             const ws = onlineUsersService.createConnection(wsUrl, {
                 onOpen: () => {
-                    console.log(`✅ WebSocket connected to workspace ${workspaceId}`);
+                    console.log(`WebSocket connected to ${connectionMode}`);
                     reconnectAttemptsRef.current = 0;
-                    currentWorkspaceRef.current = workspaceId;
+                    currentWorkspaceRef.current = targetWorkspace;
 
                     // Mark current user as online
                     if (user) {
@@ -314,70 +326,67 @@ export function OnlineUserProvider({
                     }
 
                     // Fetch initial online users
-                    if (canViewOnlineUsers) {
-                        fetchOnlineUsers();
-                    }
+                    fetchOnlineUsers();
 
-                    // Setup WebSocket ping (every 3 minutes)
+                    // Setup ping (every 3 minutes)
                     pingIntervalRef.current = setInterval(() => {
-                        const pingWs = wsRef.current;
-                        if (isWebSocketOpen(pingWs)) {
-                            onlineUsersService.sendWebSocketPing(pingWs);
+                        if (isWebSocketOpen(wsRef.current)) {
+                            onlineUsersService.sendWebSocketPing(wsRef.current);
                         }
-                    }, 3 * 60 * 1000); // 3 menit
+                    }, 3 * 60 * 1000);
                 },
 
                 onMessage: (message: UserWsEvent) => {
-                    console.log(`📨 WebSocket message:`, message.type, message);
+                    console.log(` WebSocket message:`, message.type);
 
-                    if (!canViewOnlineUsers) {
-                        return;
-                    }
+                    if (!canViewOnlineUsers) return;
 
                     const timestamp = Date.now();
 
                     if (message.type === "USER_ONLINE") {
-                        console.log(
-                            `✅ User ${message.user.id} (${message.user.name}) is now ONLINE`
-                        );
+                        console.log(`User ${message.user.name} is ONLINE`);
 
+                        // Update state
                         dispatch({
                             type: "USER_ONLINE",
                             user: message.user,
                             timestamp,
                         });
 
-                        // Update cache immediately
                         updateUserInCache(message.user.id, true);
+
+                        queryClient.invalidateQueries({
+                            queryKey: ["users"],
+                            refetchType: 'none'
+                        });
+
                     } else if (message.type === "USER_OFFLINE") {
-                        console.log(
-                            `❌ User ${message.user_id} is now OFFLINE`
-                        );
+                        console.log(`User ${message.user_id} is OFFLINE`);
+
+                        const lastSeen = message.last_seen || new Date().toISOString();
 
                         dispatch({
                             type: "USER_OFFLINE",
                             userId: message.user_id,
-                            lastSeen: message.last_seen || new Date().toISOString(),
+                            lastSeen,
                             timestamp,
                         });
 
-                        // Update cache immediately
-                        updateUserInCache(
-                            message.user_id,
-                            false,
-                            message.last_seen || new Date().toISOString()
-                        );
-                    } else if (message === "pong") {
-                        console.log("Pong received from server");
+                        updateUserInCache(message.user_id, false, lastSeen);
+
+                        queryClient.invalidateQueries({
+                            queryKey: ["users"],
+                            refetchType: 'none'
+                        });
                     }
                 },
 
                 onError: (error) => {
-                    console.error(`WebSocket error (workspace ${workspaceId}):`, error);
+                    console.error(`WebSocket error (${connectionMode}):`, error);
                 },
 
                 onClose: () => {
-                    console.log(`🔌 WebSocket disconnected (workspace ${workspaceId})`);
+                    console.log(`🔌 WebSocket disconnected (${connectionMode})`);
                     wsRef.current = null;
                     currentWorkspaceRef.current = null;
 
@@ -401,9 +410,7 @@ export function OnlineUserProvider({
                                 connectWebSocket();
                             }, delay);
                         } else {
-                            console.error(
-                                " Max reconnection attempts reached. Please refresh the page."
-                            );
+                            console.error(" Max reconnection attempts reached");
                         }
                     }
                 },
@@ -411,17 +418,18 @@ export function OnlineUserProvider({
 
             wsRef.current = ws;
         } catch (err) {
-            console.error("Failed to create WebSocket:", err);
+            console.error(" Failed to create WebSocket:", err);
         }
     }, [
         shouldConnect,
-        isAuthenticated,
         token,
         user,
         workspaceId,
         fetchOnlineUsers,
         canViewOnlineUsers,
         updateUserInCache,
+        isAuthenticated,
+        isAdmin,
     ]);
 
     const disconnectWebSocket = useCallback(() => {
@@ -457,10 +465,14 @@ export function OnlineUserProvider({
             return;
         }
 
+        // For admin: workspaceId can be null (global mode)
+        // For members: workspaceId must not be null
+        const targetWorkspace = isAdmin ? (workspaceId || null) : workspaceId;
+
         // Workspace changed - reconnect
-        if (currentWorkspaceRef.current !== workspaceId) {
+        if (currentWorkspaceRef.current !== targetWorkspace) {
             console.log(
-                ` Workspace changed: ${currentWorkspaceRef.current} -> ${workspaceId}`
+                `Workspace changed: ${currentWorkspaceRef.current || 'GLOBAL'} → ${targetWorkspace || 'GLOBAL'}`
             );
             disconnectWebSocket();
 
@@ -472,15 +484,14 @@ export function OnlineUserProvider({
         }
 
         // Connect if not connected
-        const ws = wsRef.current;
-        if (!isWebSocketOpen(ws)) {
+        if (!isWebSocketOpen(wsRef.current)) {
             connectWebSocket();
         }
 
         return () => {
             disconnectWebSocket();
         };
-    }, [shouldConnect, workspaceId, connectWebSocket, disconnectWebSocket]);
+    }, [shouldConnect, workspaceId, isAdmin, connectWebSocket, disconnectWebSocket]);
 
     const contextValue: OnlineUserContextType = {
         onlineUsers: canViewOnlineUsers

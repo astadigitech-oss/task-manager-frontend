@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast-helpers";
 import { useOnlineUsers } from "@/context/OnlineUserContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function TeamPage() {
   const {
@@ -48,20 +49,19 @@ export default function TeamPage() {
   const {
     isUserOnline,
     canViewOnlineUsers,
-    // isConnected,
     refreshOnlineUsers,
   } = useOnlineUsers();
+  const queryClient = useQueryClient();
+  const { onlineUsers } = useOnlineUsers();
 
   const users = data?.data.users ?? [];
 
-  //  SIMPLIFIED: Hitung online count langsung dari users array
-  // Karena users sudah di-update via cache oleh OnlineUserContext
   const onlineCount = useMemo(() => {
     if (!canViewOnlineUsers) return 0;
-    
+
     // Filter users yang is_online === true
     const count = users.filter(u => u.is_online === true).length;
-    
+
     console.log(" Online Count Calculation:", {
       total: users.length,
       onlineCount: count,
@@ -71,7 +71,7 @@ export default function TeamPage() {
         is_online: u.is_online
       }))
     });
-    
+
     return count;
   }, [users, canViewOnlineUsers]);
 
@@ -99,36 +99,13 @@ export default function TeamPage() {
     });
   };
 
-  const handleRefreshAll = async () => {
-    console.log(" Manual refresh triggered");
-    try {
-      await Promise.all([
-        refetch(),
-        refreshOnlineUsers(),
-      ]);
-      showSuccessToast("Data berhasil diperbarui");
-    } catch (error) {
-      showErrorToast("Gagal memperbarui data");
-    }
-  };
-
-  const handleDebugClick = () => {
-    console.log(" ===== FULL DEBUG DUMP =====");
-    console.log("1. Raw users from API:");
-    users.forEach(u => {
-      console.log(`   ${u.id}: ${u.name} - is_online: ${u.is_online}`);
+  useEffect(() => {
+    console.log("🔄 Online users changed, invalidating cache");
+    queryClient.invalidateQueries({
+      queryKey: ["users"],
+      refetchType: 'none'
     });
-    console.log("\n2. Online count:", onlineCount);
-    console.log("3. Can view online users:", canViewOnlineUsers);
-    // console.log("4. WebSocket connected:", isConnected);
-    console.log("5. Current user:", user?.id, user?.name);
-    
-    console.log("\n6. Testing isUserOnline for each user:");
-    users.forEach(u => {
-      const online = isUserOnline(u.id);
-      console.log(`   User ${u.name} (${u.id}): isUserOnline() = ${online}, is_online = ${u.is_online}`);
-    });
-  };
+  }, [onlineUsers, queryClient]);
 
   const dashboardPath = user?.role === "admin" ? "/admin/dashboard" : "/member/dashboard";
 
@@ -223,9 +200,6 @@ export default function TeamPage() {
                     <div className="grid grid-cols-3 gap-2">
                       <div>Total Users: <span className="font-bold">{users.length}</span></div>
                       <div>Online Count: <span className="font-bold text-green-600">{onlineCount}</span></div>
-                      {/* <div>WebSocket: <span className={isConnected ? "text-green-600" : "text-red-600"}>
-                        {isConnected ? " Connected" : " Disconnected"}
-                      </span></div> */}
                     </div>
                   </div>
 
@@ -235,7 +209,7 @@ export default function TeamPage() {
                       {users.map(u => (
                         <div key={u.id} className={`flex justify-between ${u.is_online ? 'text-green-600' : 'text-gray-400'}`}>
                           <span>{u.id}: {u.name}</span>
-                          <span className="font-bold">{u.is_online ? "✅ ONLINE" : "❌ OFFLINE"}</span>
+                          <span className="font-bold">{u.is_online ? "ONLINE" : " OFFLINE"}</span>
                         </div>
                       ))}
                     </div>

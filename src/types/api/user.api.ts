@@ -41,6 +41,7 @@ export interface UserProfile extends UserApi {
     position?: string | null;
     projectsCount?: number;
     tasksCompleted?: number;
+    last_active_workspace_id: number | null;
 }
 
 // Auth response (biasanya return UserProfile dengan token)

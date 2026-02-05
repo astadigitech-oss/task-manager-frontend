@@ -6,6 +6,7 @@ import {
   ReactNode,
   useCallback,
   useState,
+  useEffect,
 } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { WorkspaceApi, WorkspaceRequest } from "@/types/api/workspace.api";
@@ -45,15 +46,10 @@ export const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, defaultWorkspaceId, setDefaultWorkspaceId } = useAuthStore();
   
   const [selectedWorkspaceId, setSelectedWorkspaceIdState] = 
     useState<number | null>(null);
-
-  const setSelectedWorkspaceId = useCallback((id: number | null) => {
-    setSelectedWorkspaceIdState(id);
-  }, []);
-  
 
   // Fetch Workspaces dengan React Query
   const {
@@ -79,6 +75,31 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return failureCount < 2;
     },
   });
+
+  useEffect(() => {
+    if (isLoading || !workspacesData?.length) return;
+
+    if (selectedWorkspaceId === null) {
+      if (defaultWorkspaceId) {
+        const exists = workspacesData.find(ws => ws.id === defaultWorkspaceId);
+        if (exists) {
+          setSelectedWorkspaceIdState(defaultWorkspaceId);
+          return;
+        }
+      }
+
+      setSelectedWorkspaceIdState(workspacesData[0].id);
+      setDefaultWorkspaceId(workspacesData[0].id);
+    }
+  }, [isLoading, workspacesData, selectedWorkspaceId, defaultWorkspaceId, setDefaultWorkspaceId]);
+
+  const setSelectedWorkspaceId = useCallback((id: number | null) => {
+    setSelectedWorkspaceIdState(id);
+    
+    if (id !== null) {
+      setDefaultWorkspaceId(id);
+    }
+  }, [setDefaultWorkspaceId]);
 
   // Create Workspace Mutation
   const createMutation = useMutation({
