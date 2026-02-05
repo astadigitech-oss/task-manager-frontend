@@ -61,18 +61,6 @@ export function UniversalAttachmentViewer({
   };
 
   const renderPreview = () => {
-    // IMAGE PREVIEW
-    if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext)) {
-      return (
-        <div className="flex items-center justify-center h-full">
-          <img
-            src={fileUrl}
-            alt={fileName}
-            className="max-h-[80vh] max-w-full object-contain"
-          />
-        </div>
-      );
-    }
 
     // PDF PREVIEW
     if (ext === "pdf") {
@@ -105,41 +93,6 @@ export function UniversalAttachmentViewer({
       );
     }
 
-    // DOC / DOCX / XLS / XLSX — Office Web Viewer
-    if (["doc", "docx", "xls", "xlsx"].includes(ext)) {
-      const officeUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-        fileUrl
-      )}`;
-
-      return (
-        <iframe
-          src={officeUrl}
-          className="w-full h-[80vh] rounded border border-border surface-elevated"
-          title={fileName}
-        />
-      );
-    }
-
-    // ZIP / RAR 
-    if (["zip", "rar", "7z"].includes(ext)) {
-      return (
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6">
-          <div className="w-24 h-24 rounded-full surface-elevated flex items-center justify-center mb-4">
-            <span className="text-5xl">🗜️</span>
-          </div>
-          <p className="text-xl font-semibold text-foreground mb-2">{fileName}</p>
-          <p className="text-muted mb-4">
-            Preview tidak tersedia untuk file arsip.
-          </p>
-          {allowDownload && (
-            <Button onClick={handleDownload} className="button-primary">
-              <Download className="w-4 h-4 mr-2" />
-              Download File
-            </Button>
-          )}
-        </div>
-      );
-    }
 
     // FALLBACK for unknown file types
     return (
@@ -166,7 +119,9 @@ export function UniversalAttachmentViewer({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-none! w-screen! h-screen! p-0 overflow-hidden overlay m-0! rounded-none!"
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-none! w-screen! h-screen! p-0 overflow-hidden overlay m-0! rounded-none!"
         aria-describedby={undefined}>
         <DialogTitle className="sr-only">{fileName}</DialogTitle>
 

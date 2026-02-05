@@ -16,7 +16,7 @@ interface WorkspaceOnlineUsersResponse {
 
 interface WebSocketConfig {
     token: string;
-    workspace_id: number;
+    workspace_id?: number;
 }
 
 export const onlineUsersService = {
@@ -31,13 +31,13 @@ export const onlineUsersService = {
             );
 
             if (response.data.success && response.data.data) {
-                console.log("✅ All online users fetched:", response.data.data.length);
+                console.log("All online users fetched:", response.data.data.length);
                 return response.data.data;
             }
 
             return [];
         } catch (err) {
-            console.error("❌ Failed to fetch all online users:", err);
+            console.error("Failed to fetch all online users:", err);
             return [];
         }
     },
@@ -56,7 +56,7 @@ export const onlineUsersService = {
 
             if (response.data.success && response.data.data) {
                 console.log(
-                    `✅ Workspace ${workspace_id} online users:`,
+                    `Workspace ${workspace_id} online users:`,
                     response.data.data.length
                 );
                 return response.data.data;
@@ -65,7 +65,7 @@ export const onlineUsersService = {
             return [];
         } catch (err) {
             console.error(
-                `❌ Failed to fetch workspace ${workspace_id} online users:`,
+                `Failed to fetch workspace ${workspace_id} online users:`,
                 err
             );
             return [];
@@ -77,26 +77,32 @@ export const onlineUsersService = {
      */
     buildWebSocketUrl: (config: WebSocketConfig): string | null => {
         if (!WS_BASE_URL) {
-            console.error("❌ WS_BASE_URL not configured");
+            console.error("WS_BASE_URL not configured");
             return null;
         }
 
-        if (!config.token || !config.workspace_id) {
-            console.error("❌ Missing required WebSocket config", {
-                token: !!config.token,
-                workspace_id: !!config.workspace_id,
-            });
+        if (!config.token) {
+            console.error("Missing WebSocket token");
             return null;
         }
 
-        const wsUrl = `${WS_BASE_URL}${API_ENDPOINTS.ONLINE_USERS.WS(
+        const wsPath = API_ENDPOINTS.ONLINE_USERS.WS(
             config.token,
             config.workspace_id
-        )}`;
+        );
 
-        console.log("🔗 WebSocket URL built for workspace", config.workspace_id);
+        const wsUrl = `${WS_BASE_URL}${wsPath}`;
+
+        console.log(
+            "WebSocket URL built",
+            config.workspace_id
+                ? `for workspace ${config.workspace_id}`
+                : "(GLOBAL / ADMIN)"
+        );
+
         return wsUrl;
     },
+
 
     /**
      * Create WebSocket connection
@@ -116,7 +122,7 @@ export const onlineUsersService = {
             const ws = new WebSocket(url);
 
             ws.onopen = () => {
-                console.log("✅ WebSocket connected");
+                console.log("WebSocket connected");
                 handlers.onOpen?.();
             };
 
@@ -125,23 +131,23 @@ export const onlineUsersService = {
                     const message = JSON.parse(event.data);
                     handlers.onMessage?.(message);
                 } catch (err) {
-                    console.error("❌ Failed to parse WebSocket message:", err);
+                    console.error("Failed to parse WebSocket message:", err);
                 }
             };
 
             ws.onerror = (error) => {
-                console.error("❌ WebSocket error:", error);
+                console.error(" WebSocket error:", error);
                 handlers.onError?.(error);
             };
 
             ws.onclose = () => {
-                console.log("🔌 WebSocket disconnected");
+                console.log(" WebSocket disconnected");
                 handlers.onClose?.();
             };
 
             return ws;
         } catch (err) {
-            console.error("❌ Failed to create WebSocket:", err);
+            console.error("Failed to create WebSocket:", err);
             return null;
         }
     },
@@ -151,16 +157,16 @@ export const onlineUsersService = {
      */
     sendWebSocketPing: (ws: WebSocket | null): boolean => {
         if (!ws || ws.readyState !== WebSocket.OPEN) {
-            console.warn("⚠️ Cannot send ping: WebSocket not connected");
+            console.warn("Cannot send ping: WebSocket not connected");
             return false;
         }
 
         try {
             ws.send(JSON.stringify({ type: "ping" }));
-            console.log("💓 WebSocket ping sent");
+            console.log(" WebSocket ping sent");
             return true;
         } catch (err) {
-            console.error("❌ Failed to send WebSocket ping:", err);
+            console.error("Failed to send WebSocket ping:", err);
             return false;
         }
     },

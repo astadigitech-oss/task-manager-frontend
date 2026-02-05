@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils/utils";
-import { toast } from "sonner";
 import { TaskFileApi, formatFileSize, getFileExtension } from "@/types/api/task.api";
 import { UniversalAttachmentViewer } from "@/components/modals/UniversalAttachmentViewer";
 import { filesService } from "@/services/task/taskFiles.service";
@@ -307,7 +306,7 @@ export function FilesSection({
                             )}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                            PDF, DOC, DOCX, XLS, XLSX(Max 10MB)
+                            PDF (Max 10MB)
                         </p>
                     </div>
                 </div>

@@ -8,10 +8,19 @@ export interface AuthState {
   isAuthenticated: boolean;
   isHydrated: boolean;
   profileBootstrapped?: boolean;
-  login: (data: { user: UserProfile; token: string }) => void;
+  
+  defaultWorkspaceId: number | null;
+  
+  login: (data: { 
+    user: UserProfile; 
+    token: string;
+    defaultWorkspaceId?: number; 
+  }) => void;
   logout: () => void;
   updateUser: (user: Partial<UserProfile>) => void;
   setHydrated: (value: boolean) => void;
+  
+  setDefaultWorkspaceId: (workspaceId: number) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -21,14 +30,16 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       isHydrated: false,
+      defaultWorkspaceId: null,
 
       setHydrated: (value: boolean) => set({ isHydrated: value }),
 
-      login: ({ user, token }) => {
+      login: ({ user, token, defaultWorkspaceId }) => {
         set({
           user,
           token,
           isAuthenticated: true,
+          defaultWorkspaceId: defaultWorkspaceId ?? null,
         });
 
         if (typeof window !== "undefined") {
@@ -42,18 +53,21 @@ export const useAuthStore = create<AuthState>()(
         set((state) => {
           if (!state.user) return state;
           
-          // Cek apakah ada perubahan sebenarnya
           const hasChanges = Object.keys(updatedFields).some(
             key => updatedFields[key as keyof typeof updatedFields] !== state.user![key as keyof UserProfile]
           );
           
-          // Hanya update jika ada perubahan
           if (!hasChanges) return state;
           
           return {
             user: { ...state.user, ...updatedFields }
           };
         });
+      },
+
+      // NEW: Set default workspace (called when user switches workspace)
+      setDefaultWorkspaceId: (workspaceId: number) => {
+        set({ defaultWorkspaceId: workspaceId });
       },
 
       logout: () => {
@@ -66,6 +80,7 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           token: null,
           isAuthenticated: false,
+          defaultWorkspaceId: null,
         });
 
         if (typeof window !== "undefined") {

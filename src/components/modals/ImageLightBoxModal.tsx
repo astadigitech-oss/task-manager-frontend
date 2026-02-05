@@ -128,6 +128,7 @@ export function ImageLightBoxModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        showCloseButton={false}
         className="max-w-none! w-screen! h-screen! p-0 m-0! bg-transparent border-none shadow-none rounded-none!"
         aria-describedby={undefined}
       >
@@ -219,7 +220,6 @@ export function ImageLightBoxModal({
             </Button>
           </div>
         </div>
-
 
         {/* IMAGE WRAPPER */}
         <div className="relative w-full h-full flex items-center justify-center overflow-hidden">

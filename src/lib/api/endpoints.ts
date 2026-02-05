@@ -141,8 +141,10 @@ export const API_ENDPOINTS = {
     ADMIN: '/api/online-users',
     USER: (workspace_id: number) =>
       `/api/workspaces/${workspace_id}/online-members`,
-    WS: (token: string, workspace_id: number) =>
-      `/ws?token=${token}&workspace_id=${workspace_id}`,
+    WS: (token: string, workspace_id?: number) =>
+      workspace_id
+        ? `/ws?token=${token}&workspace_id=${workspace_id}`
+        : `/ws?token=${token}`,
   },
 } as const;
 

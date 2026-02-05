@@ -18,19 +18,20 @@ export function getProfileToUserProfile(response: ProfileGetResponse, existingUs
   const normalizedAvatar = normalizeProfileImage(response.data.avatar);
 
   return {
-    id: existingUser?.id ?? 0,
-    name: response.data.name,
-    email: response.data.email,
-    role: existingUser?.role ?? "member" as Role,
-    avatar: normalizedAvatar,
-    position: response.data.position,
-    is_online: existingUser?.is_online ?? false,
-    last_seen: existingUser?.last_seen ?? null,
-    created_at: existingUser?.created_at ?? "",
-    updated_at: existingUser?.updated_at ?? "",
-    projectsCount: existingUser?.projectsCount ?? 0,
-    tasksCompleted: existingUser?.tasksCompleted ?? 0,
-  };
+  id: existingUser?.id ?? 0,
+  name: response.data.name,
+  email: response.data.email,
+  role: existingUser?.role ?? "member" as Role,
+  avatar: normalizedAvatar,
+  position: response.data.position,
+  is_online: existingUser?.is_online ?? false,
+  last_seen: existingUser?.last_seen ?? null,
+  created_at: existingUser?.created_at ?? "",
+  updated_at: existingUser?.updated_at ?? "",
+  projectsCount: existingUser?.projectsCount ?? 0,
+  tasksCompleted: existingUser?.tasksCompleted ?? 0,
+  last_active_workspace_id: null,
+};
 }
 
 // Converter untuk UPDATE profile response
@@ -50,6 +51,7 @@ export function apiProfileToUserProfile(api: ProfileApiResponse): UserProfile {
     updated_at: api.UpdatedAt ?? "",
     projectsCount: Number(api.projects ?? 0),
     tasksCompleted: Number(api.tasks ?? 0),
+    last_active_workspace_id: null,
   };
 }
 

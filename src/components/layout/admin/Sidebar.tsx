@@ -68,7 +68,6 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
   const createWsDialog = useModal();
   const menuItems = getFilteredMenuItems(true);
 
-
   const isMenuActive = (menuId: string) => {
     const current = pathname.split("/").filter(Boolean).pop() || "dashboard";
     return current === menuId;
@@ -158,12 +157,10 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
     );
   };
 
-  // Get projects by workspace
   const getWorkspaceProjects = (workspace_id: number) => {
     return projects.filter(p => p.workspace_id === workspace_id);
   };
 
-  // Filter workspaces and projects based on search
   const filteredWorkspaces = useMemo(() => {
     if (!searchQuery.trim()) return workspaces;
 
@@ -180,7 +177,6 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
     });
   }, [workspaces, projects, searchQuery]);
 
-  // Filter projects within workspace
   const getFilteredProjects = (workspace_id: number) => {
     const wsProjects = getWorkspaceProjects(workspace_id);
     if (!searchQuery.trim()) return wsProjects;
@@ -189,7 +185,6 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
     return wsProjects.filter((p) => p.name.toLowerCase().includes(query));
   };
 
-  // Auto-expand workspaces when searching
   const shouldAutoExpand = (workspace_id: number) => {
     if (!searchQuery.trim()) return expandedWorkspaces.has(workspace_id);
 
@@ -208,7 +203,6 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={cn(
           "fixed top-0 left-0 w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform",
@@ -217,13 +211,21 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
         )}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 p-6 border-b shrink-0">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold">A</span>
+        <div className="flex items-center justify-center gap-3 mt-1 border-b shrink-0">
+          <div className="relative w-15 h-15 shrink-0">
+            <img
+              src="/assets/logo_hitam.png"
+              alt="ASTA Logo"
+              className="w-full h-full object-contain dark:hidden"
+            />
+            <img
+              src="/assets/logo_putih.png"
+              alt="ASTA Logo"
+              className="w-full h-full object-contain hidden dark:block"
+            />
           </div>
-          <div>
-            <span className="text-xl font-bold">ASTA</span>
-            <span className="block text-[10px] text-muted-foreground">
+          <div className="flex flex-col">
+            <span className="text-[14px] font-bold text-foreground leading-tight">
               TASK MANAGER
             </span>
           </div>
@@ -270,7 +272,6 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
               </Button>
             </div>
 
-            {/* Search Input */}
             <div className="relative px-2">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -291,7 +292,6 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
             </div>
           </div>
 
-          {/* Scrollable Workspace List */}
           <ScrollArea className="overflow-hidden scrollbar-thin scrollbar-thumb-sidebar-ring scrollbar-track-transparent">
             <div className="flex-1 px-4">
               <div className="space-y-1 pb-4">
@@ -353,14 +353,14 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
                               className={cn(
                                 "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors",
                                 selected
-                                  ? "bg-primary/10 text-primary font-medium ring-2 ring-primary/20" // Tambahkan ring untuk lebih jelas
+                                  ? "bg-primary/10 text-primary font-medium ring-2 ring-primary/20"
                                   : "hover:bg-sidebar-accent"
                               )}
                             >
                               <Folder
                                 className="h-4 w-4 shrink-0"
                                 style={{ color: workspaceColor }}
-                                fill={selected ? workspaceColor : "none"} // Fill jika selected
+                                fill={selected ? workspaceColor : "none"}
                               />
                               <span className="text-sm leading-snug wrap-break-word line-clamp-2 flex-1">
                                 {highlightText(ws.name)}
@@ -374,7 +374,7 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
                                 {projectCount}
                               </span>
                             </button>
-                            {/* Dropdown Menu */}
+                            
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
@@ -403,7 +403,6 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
                             </DropdownMenu>
                           </div>
 
-                          {/* Projects List */}
                           {expanded && wsProjects && wsProjects.length > 0 && (
                             <div className="ml-8 space-y-1">
                               {wsProjects.map((p) => (
@@ -418,7 +417,6 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
                                   </span>
                                 </button>
                               ))}
-
                             </div>
                           )}
 
@@ -460,14 +458,12 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
         </div>
       </aside>
 
-      {/* Create Workspace Dialog */}
       <CreateWorkspaceDialog
         isOpen={createWsDialog.createWorkspace.isOpen}
         onClose={createWsDialog.createWorkspace.close}
         onCreate={handleCreateWorkspace}
       />
 
-      {/* Edit Workspace Dialog */}
       {editingWorkspace && (
         <EditWorkspaceDialog
           isOpen={isEditDialogOpen}
