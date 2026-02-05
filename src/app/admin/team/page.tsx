@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { showErrorToast, showSuccessToast } from "@/lib/helpers/toast-helpers";
 import { useOnlineUsers } from "@/context/OnlineUserContext";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function TeamPage() {
   const {
@@ -49,19 +48,20 @@ export default function TeamPage() {
   const {
     isUserOnline,
     canViewOnlineUsers,
+    // isConnected,
     refreshOnlineUsers,
   } = useOnlineUsers();
-  const queryClient = useQueryClient();
-  const { onlineUsers } = useOnlineUsers();
 
   const users = data?.data.users ?? [];
 
+  //  SIMPLIFIED: Hitung online count langsung dari users array
+  // Karena users sudah di-update via cache oleh OnlineUserContext
   const onlineCount = useMemo(() => {
     if (!canViewOnlineUsers) return 0;
-
+    
     // Filter users yang is_online === true
     const count = users.filter(u => u.is_online === true).length;
-
+    
     console.log(" Online Count Calculation:", {
       total: users.length,
       onlineCount: count,
@@ -71,7 +71,7 @@ export default function TeamPage() {
         is_online: u.is_online
       }))
     });
-
+    
     return count;
   }, [users, canViewOnlineUsers]);
 
@@ -99,13 +99,36 @@ export default function TeamPage() {
     });
   };
 
-  useEffect(() => {
-    console.log("🔄 Online users changed, invalidating cache");
-    queryClient.invalidateQueries({
-      queryKey: ["users"],
-      refetchType: 'none'
+  const handleRefreshAll = async () => {
+    console.log(" Manual refresh triggered");
+    try {
+      await Promise.all([
+        refetch(),
+        refreshOnlineUsers(),
+      ]);
+      showSuccessToast("Data berhasil diperbarui");
+    } catch (error) {
+      showErrorToast("Gagal memperbarui data");
+    }
+  };
+
+  const handleDebugClick = () => {
+    console.log(" ===== FULL DEBUG DUMP =====");
+    console.log("1. Raw users from API:");
+    users.forEach(u => {
+      console.log(`   ${u.id}: ${u.name} - is_online: ${u.is_online}`);
     });
-  }, [onlineUsers, queryClient]);
+    console.log("\n2. Online count:", onlineCount);
+    console.log("3. Can view online users:", canViewOnlineUsers);
+    // console.log("4. WebSocket connected:", isConnected);
+    console.log("5. Current user:", user?.id, user?.name);
+    
+    console.log("\n6. Testing isUserOnline for each user:");
+    users.forEach(u => {
+      const online = isUserOnline(u.id);
+      console.log(`   User ${u.name} (${u.id}): isUserOnline() = ${online}, is_online = ${u.is_online}`);
+    });
+  };
 
   const dashboardPath = user?.role === "admin" ? "/admin/dashboard" : "/member/dashboard";
 
@@ -184,44 +207,6 @@ export default function TeamPage() {
               <p className="text-sm text-muted-foreground mt-3">
                 Showing {filteredMembers.length} of {users.length} members
               </p>
-            )}
-
-            {/* Debug Panel */}
-            {canViewOnlineUsers && showDebug && (
-              <div className="mt-4 p-4 bg-slate-100 dark:bg-slate-900 rounded-lg border-2 border-blue-500">
-                <div className="flex items-center gap-2 mb-3">
-                  <Bug className="w-4 h-4 text-blue-600" />
-                  <span className="font-bold text-sm">Debug Panel - Real-time Status</span>
-                </div>
-
-                <div className="space-y-4 text-xs font-mono">
-                  <div>
-                    <div className="font-bold text-blue-600 mb-2">Summary</div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>Total Users: <span className="font-bold">{users.length}</span></div>
-                      <div>Online Count: <span className="font-bold text-green-600">{onlineCount}</span></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="font-bold text-purple-600 mb-2">All Users (from /users API - after cache update)</div>
-                    <div className="max-h-40 overflow-y-auto space-y-1 bg-white dark:bg-slate-950 p-2 rounded">
-                      {users.map(u => (
-                        <div key={u.id} className={`flex justify-between ${u.is_online ? 'text-green-600' : 'text-gray-400'}`}>
-                          <span>{u.id}: {u.name}</span>
-                          <span className="font-bold">{u.is_online ? "ONLINE" : " OFFLINE"}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                    💡 Tip: Online count berasal dari users.filter(u =&gt; u.is_online === true).length
-                    <br />
-                    Cache diupdate otomatis oleh OnlineUserContext saat ada perubahan via WebSocket
-                  </div>
-                </div>
-              </div>
             )}
           </div>
         </div>

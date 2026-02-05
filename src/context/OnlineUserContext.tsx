@@ -174,6 +174,7 @@ export function OnlineUserProvider({
 
             queryClient.invalidateQueries({
                 queryKey: ["users"],
+                refetchType: 'none'
             });
         }, 1000);
     }, [queryClient]);
@@ -183,7 +184,6 @@ export function OnlineUserProvider({
         (userId: number, isOnline: boolean, lastSeen?: string) => {
             console.log(` Updating cache for user ${userId}: ${isOnline ? "ONLINE" : "OFFLINE"}`);
 
-            // Update query dengan key ["users"] (dari useUsers)
             queryClient.setQueriesData({ queryKey: ["users"] }, (oldData: any) => {
                 if (!oldData?.data?.users) return oldData;
 

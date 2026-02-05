@@ -25,30 +25,16 @@ export function mapTask(api: any): TaskApi {
 
         try {
             if (dateTimeStr.includes('T')) {
-                const dt = new Date(dateTimeStr);
-                if (isNaN(dt.getTime())) return { date: undefined, time: undefined };
 
-                const date = dt.toISOString().split('T')[0];
-                const hours = dt.getHours();
-                const minutes = dt.getMinutes();
+                const datePart = dateTimeStr.split('T')[0];
 
-                if (hours === 0 && minutes === 0) {
-                    return { date, time: undefined };
-                }
 
-                const time = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-                return { date, time };
-            }
-
-            if (dateTimeStr.includes(' ')) {
-                const [datePart, timePart] = dateTimeStr.split(' ');
-
+                const timePart = dateTimeStr.split('T')[1];
                 if (!timePart) {
                     return { date: datePart, time: undefined };
                 }
 
                 const timeMatch = timePart.match(/^(\d{2}):(\d{2})/);
-
                 if (!timeMatch) {
                     return { date: datePart, time: undefined };
                 }
@@ -60,8 +46,29 @@ export function mapTask(api: any): TaskApi {
                     return { date: datePart, time: undefined };
                 }
 
-                const time = `${hours}:${minutes}`;
-                return { date: datePart, time };
+                return { date: datePart, time: `${hours}:${minutes}` };
+            }
+
+            if (dateTimeStr.includes(' ')) {
+                const [datePart, timePart] = dateTimeStr.split(' ');
+
+                if (!timePart) {
+                    return { date: datePart, time: undefined };
+                }
+
+                const timeMatch = timePart.match(/^(\d{2}):(\d{2})/);
+                if (!timeMatch) {
+                    return { date: datePart, time: undefined };
+                }
+
+                const hours = timeMatch[1];
+                const minutes = timeMatch[2];
+
+                if (hours === '00' && minutes === '00') {
+                    return { date: datePart, time: undefined };
+                }
+
+                return { date: datePart, time: `${hours}:${minutes}` };
             }
 
             return { date: dateTimeStr, time: undefined };
@@ -98,7 +105,7 @@ export function mapTask(api: any): TaskApi {
         due_time: api.due_time || dueDateTime.time,
 
         finished_at: parseDateTime(api.finished_at),
-        
+
         overdue_duration: api.overdue_duration ? Math.floor(api.overdue_duration / 60) : 0,
         is_overdue: (api.overdue_duration ?? 0) > 0,
 
@@ -133,8 +140,11 @@ export function mapTask(api: any): TaskApi {
 
 function buildDueDate(date: string | undefined, time?: string | null): Date | null {
     if (!date) return null;
-    
+
+    // Parse date parts TANPA timezone conversion
     const [year, month, day] = date.split('-').map(Number);
+
+    // Buat date di LOCAL timezone (bukan UTC)
     const dueDate = new Date(year, month - 1, day);
 
     if (time) {
@@ -146,7 +156,6 @@ function buildDueDate(date: string | undefined, time?: string | null): Date | nu
 
     return dueDate;
 }
-
 // ============================================
 // OVERDUE HELPERS - REAL-TIME (Untuk Task Aktif)
 // ============================================
@@ -159,14 +168,14 @@ export function isCurrentlyOverdue(task: TaskApi): boolean {
     if (task.status === "done" || task.status === "canceled") {
         return false;
     }
-    
+
     if (!task.due_date) return false;
-    
+
     const now = new Date();
     const dueDate = buildDueDate(task.due_date, task.due_time);
-    
+
     if (!dueDate) return false;
-    
+
     return now > dueDate;
 }
 
@@ -176,14 +185,14 @@ export function isCurrentlyOverdue(task: TaskApi): boolean {
  */
 export function getCurrentOverdueMinutes(task: TaskApi): number {
     if (!isCurrentlyOverdue(task)) return 0;
-    
+
     if (!task.due_date) return 0;
-    
+
     const now = new Date();
     const dueDate = buildDueDate(task.due_date, task.due_time);
-    
+
     if (!dueDate) return 0;
-    
+
     return Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60));
 }
 
@@ -204,7 +213,7 @@ export function isTaskOverdue(task: TaskApi): boolean {
     if (task.status === "done" || task.status === "canceled") {
         return false;
     }
-    
+
     return isCurrentlyOverdue(task);
 }
 
@@ -217,22 +226,22 @@ export function isTaskOverdue(task: TaskApi): boolean {
  */
 export function formatOverdueDuration(minutes: number): string {
     if (minutes === 0) return '';
-    
+
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
     const remainingHours = hours % 24;
-    
+
     if (days > 0) {
         if (remainingHours > 0) {
             return `${days}d ${remainingHours}h overdue`;
         }
         return `${days} day${days > 1 ? 's' : ''} overdue`;
     }
-    
+
     if (hours > 0) {
         return `${hours} hour${hours > 1 ? 's' : ''} overdue`;
     }
-    
+
     return `${minutes} minute${minutes > 1 ? 's' : ''} overdue`;
 }
 
@@ -244,13 +253,13 @@ export function formatOverdueDisplay(task: TaskApi): string {
 
         return formatOverdueDuration(task.overdue_duration ?? 0);
     }
-    
+
     return formatOverdueDuration(getCurrentOverdueMinutes(task));
 }
 
 export function isCompletedLate(task: TaskApi): boolean {
     if (task.status !== "done") return false;
-    
+
     return (task.overdue_duration ?? 0) > 0;
 }
 
@@ -322,7 +331,7 @@ export function getTaskDeadlineStatus(task: TaskApi): {
  */
 export function formatFinishedAt(finishedAt: string | undefined): string {
     if (!finishedAt) return '';
-    
+
     try {
         const date = new Date(finishedAt);
         return date.toLocaleString('id-ID', {
@@ -346,15 +355,15 @@ export function prepareTaskForStatusUpdate(
     newStatus: TaskStatus
 ): Partial<TaskRequest> {
     const updates: Partial<TaskRequest> = { status: newStatus };
-    
+
     if (newStatus === "done" && currentTask.status !== "done") {
         updates.finished_at = new Date().toISOString();
     }
-    
+
     if (currentTask.status === "done" && newStatus !== "done") {
         updates.finished_at = null;
     }
-    
+
     return updates;
 }
 
@@ -383,33 +392,38 @@ export function buildTaskPayload(
         priority: formData.priority || null,
     };
 
-    const useTimezone = mode === 'create';
     const timezone = '+07:00';
 
+    // START DATE
     if (formData.startDate && formData.startDate.trim() !== '') {
-        if (useTimezone) {
+        if (mode === 'create') {
+
             payload.start_date = `${formData.startDate}T00:00:00${timezone}`;
         } else {
+
             payload.start_date = `${formData.startDate} 00:00:00`;
         }
     } else {
         const fallbackDate = formData.dueDate || new Date().toISOString().split('T')[0];
-        if (useTimezone) {
+        if (mode === 'create') {
             payload.start_date = `${fallbackDate}T00:00:00${timezone}`;
         } else {
             payload.start_date = `${fallbackDate} 00:00:00`;
         }
     }
 
+    // DUE DATE
     if (formData.dueDate && formData.dueDate.trim() !== '') {
         if (formData.dueTime && formData.dueTime.trim() !== '') {
-            if (useTimezone) {
+
+            if (mode === 'create') {
                 payload.due_date = `${formData.dueDate}T${formData.dueTime}:00${timezone}`;
             } else {
                 payload.due_date = `${formData.dueDate} ${formData.dueTime}:00`;
             }
         } else {
-            if (useTimezone) {
+
+            if (mode === 'create') {
                 payload.due_date = `${formData.dueDate}T00:00:00${timezone}`;
             } else {
                 payload.due_date = `${formData.dueDate} 00:00:00`;
@@ -467,7 +481,7 @@ export function getTimeRemaining(task: TaskApi): {
 
     const now = new Date();
     const dueDate = buildDueDate(task.due_date, task.due_time);
-    
+
     if (!dueDate) {
         return {
             isOverdue: false,
