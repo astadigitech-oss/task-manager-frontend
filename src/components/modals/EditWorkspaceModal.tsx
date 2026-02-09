@@ -279,7 +279,7 @@ export function EditWorkspaceDialog({
                                                             {member.name}
                                                         </p>
                                                         <p className="text-xs text-muted-foreground truncate">
-                                                            {member.user_email || member.role}
+                                                            {member.role}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -350,7 +350,7 @@ export function EditWorkspaceDialog({
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm font-medium truncate">{user.name}</p>
                                                         <p className="text-xs text-muted-foreground truncate">
-                                                            {user.email}
+                                                            {user.role}
                                                         </p>
                                                     </div>
                                                 </div>

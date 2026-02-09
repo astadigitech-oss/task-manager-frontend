@@ -17,7 +17,7 @@ import { Loader2 } from "lucide-react";
 
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { usersService } from "@/services/user.service";
-import { showInfoToast } from "@/lib/helpers/toast-helpers";
+import { showErrorToast, showInfoToast, showSuccessToast } from "@/lib/helpers/toast-helpers";
 
 interface Props {
   isOpen: boolean;
@@ -81,9 +81,15 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
       return;
     }
 
+    if (name.trim().length < 3) {
+      showInfoToast("Nama workspace minimal 3 karakter");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      // Buat workspace terlebih dahulu
       const workspace = await createWorkspace({
         name: name.trim(),
         color,
@@ -93,14 +99,35 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
         throw new Error("Workspace berhasil dibuat, tapi ID tidak ditemukan");
       }
 
+      // Tambahkan members jika ada yang dipilih
       if (selectedUsers.length > 0) {
-        await addBulkMembersToWorkspace(workspace.id, selectedUsers);
+        try {
+          await addBulkMembersToWorkspace(workspace.id, selectedUsers);
+          showSuccessToast(
+            `Workspace berhasil dibuat dengan ${selectedUsers.length} anggota!`
+          );
+        } catch (memberError) {
+          console.error("Error adding members:", memberError);
+
+          showSuccessToast("Workspace berhasil dibuat, tapi ada masalah menambahkan beberapa anggota");
+        }
+      } else {
+        showSuccessToast("Workspace berhasil dibuat!");
       }
 
-      onCreate?.({ name, color });
+      // Reset form
+      setName("");
+      setColor("#4f46e5");
+      setSelectedUsers([]);
+
+      // Call onCreate callback jika ada
+      onCreate?.({ name: name.trim(), color });
+
+      // Tutup dialog
       onClose();
     } catch (err: any) {
       console.error("Create workspace failed:", err);
+      showErrorToast("Gagal membuat workspace. Silakan coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -199,7 +226,7 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
                               {user.name}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
-                              {user.email}
+                              {user.role}
                             </p>
                           </div>
                         </div>
@@ -231,7 +258,7 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Membuat...
+                Membuat Workspace...
               </>
             ) : (
               "Buat Workspace"

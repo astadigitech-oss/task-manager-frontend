@@ -1,5 +1,7 @@
 import { TaskStatus } from '@/types/shared/status';
 import { TaskPriority } from "@/types/shared/priority";
+import { TaskSortConfig } from '@/types/api/task.api';
+import { ArrowUpDown, Calendar, Clock, Flag, ArrowUpAZ, ArrowDownAZ } from 'lucide-react';
 
 export const statusConfig: Record<
   TaskStatus,
@@ -64,3 +66,60 @@ export const priorityConfig: Record<
   },
 };
 
+
+export const TASK_SORT_OPTIONS: TaskSortConfig[] = [
+  // {
+  //   value: 'manual',
+  //   label: 'Manual Order',
+  //   icon: ArrowUpDown
+  // },
+  {
+    value: 'priority-high-low',
+    label: 'Priority: High to Low',
+    icon: Flag
+  },
+  {
+    value: 'priority-low-high',
+    label: 'Priority: Low to High',
+    icon: Flag
+  },
+  {
+    value: 'due-date-asc',
+    label: 'Due Date: Earliest First',
+    icon: Calendar
+  },
+  {
+    value: 'due-date-desc',
+    label: 'Due Date: Latest First',
+    icon: Calendar
+  },
+  {
+    value: 'created-asc',
+    label: 'Created: Oldest First',
+    icon: Clock
+  },
+  {
+    value: 'created-desc',
+    label: 'Created: Newest First',
+    icon: Clock
+  },
+  {
+    value: 'title-asc',
+    label: 'Title: A to Z',
+    icon: ArrowDownAZ
+  },
+  {
+    value: 'title-desc',
+    label: 'Title: Z to A',
+    icon: ArrowUpAZ
+  },
+];
+
+export const PRIORITY_WEIGHT = {
+  'critical': 5,
+  'urgent': 4,
+  'high': 3,
+  'normal': 2,
+  'low': 1,
+  'tbd': 0
+};

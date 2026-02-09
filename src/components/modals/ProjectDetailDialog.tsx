@@ -150,7 +150,7 @@ export function ProjectDetailDialog({
                                             <div>
                                                 <p className="text-sm font-medium">{m.name}</p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {m.user_email}
+                                                    {m.role}
                                                 </p>
                                             </div>
                                         </div>

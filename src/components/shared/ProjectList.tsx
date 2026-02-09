@@ -43,16 +43,16 @@ function ProjectCard({
 
   return (
     <Card
-      className="p-6 hover:shadow-md transition-shadow cursor-pointer"
+      className="p-4 sm:p-6 hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => onViewDetail(project)}
     >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
+      {/* Header dengan responsive spacing */}
+      <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2">
         <div className="flex-1 min-w-0">
-          <h3 className="text-foreground mb-1 truncate">
+          <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1 truncate">
             {project.name}
           </h3>
-          <p className="text-sm text-muted-foreground line-clamp-2">
+          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
             {project.description}
           </p>
         </div>
@@ -62,7 +62,7 @@ function ProjectCard({
             <DropdownMenuTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center justify-center h-8 w-8 -mt-1 -mr-2 rounded-md hover:bg-muted transition-colors"
+                className="inline-flex items-center justify-center h-8 w-8 shrink-0 rounded-md hover:bg-muted transition-colors"
               >
                 <MoreVertical className="h-4 w-4" />
               </button>
@@ -90,18 +90,17 @@ function ProjectCard({
         )}
       </div>
 
-      {/* Progress */}
-      <div className="mb-4">
+      {/* Progress dengan responsive text */}
+      <div className="mb-3 sm:mb-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-foreground">Progress</span>
-          <span className="text-sm text-foreground">
+          <span className="text-xs sm:text-sm text-foreground">Progress</span>
+          <span className="text-xs sm:text-sm font-medium text-foreground">
             {progressValue}%
           </span>
         </div>
 
         <Progress value={progressValue} className="h-2" />
 
-        {/* Task Info */}
         {task_count > 0 && (
           <p className="text-xs text-muted-foreground mt-1">
             {task_count} {task_count === 1 ? 'task' : 'tasks'}
@@ -109,29 +108,31 @@ function ProjectCard({
         )}
       </div>
 
-      {/* Team Members */}
-      <div className="space-y-3 pt-4 border-t">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="h-4 w-4" />
+      {/* Team Members dengan responsive layout */}
+      <div className="space-y-2 sm:space-y-3 pt-3 sm:pt-4 border-t">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+            <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span>Team</span>
           </div>
+          
           <div className="flex -space-x-2">
             {members.length > 0 ? (
               <>
-                {members.slice(0, 3).map((member) => (
+                {/* Tampilkan 2 avatar di mobile, 3 di desktop */}
+                {members.slice(0, window.innerWidth < 640 ? 2 : 3).map((member) => (
                   <UserAvatar
                     key={member.id}
                     name={member.name}
                     avatar={member.profile_image}
                     size="sm"
-                    className="h-8 w-8 border-2 border-background"
+                    className="h-7 w-7 sm:h-8 sm:w-8 border-2 border-background"
                   />
                 ))}
-                {members.length > 3 && (
-                  <div className="h-8 w-8 rounded-full bg-muted text-muted-foreground border-2 border-background flex items-center justify-center">
-                    <span className="text-xs font-medium">
-                      +{members.length - 3}
+                {members.length > (window.innerWidth < 640 ? 2 : 3) && (
+                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-muted text-muted-foreground border-2 border-background flex items-center justify-center">
+                    <span className="text-[10px] sm:text-xs font-medium">
+                      +{members.length - (window.innerWidth < 640 ? 2 : 3)}
                     </span>
                   </div>
                 )}
@@ -194,7 +195,7 @@ export function ProjectList({
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {projects.map((project) => (
           <ProjectCard
             key={project.id}

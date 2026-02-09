@@ -70,30 +70,25 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         setSelectedWorkspaceIdState(id);
     }, []);
 
-    // Effect 1: Sync dengan WorkspaceContext - reset project jika workspace berubah dari sidebar
     useEffect(() => {
-        // Jika workspace dari context berubah dan berbeda dengan yang tersimpan
         if (contextWorkspaceId !== lastContextWorkspaceId.current) {
             console.log(`[TaskContext] Workspace changed from context: ${lastContextWorkspaceId.current} -> ${contextWorkspaceId}`);
             
-            // Update refs
+
             lastContextWorkspaceId.current = contextWorkspaceId;
             lastLocalWorkspaceId.current = contextWorkspaceId;
             
-            // Reset state
             setSelectedWorkspaceIdState(contextWorkspaceId);
-            setSelectedProjectIdState(null); // RESET PROJECT!
+            setSelectedProjectIdState(null);
         }
     }, [contextWorkspaceId]);
 
-    // Effect 2: Track perubahan workspace lokal (dari ProjectBoardLayout)
     useEffect(() => {
-        // Jika workspace lokal berubah karena ProjectBoardLayout set workspace
+
         if (selectedWorkspaceId !== lastLocalWorkspaceId.current) {
             console.log(`[TaskContext] Workspace changed locally: ${lastLocalWorkspaceId.current} -> ${selectedWorkspaceId}`);
             lastLocalWorkspaceId.current = selectedWorkspaceId;
             
-            // Update context ref juga agar tidak conflict
             if (selectedWorkspaceId !== lastContextWorkspaceId.current) {
                 lastContextWorkspaceId.current = selectedWorkspaceId;
             }

@@ -59,8 +59,8 @@ export default function AdminProjectsPage() {
   return (
     <div className="flex flex-col h-full">
       <div className="shrink-0">
-        <div className="px-6 py-6">
-          <Breadcrumb className="mb-4">
+        <div className="px-4 sm:px-6 py-4 sm:py-6">
+          <Breadcrumb className="mb-3 sm:mb-4">
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink
@@ -78,22 +78,22 @@ export default function AdminProjectsPage() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Projects</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-xl sm:text-xl font-bold">Projects</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 {selectedWorkspace?.name || "All Workspaces"} • {filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'}
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="relative w-full sm:w-64">
                 <Search className="absolute w-4 h-4 text-muted-foreground top-1/2 left-3 -translate-y-1/2" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Cari project..."
-                  className="pl-10 w-64"
+                  className="pl-10 w-full"
                 />
               </div>
             </div>
@@ -102,7 +102,7 @@ export default function AdminProjectsPage() {
         <Separator className="thick" />
       </div>
 
-      <div className="grow overflow-auto px-6 py-8">
+      <div className="grow overflow-auto px-4 sm:px-6 py-6 sm:py-8">
         {isLoading ? (
           <div className="text-center py-12 flex flex-col items-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />

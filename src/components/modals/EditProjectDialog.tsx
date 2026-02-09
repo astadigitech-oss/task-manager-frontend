@@ -328,7 +328,7 @@ export function EditProjectDialog({
                               {member.name}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
-                              {member.user_email || member.role}
+                              {member.role}
                             </p>
                           </div>
                         </div>
@@ -408,7 +408,7 @@ export function EditProjectDialog({
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{m.name}</p>
                             <p className="text-xs text-muted-foreground truncate">
-                              {m.user_email}
+                              {m.role}
                             </p>
                           </div>
                         </div>

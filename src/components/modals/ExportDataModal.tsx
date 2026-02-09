@@ -188,7 +188,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button size="sm"variant="outline" className="gap-2">
                     <Download className="w-4 h-4" />
                     Export Tasks
                 </Button>
@@ -328,16 +328,6 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                         disabled={loading}
                     >
                         Cancel
-                    </Button>
-
-                    <Button
-                        variant="outline"
-                        onClick={handleExportText}
-                        className="gap-2"
-                        disabled={loading}
-                    >
-                        <FileText className="w-4 h-4" />
-                        Export as Text
                     </Button>
 
                     <Button
