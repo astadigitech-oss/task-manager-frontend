@@ -1,6 +1,7 @@
 import { TaskStatus } from "../shared/status";
 import { TaskPriority } from "../shared/priority";
 import { ApiResponse } from "./user.api";
+import { TaskSortOption } from "../shared/filter";
 
 // ============ TASKS ============
 
@@ -53,6 +54,7 @@ export interface TaskApi {
     created_at: string;
     updated_at: string;
     overdue_duration?: number | null;
+    order_index: number;
 
     task_members?: TaskMemberApi[];
 }
@@ -106,6 +108,12 @@ export interface TaskFileApi {
     user: TaskFileUploaderApi;
 }
 
+export interface TaskSortConfig {
+    value: TaskSortOption;
+    label: string;
+    icon?: React.ComponentType<{ className?: string }>;
+}
+
 export type TaskMemberListResponse = ApiResponse<TaskMemberApi[]>;
 export type TaskResponse = ApiResponse<TaskApi>;
 export type TaskListResponse = ApiResponse<TaskApi[]>;
@@ -135,9 +143,9 @@ export function isPdfFile(file: TaskFileApi): boolean {
 
 export function isOfficeFile(file: TaskFileApi): boolean {
     const officeMimes = [
-        "application/msword",                                          
+        "application/msword",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.ms-excel",                            
+        "application/vnd.ms-excel",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ];
     return officeMimes.includes(file.mime_type);

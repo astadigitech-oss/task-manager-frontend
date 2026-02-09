@@ -51,6 +51,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { TaskSortOption } from "@/types/shared/filter";
+import { TaskSortDropdown } from "../task/TaskSortDropdown";
+import { sortTasks } from "@/lib/utils/taskSorting";
 
 interface ProjectBoardLayoutProps {
   project_id: number;
@@ -319,6 +322,32 @@ function ProjectBoardLayout({
     );
   }
 
+  // ADD: Sort state
+  const [globalSortOption, setGlobalSortOption] =
+    useState<TaskSortOption>('manual');
+
+  // Load sort preference on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('task-sort-preference');
+      if (saved) {
+        setGlobalSortOption(saved as TaskSortOption);
+      }
+    } catch (err) {
+      console.warn('Failed to load sort preference:', err);
+    }
+  }, []);
+
+  // Save preference when changed
+  const handleGlobalSortChange = useCallback((newSort: TaskSortOption) => {
+    setGlobalSortOption(newSort);
+    try {
+      localStorage.setItem('task-sort-preference', newSort);
+    } catch (err) {
+      console.warn('Failed to save sort preference:', err);
+    }
+  }, []);
+
   if (!validWorkspaceId) {
     return (
       <div className="flex items-center justify-center h-screen px-4">
@@ -377,6 +406,12 @@ function ProjectBoardLayout({
             {mode === "admin" && (
               <UploadImageDialog project_id={project_id} />
             )}
+
+            <TaskSortDropdown
+              value={globalSortOption}
+              onChange={handleGlobalSortChange}
+              className="w-full sm:w-auto"
+            />
 
             {/* View Toggle */}
             <div className="flex flex-1 sm:flex-initial">
@@ -453,7 +488,7 @@ function ProjectBoardLayout({
           {/* Task Count Badges */}
           <div className="flex gap-2 w-full sm:w-auto">
             {mode === "member" && (
-              <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border badge-low flex-1 sm:flex-initial justify-center">
+              <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 badge-low flex-1 sm:flex-initial justify-center">
                 <span className="text-xs sm:text-sm font-medium text-foreground">
                   My Tasks: {myTasksCount}
                 </span>
@@ -461,7 +496,7 @@ function ProjectBoardLayout({
             )}
 
             {mode === "admin" && (
-              <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border badge-normal flex-1 sm:flex-initial justify-center">
+              <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 badge-normal flex-1 sm:flex-initial justify-center">
                 <span className="text-xs sm:text-sm font-medium text-foreground">
                   All Tasks: {allTasksCount}
                 </span>
@@ -499,7 +534,12 @@ function ProjectBoardLayout({
           ) : view === "kanban" ? (
             <div className="flex gap-3 sm:gap-4 min-w-max h-full items-start pb-4">
               {COLUMNS.map((col) => {
-                const columnTasks = displayedTasks.filter((t) => t.status === col.status);
+                const columnTasks = displayedTasks.filter(
+                  (t) => t.status === col.status
+                );
+
+                const sortedColumnTasks = sortTasks(columnTasks, globalSortOption);
+
 
                 return (
                   <Card
@@ -533,7 +573,7 @@ function ProjectBoardLayout({
                     <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-ring min-h-0">
                       <div className="space-y-2 p-1 sm:p-2">
                         <TaskCard
-                          tasks={columnTasks}
+                          tasks={sortedColumnTasks}
                           status={col.status}
                           projectId={project_id}
                           workspaceId={validWorkspaceId}
@@ -546,14 +586,14 @@ function ProjectBoardLayout({
               })}
             </div>
           ) : (
-            <div className="rounded-lg shadow-sm border p-2 sm:p-4">
+            // <div className="rounded-lg shadow-sm border p-2 sm:p-4">
               <TaskList
-                tasks={displayedTasks}
+                tasks={sortTasks(displayedTasks, globalSortOption)}
                 project_id={Number(project_id)}
                 workspace_id={validWorkspaceId}
                 readOnly={!canCreateTask}
               />
-            </div>
+            // </div>
           )}
         </section>
 

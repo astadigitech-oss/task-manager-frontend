@@ -88,6 +88,20 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             }
             return res.data;
         },
+        onSuccess: (data) => {
+            // Invalidate queries untuk refresh data
+            queryClient.invalidateQueries({
+                queryKey: projectKeys.lists()
+            });
+            showSuccessToast("Project berhasil dibuat!");
+        },
+        onError: (error: any) => {
+            console.error("Create project error:", error);
+            const message = error instanceof ApiError
+                ? error.message
+                : "Gagal membuat project";
+            showErrorToast(message);
+        },
     });
 
     // Update Project Mutation

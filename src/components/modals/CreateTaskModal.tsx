@@ -156,7 +156,7 @@ export function CreateTaskModal({ project_id, workspace_id }: CreateTaskModalPro
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>+ New Task</Button>
+        <Button size="sm">+ New Task</Button>
       </DialogTrigger>
 
       <DialogContent className="p-0 gap-0 sm:max-w-225 overflow-hidden" aria-describedby={undefined}>

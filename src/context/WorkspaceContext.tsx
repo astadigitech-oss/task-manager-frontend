@@ -31,12 +31,12 @@ interface WorkspaceContextType {
   selectedWorkspaceId: number | null;
   setSelectedWorkspaceId: (id: number | null) => void;
   selectedWorkspace: WorkspaceApi | null;
-  
+
   createWorkspace: (payload: WorkspaceRequest) => Promise<WorkspaceApi | null>;
   updateWorkspace: (id: number, payload: Partial<WorkspaceRequest>) => Promise<void>;
   softDeleteWorkspace: (id: number) => Promise<void>;
   addBulkMembersToWorkspace: (workspace_id: number, user_ids: number[]) => Promise<void>;
-  
+
   refetchWorkspaces: () => void;
 }
 
@@ -47,8 +47,8 @@ export const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const { isAuthenticated, defaultWorkspaceId, setDefaultWorkspaceId } = useAuthStore();
-  
-  const [selectedWorkspaceId, setSelectedWorkspaceIdState] = 
+
+  const [selectedWorkspaceId, setSelectedWorkspaceIdState] =
     useState<number | null>(null);
 
   // Fetch Workspaces dengan React Query
@@ -95,13 +95,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const setSelectedWorkspaceId = useCallback((id: number | null) => {
     setSelectedWorkspaceIdState(id);
-    
+
     if (id !== null) {
       setDefaultWorkspaceId(id);
     }
   }, [setDefaultWorkspaceId]);
 
-  // Create Workspace Mutation
   const createMutation = useMutation({
     mutationFn: async (payload: WorkspaceRequest) => {
       const res = await workspaceService.create(payload);
@@ -110,14 +109,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       }
       return res.data;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: workspaceKeys.lists() });
-      showSuccessToast("Workspace berhasil dibuat!");
-    },
     onError: (error: any) => {
       console.error("Create workspace error:", error);
-      const message = error instanceof ApiError 
-        ? error.message 
+      const message = error instanceof ApiError
+        ? error.message
         : "Gagal membuat workspace";
       showErrorToast(message);
     },
@@ -125,12 +120,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   // Update Workspace Mutation
   const updateMutation = useMutation({
-    mutationFn: async ({ 
-      id, 
-      payload 
-    }: { 
-      id: number; 
-      payload: Partial<WorkspaceRequest> 
+    mutationFn: async ({
+      id,
+      payload
+    }: {
+      id: number;
+      payload: Partial<WorkspaceRequest>
     }) => {
       const res = await workspaceService.update(id, payload);
       if (!res.success || !res.data) {
@@ -145,8 +140,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     },
     onError: (error: any) => {
       console.error("Update workspace error:", error);
-      const message = error instanceof ApiError 
-        ? error.message 
+      const message = error instanceof ApiError
+        ? error.message
         : "Gagal update workspace";
       showErrorToast(message);
     },
@@ -163,8 +158,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     },
     onError: (error: any) => {
       console.error("Delete workspace error:", error);
-      const message = error instanceof ApiError 
-        ? error.message 
+      const message = error instanceof ApiError
+        ? error.message
         : "Gagal menghapus workspace";
       showErrorToast(message);
     },
@@ -172,25 +167,25 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   // Add Bulk Members Mutation
   const addBulkMembersMutation = useMutation({
-    mutationFn: async ({ 
-      workspace_id, 
-      user_ids 
-    }: { 
-      workspace_id: number; 
-      user_ids: number[] 
+    mutationFn: async ({
+      workspace_id,
+      user_ids
+    }: {
+      workspace_id: number;
+      user_ids: number[]
     }) => {
       await workspaceMembersService.addBulk(workspace_id, user_ids);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: workspaceKeys.members(variables.workspace_id) 
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.members(variables.workspace_id)
       });
       showSuccessToast(`${variables.user_ids.length} anggota berhasil ditambahkan!`);
     },
     onError: (error: any) => {
       console.error("Add bulk members error:", error);
-      const message = error instanceof ApiError 
-        ? error.message 
+      const message = error instanceof ApiError
+        ? error.message
         : "Gagal menambahkan anggota";
       showErrorToast(message);
     },
@@ -203,6 +198,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         const result = await createMutation.mutateAsync(payload);
         return result;
       } catch (error) {
+        console.error("Create workspace error:", error);
         return null;
       }
     },

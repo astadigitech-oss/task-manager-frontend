@@ -108,6 +108,7 @@ export function mapTask(api: any): TaskApi {
 
         overdue_duration: api.overdue_duration ? Math.floor(api.overdue_duration / 60) : 0,
         is_overdue: (api.overdue_duration ?? 0) > 0,
+        order_index: (api.order) , // need some customize
 
         notes: api.notes ?? "",
         created_at: parseDateTime(api.created_at) ?? new Date().toISOString(),

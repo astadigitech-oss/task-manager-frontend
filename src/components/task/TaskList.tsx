@@ -32,7 +32,7 @@ const statusGroups: { status: TaskStatus; label: string }[] = [
   { status: "on_progress", label: "On Progress" },
   { status: "pending", label: "Pending" },
   { status: "canceled", label: "Canceled" },
-  { status: "done", label: "Complete" },
+  { status: "done", label: "Done" },
 ];
 
 const getStatusLabel = (status: TaskStatus): string => {

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/context/WorkspaceContext";
+import { useAuthStore } from "@/store/useAuthStore"; // TAMBAHKAN INI
 import { projectKeys } from "@/context/ProjectContext";
 import {
   Select,
@@ -28,8 +29,8 @@ import { projectMembersService } from "@/services/projects/projectMember.service
 import { projectsService } from "@/services/projects/project.service";
 import { WorkspaceMemberApi } from "@/types/api/workspace.api";
 import { ScrollArea } from "../ui/scroll-area";
-import { FolderSearch, Loader2 } from "lucide-react";
-import { showInfoToast, showSuccessToast } from "@/lib/helpers/toast-helpers";
+import { FolderSearch, Loader2, UserCheck } from "lucide-react"; // TAMBAHKAN UserCheck
+import { showInfoToast, showSuccessToast, showErrorToast } from "@/lib/helpers/toast-helpers";
 import { UserAvatar } from "../shared/UserAvatar";
 
 interface CreateProjectDialogProps {
@@ -43,6 +44,7 @@ export function CreateProjectDialog({
 }: CreateProjectDialogProps) {
   const queryClient = useQueryClient();
   const { workspaces, selectedWorkspaceId } = useWorkspace();
+  const { user } = useAuthStore();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -51,6 +53,8 @@ export function CreateProjectDialog({
   const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMemberApi[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const currentUserId = user?.id;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -98,11 +102,27 @@ export function CreateProjectDialog({
     }
   }, [isOpen]);
 
+  // FUNGSI HELPER: Cek apakah member adalah current user (admin yang login)
+  const isCurrentUser = (member: WorkspaceMemberApi): boolean => {
+    if (!currentUserId) return false;
+
+    const memberId = member.user_id || member.user?.id || member.id;
+    return Number(memberId) === Number(currentUserId);
+  };
+
+  // FUNGSI HELPER: Cek apakah member bisa dipilih
+  const isMemberSelectable = (member: WorkspaceMemberApi): boolean => {
+    return !isCurrentUser(member);
+  };
+
   const toggleSelectAll = () => {
-    if (selectedUserIds.length === workspaceMembers.length && workspaceMembers.length > 0) {
+    // Filter hanya member yang bisa dipilih (exclude current user)
+    const selectableMembers = workspaceMembers.filter(isMemberSelectable);
+
+    if (selectedUserIds.length === selectableMembers.length && selectableMembers.length > 0) {
       setSelectedUserIds([]);
     } else {
-      const allUserIds = workspaceMembers
+      const allUserIds = selectableMembers
         .map(m => Number(m.user_id || m.user?.id || m.id))
         .filter(id => id && !isNaN(id));
 
@@ -111,6 +131,12 @@ export function CreateProjectDialog({
   };
 
   const toggleMember = (member: WorkspaceMemberApi) => {
+    // Cegah toggle jika member adalah current user
+    if (!isMemberSelectable(member)) {
+      showInfoToast("Anda sebagai pembuat project akan otomatis ditambahkan");
+      return;
+    }
+
     const userId = member.user_id || member.user?.id || member.id;
     const numericUserId = Number(userId);
 
@@ -148,7 +174,6 @@ export function CreateProjectDialog({
         workspace_id: Number(workspaceId),
       };
 
-
       const createdProject = await projectsService.create(createPayload);
 
       if (!createdProject.success || !createdProject.data) {
@@ -157,16 +182,20 @@ export function CreateProjectDialog({
 
       const projectId = createdProject.data.id;
 
+      // Tambahkan members HANYA yang dipilih (exclude current user karena sudah otomatis)
       if (selectedUserIds.length > 0) {
-        await projectMembersService.addBulk(projectId, selectedUserIds);
+        try {
+          await projectMembersService.addBulk(projectId, selectedUserIds);
+          showSuccessToast(
+            `Project berhasil dibuat! Anda dan ${selectedUserIds.length} anggota lainnya telah ditambahkan.`
+          );
+        } catch (memberError) {
+          console.error("Error adding members:", memberError);
+          showSuccessToast("Project berhasil dibuat, tapi ada masalah menambahkan beberapa anggota");
+        }
+      } else {
+        showSuccessToast("Project berhasil dibuat!");
       }
-
-
-      showSuccessToast(
-        selectedUserIds.length > 0
-          ? `Project berhasil dibuat dengan ${selectedUserIds.length} anggota!`
-          : "Project berhasil dibuat!"
-      );
 
       setName("");
       setDescription("");
@@ -177,14 +206,22 @@ export function CreateProjectDialog({
       onClose();
     } catch (err) {
       console.error("Create project error:", err);
-
+      showErrorToast("Gagal membuat project. Silakan coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Hitung jumlah member yang bisa dipilih
+  const selectableMembers = workspaceMembers.filter(isMemberSelectable);
+  const selectableMembersCount = selectableMembers.length;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!isSubmitting) {
+        onClose();
+      }
+    }}>
       <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-screen flex flex-col"
         aria-describedby={undefined}>
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
@@ -263,9 +300,9 @@ export function CreateProjectDialog({
                 <span className="text-sm font-medium">Pilih Semua</span>
                 <input
                   type="checkbox"
-                  checked={selectedUserIds.length === workspaceMembers.length && workspaceMembers.length > 0}
+                  checked={selectedUserIds.length === selectableMembersCount && selectableMembersCount > 0}
                   onChange={toggleSelectAll}
-                  disabled={isSubmitting || isLoadingMembers || workspaceMembers.length === 0}
+                  disabled={isSubmitting || isLoadingMembers || selectableMembersCount === 0}
                   className="cursor-pointer w-4 h-4 mt-0.5"
                 />
               </div>
@@ -287,11 +324,14 @@ export function CreateProjectDialog({
                   {workspaceMembers.map((m) => {
                     const userId = m.user_id || m.user?.id || m.id;
                     const numericUserId = Number(userId);
+                    const isCurrentUserMember = isCurrentUser(m);
+                    const selectable = isMemberSelectable(m);
 
                     return (
                       <div
                         key={m.id}
-                        className="flex items-center justify-between p-2 rounded-md hover:bg-muted"
+                        className={`flex items-center justify-between p-2 rounded-md ${selectable ? 'hover:bg-muted' : 'bg-muted/50 opacity-75'
+                          }`}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <UserAvatar
@@ -301,27 +341,43 @@ export function CreateProjectDialog({
                             className="w-6 h-6"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{m.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium truncate">{m.name}</p>
+                              {isCurrentUserMember && (
+                                <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                  <UserCheck className="w-3 h-3" />
+                                  Anda
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground truncate">
                               {m.user_email || m.role}
                             </p>
                           </div>
                         </div>
 
-                        <input
-                          type="checkbox"
-                          checked={selectedUserIds.includes(numericUserId)}
-                          onChange={() => toggleMember(m)}
-                          disabled={isSubmitting}
-                          className="cursor-pointer shrink-0"
-                        />
+                        <div className="flex items-center gap-2">
+                          {isCurrentUserMember && (
+                            <span className="text-xs text-muted-foreground mr-2">
+                              Auto added
+                            </span>
+                          )}
+                          <input
+                            type="checkbox"
+                            checked={isCurrentUserMember || selectedUserIds.includes(numericUserId)}
+                            onChange={() => toggleMember(m)}
+                            disabled={isSubmitting || !selectable || isCurrentUserMember}
+                            className={`shrink-0 ${selectable && !isCurrentUserMember ? 'cursor-pointer' : 'cursor-not-allowed'
+                              }`}
+                          />
+                        </div>
                       </div>
                     );
                   })}
                 </ScrollArea>
 
                 <p className="text-sm text-muted-foreground mt-1">
-                  {selectedUserIds.length} anggota dipilih
+                  {selectedUserIds.length} anggota dipilih + Anda (otomatis)
                 </p>
               </>
             )}
@@ -343,7 +399,7 @@ export function CreateProjectDialog({
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Membuat...
+                  Membuat Project...
                 </>
               ) : (
                 "Buat Project"

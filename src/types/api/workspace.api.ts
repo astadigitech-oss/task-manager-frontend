@@ -17,6 +17,7 @@ export interface WorkspaceApi {
 }
 
 export interface WorkspaceMemberApi {
+    position: string | null;
     id: number;
     name: string;
     user_id: number;

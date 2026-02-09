@@ -96,6 +96,7 @@ export default function AdminProjectsPage() {
               <Button
                 onClick={createProject.open}
                 className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                size="sm"
               >
                 <Plus className="w-4 h-4" />
                 <span className="sm:inline">Create Project</span>
