@@ -38,12 +38,16 @@ interface AbsensiDialogProps {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function getTodayDateString(): string {
-  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`; // "YYYY-MM-DD" in local timezone
 }
 
 function msUntilMidnight(): number {
@@ -59,35 +63,35 @@ function formatDateForFilename(date: string): string {
 
 function extractErrorMessage(error: any): string {
   console.error('Full error object:', error);
-  
+
   if (error?.response?.data?.error) {
     return error.response.data.error;
   }
-  
+
   if (error?.response?.data?.message) {
     return error.response.data.message;
   }
-  
+
   if (typeof error?.response?.data === 'string') {
     return error.response.data;
   }
-  
+
   if (error?.message && !error.message.toLowerCase().includes('request failed')) {
     return error.message;
   }
-  
+
   return "Anda Sudah Melakukan Absensi Hari Ini.";
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
   const { selectedWorkspaceId, selectedWorkspace } = useWorkspace();
-  const { 
-    user, 
-    saveAttendance, 
-    getAttendance, 
+  const {
+    user,
+    saveAttendance,
+    getAttendance,
     hasSubmittedToday,
-    clearExpiredAttendance 
+    clearExpiredAttendance
   } = useAuthStore();
 
   const isAdmin = user?.role === "admin";
@@ -144,11 +148,11 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
     const valid: File[] = [];
     files.forEach((f) => {
       if (!ACCEPTED_TYPES.includes(f.type)) {
-        showErrorToast(`${f.name} bukan format yang didukung (JPEG/PNG/GIF/WebP)`);
+        showErrorToast(`${f.name} bukan format yang didukung (JPEG/PNG/WebP)`);
         return;
       }
       if (f.size > MAX_FILE_SIZE) {
-        showErrorToast(`${f.name} melebihi batas 5MB`);
+        showErrorToast(`${f.name} melebihi batas 1MB`);
         return;
       }
       valid.push(f);
@@ -188,10 +192,10 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
     const r = e.currentTarget.getBoundingClientRect();
     if (
       e.clientX <= r.left || e.clientX >= r.right ||
-      e.clientY <= r.top  || e.clientY >= r.bottom
+      e.clientY <= r.top || e.clientY >= r.bottom
     ) setIsDragging(false);
   };
-  const onDragOver  = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); };
+  const onDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); };
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -216,30 +220,30 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
   };
 
   const handleClose = () => {
-    if (!isSubmitting && !isExporting) { 
+    if (!isSubmitting && !isExporting) {
       if (!hasSubmitted) {
         resetForm();
       }
-      onClose(); 
+      onClose();
     }
   };
 
   // ── Submit ────────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (hasSubmitted) {
       showErrorToast("Anda sudah melakukan absensi hari ini");
       return;
     }
 
-    if (!selectedWorkspaceId) { 
-      showErrorToast("Workspace belum dipilih"); 
-      return; 
+    if (!selectedWorkspaceId) {
+      showErrorToast("Workspace belum dipilih");
+      return;
     }
-    if (!activity.trim()) { 
-      showErrorToast("Kegiatan tidak boleh kosong"); 
-      return; 
+    if (!activity.trim()) {
+      showErrorToast("Kegiatan tidak boleh kosong");
+      return;
     }
 
     setIsSubmitting(true);
@@ -247,7 +251,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
 
     try {
       const res = await workspaceAttendanceService.submit(
-        selectedWorkspaceId, 
+        selectedWorkspaceId,
         {
           activity: activity.trim(),
           obstacle: obstacle.trim(),
@@ -272,7 +276,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
       });
 
       showSuccessToast(`Absensi berhasil! Selamat bekerja, ${user?.name ?? ""}!`);
-      
+
       // Don't reset form after successful submission
       // User can view their submitted data
       onClose();
@@ -286,19 +290,19 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
 
   // ── Export PDF (admin only) ───────────────────────────────────────────────────
   const handleExportPdf = async () => {
-    if (!selectedWorkspaceId) { 
-      showErrorToast("Workspace belum dipilih"); 
-      return; 
+    if (!selectedWorkspaceId) {
+      showErrorToast("Workspace belum dipilih");
+      return;
     }
-    if (!exportDate) { 
-      showErrorToast("Pilih tanggal export terlebih dahulu"); 
-      return; 
+    if (!exportDate) {
+      showErrorToast("Pilih tanggal export terlebih dahulu");
+      return;
     }
 
     setIsExporting(true);
     try {
       const blob = await workspaceAttendanceService.export(selectedWorkspaceId, exportDate);
-      
+
       const workspaceName = selectedWorkspace?.name || 'workspace';
       const sanitizedName = workspaceName.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30);
       const dateFormatted = formatDateForFilename(exportDate);
@@ -309,10 +313,10 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
       a.href = url;
       a.download = filename;
       a.style.display = 'none';
-      
+
       document.body.appendChild(a);
       a.click();
-      
+
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
@@ -336,6 +340,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(o) => { if (!o) handleClose(); }}>
       <DialogContent
+        showCloseButton={false}
         className="max-w-2xl p-0 gap-0 overflow-hidden max-h-[92vh] flex flex-col"
         aria-describedby="absensi-desc"
       >
@@ -488,7 +493,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                     )}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    JPEG, PNG, GIF, WebP • Maks 5MB per file
+                    JPEG, PNG, WebP • Maks 1MB per file
                   </p>
                 </div>
               )}
@@ -652,8 +657,8 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                   </>
                 ) : (
                   <>
-                    <UserCheck className="w-4 h-4 mr-2" />
-                    Absen Sekarang
+                    <UserCheck className="w-4 h-4" />
+                    Save
                   </>
                 )}
               </Button>
