@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { ProjectList } from "@/components/shared/ProjectList";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Home, Loader2 } from "lucide-react";
+import { Plus, Search, Home, Loader2, CalendarCheck} from "lucide-react";
 import { useProject } from "@/context/ProjectContext";
 import {
   Breadcrumb,
@@ -17,6 +17,9 @@ import { useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useWorkspace } from "@/context/WorkspaceContext";
+import { AbsensiDialog } from "@/components/modals/AbsensiDialog";
+import { useModal } from "@/hooks/useModal";
+import { Button } from "@/components/ui/button";
 
 export default function AdminProjectsPage() {
   const {
@@ -26,12 +29,14 @@ export default function AdminProjectsPage() {
     selectedWorkspaceId,
     setSelectedWorkspaceId,
     isLoading,
+
   } = useProject();
 
   const { selectedWorkspace } = useWorkspace();
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
   const { user } = useAuthStore();
+  const { Attendance } = useModal();
 
   useEffect(() => {
     if (selectedWorkspace?.id) {
@@ -87,6 +92,14 @@ export default function AdminProjectsPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <Button
+                onClick={Attendance.open}
+                className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                size="sm"
+              >
+                <CalendarCheck className="w-4 h-4" />
+                <span className="sm:inline">Daily Attendance</span>
+              </Button>
               <div className="relative w-full sm:w-64">
                 <Search className="absolute w-4 h-4 text-muted-foreground top-1/2 left-3 -translate-y-1/2" />
                 <Input
@@ -125,6 +138,10 @@ export default function AdminProjectsPage() {
             onUpdate={updateProject}
           />
         )}
+        <AbsensiDialog
+          isOpen={Attendance.isOpen}
+          onClose={Attendance.close}
+        />
       </div>
     </div>
   );

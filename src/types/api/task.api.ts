@@ -55,7 +55,6 @@ export interface TaskApi {
     updated_at: string;
     overdue_duration?: number | null;
     order_index: number;
-
     task_members?: TaskMemberApi[];
 }
 

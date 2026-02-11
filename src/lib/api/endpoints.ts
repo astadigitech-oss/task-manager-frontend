@@ -40,6 +40,11 @@ export const API_ENDPOINTS = {
       ADD: (workspace_id: number) => `/api/workspaces/${workspace_id}/members`,
       SOFT_DELETE: (workspace_id: number, id: number) => `/api/workspaces/${workspace_id}/members/${id}`,
       HARD_DELETE: (workspace_id: number, id: number) => `/api/workspaces/${workspace_id}/members/${id}/permanent`,
+    },
+    // Workspace Attendance
+    ATTENDANCE: {
+      ABSENSI: (workspace_id: number) => `/api/workspaces/${workspace_id}/attendances`,
+      EXPORT: (workspace_id: number) => `/api/workspaces/${workspace_id}/attendances/export`,
     }
   },
 
@@ -80,6 +85,9 @@ export const API_ENDPOINTS = {
 
     UPDATE: (workspace_id: number, project_id: number, task_id: number) =>
       `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}`,
+
+    UPDATE_ORDER: (workspace_id: number, project_id: number) =>
+    `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/reorder`,
 
     SOFT_DELETE: (workspace_id: number, project_id: number, task_id: number) =>
       `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}`,

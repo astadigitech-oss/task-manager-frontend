@@ -13,11 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { UserAvatar } from "@/components/shared/UserAvatar";
-import { Loader2 } from "lucide-react";
+import { Loader2, UserCheck } from "lucide-react"; 
 
 import { useWorkspace } from "@/context/WorkspaceContext";
+import { useAuthStore } from "@/store/useAuthStore";
 import { usersService } from "@/services/user.service";
-import { showErrorToast, showInfoToast, showSuccessToast } from "@/lib/helpers/toast-helpers";
+import { showInfoToast, showSuccessToast, showErrorToast } from "@/lib/helpers/toast-helpers";
+import { UserApi } from "@/types/api/user.api";
 
 interface Props {
   isOpen: boolean;
@@ -27,11 +29,15 @@ interface Props {
 
 export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
   const { createWorkspace, addBulkMembersToWorkspace } = useWorkspace();
+  const { user } = useAuthStore(); 
 
   const [name, setName] = useState("");
   const [color, setColor] = useState("#4f46e5");
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Dapatkan current user ID
+  const currentUserId = user?.id;
 
   const {
     data: usersData,
@@ -57,7 +63,24 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
     }
   }, [isOpen]);
 
-  const toggleUser = (userId: number) => {
+  // FUNGSI HELPER: Cek apakah user adalah current user (admin yang login)
+  const isCurrentUser = (userItem: UserApi): boolean => {
+    if (!currentUserId) return false;
+    return Number(userItem.id) === Number(currentUserId);
+  };
+
+  // FUNGSI HELPER: Cek apakah user bisa dipilih
+  const isUserSelectable = (userItem: UserApi): boolean => {
+    return !isCurrentUser(userItem);
+  };
+
+  const toggleUser = (userId: number, userItem: UserApi) => {
+    // Cegah toggle jika user adalah current user
+    if (!isUserSelectable(userItem)) {
+      showInfoToast("Anda sebagai pembuat workspace akan otomatis ditambahkan");
+      return;
+    }
+
     setSelectedUsers((prev) =>
       prev.includes(userId)
         ? prev.filter((id) => id !== userId)
@@ -68,10 +91,13 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
   const toggleSelectAll = () => {
     if (!usersData) return;
 
-    if (selectedUsers.length === usersData.length) {
+    // Filter hanya user yang bisa dipilih (exclude current user)
+    const selectableUsers = usersData.filter(isUserSelectable);
+
+    if (selectedUsers.length === selectableUsers.length && selectableUsers.length > 0) {
       setSelectedUsers([]);
     } else {
-      setSelectedUsers(usersData.map((u) => u.id));
+      setSelectedUsers(selectableUsers.map((u) => u.id));
     }
   };
 
@@ -89,7 +115,6 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
     setIsSubmitting(true);
 
     try {
-      // Buat workspace terlebih dahulu
       const workspace = await createWorkspace({
         name: name.trim(),
         color,
@@ -99,31 +124,26 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
         throw new Error("Workspace berhasil dibuat, tapi ID tidak ditemukan");
       }
 
-      // Tambahkan members jika ada yang dipilih
+      // Tambahkan members HANYA yang dipilih (exclude current user karena sudah otomatis)
       if (selectedUsers.length > 0) {
         try {
           await addBulkMembersToWorkspace(workspace.id, selectedUsers);
           showSuccessToast(
-            `Workspace berhasil dibuat dengan ${selectedUsers.length} anggota!`
+            `Workspace berhasil dibuat! Anda dan ${selectedUsers.length} anggota lainnya telah ditambahkan.`
           );
         } catch (memberError) {
           console.error("Error adding members:", memberError);
-
           showSuccessToast("Workspace berhasil dibuat, tapi ada masalah menambahkan beberapa anggota");
         }
       } else {
-        showSuccessToast("Workspace berhasil dibuat!");
+        showSuccessToast("Workspace berhasil dibuat! Anda telah ditambahkan sebagai anggota.");
       }
 
-      // Reset form
       setName("");
       setColor("#4f46e5");
       setSelectedUsers([]);
 
-      // Call onCreate callback jika ada
       onCreate?.({ name: name.trim(), color });
-
-      // Tutup dialog
       onClose();
     } catch (err: any) {
       console.error("Create workspace failed:", err);
@@ -133,8 +153,16 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
     }
   };
 
+  // Hitung jumlah user yang bisa dipilih
+  const selectableUsers = usersData?.filter(isUserSelectable) || [];
+  const selectableUsersCount = selectableUsers.length;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!isSubmitting) {
+        onClose();
+      }
+    }}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
         aria-describedby={undefined}>
         <DialogHeader>
@@ -183,13 +211,9 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
                 <span className="text-sm font-medium">Pilih Semua</span>
                 <input
                   type="checkbox"
-                  checked={
-                    !!usersData &&
-                    selectedUsers.length === usersData.length &&
-                    usersData.length > 0
-                  }
+                  checked={selectedUsers.length === selectableUsersCount && selectableUsersCount > 0}
                   onChange={toggleSelectAll}
-                  disabled={!usersData || usersData.length === 0 || isSubmitting}
+                  disabled={!usersData || selectableUsersCount === 0 || isSubmitting}
                   className="cursor-pointer w-4 h-4"
                 />
               </div>
@@ -210,10 +234,15 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
                 <ScrollArea className="h-48 border rounded-md p-2">
                   {usersData.map((user) => {
                     const userAvatar = (user as any).profile_image || user.avatar || "";
+                    const isCurrentUserItem = isCurrentUser(user);
+                    const selectable = isUserSelectable(user);
+
                     return (
                       <div
                         key={user.id}
-                        className="flex items-center justify-between p-2 rounded-md hover:bg-muted"
+                        className={`flex items-center justify-between p-2 rounded-md ${
+                          selectable ? 'hover:bg-muted' : 'bg-muted/50 opacity-75'
+                        }`}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <UserAvatar
@@ -222,29 +251,46 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
                             size="md"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {user.name}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium truncate">
+                                {user.name}
+                              </p>
+                              {isCurrentUserItem && (
+                                <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                  <UserCheck className="w-3 h-3" />
+                                  Anda
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground truncate">
-                              {user.role}
+                              {user.email}
                             </p>
                           </div>
                         </div>
 
-                        <input
-                          type="checkbox"
-                          checked={selectedUsers.includes(user.id)}
-                          onChange={() => toggleUser(user.id)}
-                          disabled={isSubmitting}
-                          className="cursor-pointer shrink-0"
-                        />
+                        <div className="flex items-center gap-2">
+                          {isCurrentUserItem && (
+                            <span className="text-xs text-muted-foreground mr-2">
+                              Auto added
+                            </span>
+                          )}
+                          <input
+                            type="checkbox"
+                            checked={isCurrentUserItem || selectedUsers.includes(user.id)}
+                            onChange={() => toggleUser(user.id, user)}
+                            disabled={isSubmitting || !selectable || isCurrentUserItem}
+                            className={`shrink-0 ${
+                              selectable && !isCurrentUserItem ? 'cursor-pointer' : 'cursor-not-allowed'
+                            }`}
+                          />
+                        </div>
                       </div>
                     );
                   })}
                 </ScrollArea>
 
                 <p className="text-sm text-muted-foreground mt-1">
-                  {selectedUsers.length} user dipilih
+                  {selectedUsers.length} user dipilih + Anda (otomatis)
                 </p>
               </>
             )}

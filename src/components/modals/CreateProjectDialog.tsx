@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/context/WorkspaceContext";
-import { useAuthStore } from "@/store/useAuthStore"; // TAMBAHKAN INI
+import { useAuthStore } from "@/store/useAuthStore";
 import { projectKeys } from "@/context/ProjectContext";
 import {
   Select,
@@ -29,7 +29,7 @@ import { projectMembersService } from "@/services/projects/projectMember.service
 import { projectsService } from "@/services/projects/project.service";
 import { WorkspaceMemberApi } from "@/types/api/workspace.api";
 import { ScrollArea } from "../ui/scroll-area";
-import { FolderSearch, Loader2, UserCheck } from "lucide-react"; // TAMBAHKAN UserCheck
+import { FolderSearch, Loader2, UserCheck } from "lucide-react";
 import { showInfoToast, showSuccessToast, showErrorToast } from "@/lib/helpers/toast-helpers";
 import { UserAvatar } from "../shared/UserAvatar";
 
@@ -102,7 +102,6 @@ export function CreateProjectDialog({
     }
   }, [isOpen]);
 
-  // FUNGSI HELPER: Cek apakah member adalah current user (admin yang login)
   const isCurrentUser = (member: WorkspaceMemberApi): boolean => {
     if (!currentUserId) return false;
 
@@ -110,13 +109,11 @@ export function CreateProjectDialog({
     return Number(memberId) === Number(currentUserId);
   };
 
-  // FUNGSI HELPER: Cek apakah member bisa dipilih
   const isMemberSelectable = (member: WorkspaceMemberApi): boolean => {
     return !isCurrentUser(member);
   };
 
   const toggleSelectAll = () => {
-    // Filter hanya member yang bisa dipilih (exclude current user)
     const selectableMembers = workspaceMembers.filter(isMemberSelectable);
 
     if (selectedUserIds.length === selectableMembers.length && selectableMembers.length > 0) {
@@ -131,7 +128,6 @@ export function CreateProjectDialog({
   };
 
   const toggleMember = (member: WorkspaceMemberApi) => {
-    // Cegah toggle jika member adalah current user
     if (!isMemberSelectable(member)) {
       showInfoToast("Anda sebagai pembuat project akan otomatis ditambahkan");
       return;
@@ -182,7 +178,7 @@ export function CreateProjectDialog({
 
       const projectId = createdProject.data.id;
 
-      // Tambahkan members HANYA yang dipilih (exclude current user karena sudah otomatis)
+      // Tambahkan members HANYA yang dipilih
       if (selectedUserIds.length > 0) {
         try {
           await projectMembersService.addBulk(projectId, selectedUserIds);

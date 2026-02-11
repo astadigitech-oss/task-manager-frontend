@@ -10,6 +10,7 @@ interface UIState {
   isCreateTaskOpen: boolean;
   isCreateMemberOpen: boolean;
   isCreateWorkspaceOpen: boolean;
+  isAbsensiOpen: boolean;
   
   openCreateProject: () => void;
   closeCreateProject: () => void;
@@ -22,6 +23,9 @@ interface UIState {
   
   openCreateWorkspace: () => void;
   closeCreateWorkspace: () => void;
+
+  openAbsensi: () => void;
+  closeAbsensi: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -33,6 +37,7 @@ export const useUIStore = create<UIState>((set) => ({
   isCreateTaskOpen: false,
   isCreateMemberOpen: false,
   isCreateWorkspaceOpen: false,
+  isAbsensiOpen: false,
   
   openCreateProject: () => set({ isCreateProjectOpen: true }),
   closeCreateProject: () => set({ isCreateProjectOpen: false }),
@@ -45,4 +50,7 @@ export const useUIStore = create<UIState>((set) => ({
   
   openCreateWorkspace: () => set({ isCreateWorkspaceOpen: true }),
   closeCreateWorkspace: () => set({ isCreateWorkspaceOpen: false }),
+  
+  openAbsensi: () => set({ isAbsensiOpen: true }),
+  closeAbsensi: () => set({ isAbsensiOpen: false }),
 }));
