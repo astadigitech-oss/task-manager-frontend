@@ -39,7 +39,7 @@ interface AbsensiDialogProps {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function getTodayDateString(): string {

@@ -36,7 +36,7 @@ import {
     useDownloadTaskFile,
     useViewTaskFile,
 } from "@/hooks/task/useTaskFiles";
-import { useWorkspace } from "@/context/WorkspaceContext"; // TAMBAHKAN INI
+import { useWorkspace } from "@/context/WorkspaceContext";
 
 interface TaskContextType {
     selectedProjectId: number | null;
@@ -52,7 +52,7 @@ const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export function TaskProvider({ children }: { children: ReactNode }) {
     const { isAuthenticated, isHydrated } = useAuthStore();
-    const { selectedWorkspaceId: contextWorkspaceId } = useWorkspace(); // AMBIL DARI WORKSPACE CONTEXT
+    const { selectedWorkspaceId: contextWorkspaceId } = useWorkspace();
 
     const [selectedProjectId, setSelectedProjectIdState] = useState<number | null>(null);
     const [selectedWorkspaceId, setSelectedWorkspaceIdState] = useState<number | null>(null);
