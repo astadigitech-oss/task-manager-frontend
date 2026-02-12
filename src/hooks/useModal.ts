@@ -5,12 +5,16 @@ export function useModal() {
         isCreateProjectOpen,
         isCreateTaskOpen,
         isCreateWorkspaceOpen,
+        isAbsensiOpen,
         openCreateProject,
         closeCreateProject,
         openCreateTask,
         closeCreateTask,
         openCreateWorkspace,
         closeCreateWorkspace,
+        openAbsensi,
+        closeAbsensi,
+        
     } = useUIStore();
 
     return {
@@ -29,5 +33,10 @@ export function useModal() {
             open: openCreateWorkspace,
             close: closeCreateWorkspace,
         },
+        Attendance: {
+            isOpen: isAbsensiOpen,
+            open: openAbsensi,
+            close: closeAbsensi,
+        }
     };
 }

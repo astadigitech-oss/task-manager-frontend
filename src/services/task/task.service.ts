@@ -6,6 +6,7 @@ import {
     TaskListResponse,
     TaskResponse,
 } from "@/types/api/task.api";
+import { ApiResponse } from "@/types/api/user.api";
 
 const handleApiError = (error: any, customMessage?: string) => {
     if (error instanceof ApiError) {
@@ -116,6 +117,18 @@ export const tasksService = {
             throw handleApiError(error, "Gagal update task");
         }
     },
+
+    // async updateOrder(
+    //     workspaceId: number,
+    //     projectId: number,
+    //     orderedTaskIds: number[]
+    // ): Promise<ApiResponse<void>> {
+    //     const response = await apiClient.put(
+    //         API_ENDPOINTS.TASKS.UPDATE_ORDER(workspaceId, projectId),
+    //         { task_ids: orderedTaskIds }
+    //     );
+    //     return response.data;
+    // },
 
     /**
      * Soft delete task
