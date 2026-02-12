@@ -121,13 +121,19 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
 
   // ── Load saved attendance when dialog opens ──────────────────────────────────
   useEffect(() => {
-    if (isOpen && selectedWorkspaceId && savedAttendance) {
+    if (!isOpen) return;
+
+    if (selectedWorkspaceId && hasSubmitted && savedAttendance) {
+      // Load saved attendance when user already submitted today
       setActivity(savedAttendance.activity);
       setObstacle(savedAttendance.obstacle);
-      setPreviews(savedAttendance.previews);
+      setPreviews(savedAttendance.previews || []);
       // Note: Files cannot be restored, only previews
+    } else if (!hasSubmitted) {
+      // Reset form if not submitted today
+      resetForm();
     }
-  }, [isOpen, selectedWorkspaceId, savedAttendance]);
+  }, [isOpen, selectedWorkspaceId, hasSubmitted]);
 
   // ── Midnight auto-reset ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -142,6 +148,17 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
   const validateAndAdd = useCallback((files: File[]) => {
     if (hasSubmitted) {
       showErrorToast("Anda sudah melakukan absensi hari ini");
+      return;
+    }
+
+    // Limit to 1 file only
+    if (selectedFiles.length > 0) {
+      showErrorToast("Hanya 1 file gambar yang diperbolehkan");
+      return;
+    }
+
+    if (files.length > 1) {
+      showErrorToast("Hanya 1 file gambar yang diperbolehkan");
       return;
     }
 
@@ -166,7 +183,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
       };
       r.readAsDataURL(f);
     });
-  }, [hasSubmitted]);
+  }, [hasSubmitted, selectedFiles.length]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) validateAndAdd(Array.from(e.target.files));
@@ -184,7 +201,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
   const onDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isSubmitting && !hasSubmitted) setIsDragging(true);
+    if (!isSubmitting && !hasSubmitted && selectedFiles.length === 0) setIsDragging(true);
   };
   const onDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
@@ -200,7 +217,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    if (isSubmitting || hasSubmitted) return;
+    if (isSubmitting || hasSubmitted || selectedFiles.length > 0) return;
     const imgs = Array.from(e.dataTransfer.files).filter((f) =>
       f.type.startsWith("image/")
     );
@@ -431,7 +448,8 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>
-                  Bukti Foto
+                  Bukti Foto{" "}
+                  <span className="text-destructive">*</span>
                   {previews.length > 0 && (
                     <span className="ml-2 text-xs text-muted-foreground font-normal">
                       ({previews.length} foto)
@@ -464,13 +482,13 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                     isDragging
                       ? "border-primary bg-primary/5 scale-[1.01]"
                       : "border-border bg-muted/30 hover:bg-muted/50",
-                    isSubmitting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                    isSubmitting || selectedFiles.length > 0 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
                   )}
-                  onClick={() => !isSubmitting && fileInputRef.current?.click()}
-                  onDragEnter={onDragEnter}
-                  onDragOver={onDragOver}
-                  onDragLeave={onDragLeave}
-                  onDrop={onDrop}
+                  onClick={() => !isSubmitting && selectedFiles.length === 0 && fileInputRef.current?.click()}
+                  onDragEnter={selectedFiles.length === 0 ? onDragEnter : undefined}
+                  onDragOver={selectedFiles.length === 0 ? onDragOver : undefined}
+                  onDragLeave={selectedFiles.length === 0 ? onDragLeave : undefined}
+                  onDrop={selectedFiles.length === 0 ? onDrop : undefined}
                 >
                   <Upload
                     className={cn(
@@ -501,11 +519,10 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
               <input
                 ref={fileInputRef}
                 type="file"
-                multiple
                 accept={ACCEPTED_TYPES.join(",")}
                 className="hidden"
                 onChange={handleFileSelect}
-                disabled={isSubmitting || hasSubmitted}
+                disabled={isSubmitting || hasSubmitted || selectedFiles.length > 0}
               />
 
               {/* Upload progress */}
