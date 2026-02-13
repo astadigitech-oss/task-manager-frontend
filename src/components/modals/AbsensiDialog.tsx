@@ -260,7 +260,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
     setSelectedFiles((p) => p.filter((_, i) => i !== idx));
     setPreviews((p) => {
       const updated = p.filter((_, i) => i !== idx);
-      // Update draft dengan preview yang sudah dihapus
+
       scheduleDraftSave(activity, obstacle, updated);
       return updated;
     });

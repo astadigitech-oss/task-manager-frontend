@@ -7,7 +7,7 @@ export interface AttendanceFormData {
   obstacle: string;
   images: File[];
   previews: string[];
-  submittedAt: string; // ISO timestamp
+  submittedAt: string;
   workspaceId: number;
 }
 
@@ -16,7 +16,7 @@ export interface AttendanceDraftData {
   activity: string;
   obstacle: string;
   previews: string[]; // base64 previews (bisa di-persist)
-  savedAt: string;    // ISO timestamp – untuk validasi "masih hari ini?"
+  savedAt: string;    // ISO timestamp saat terakhir disimpan
   workspaceId: number;
 }
 
@@ -245,7 +245,7 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         defaultWorkspaceId: state.defaultWorkspaceId,
         todayAttendance: state.todayAttendance,
-        // Simpan draft TANPA field images (karena File[] tidak serializable)
+
         attendanceDraft: Object.fromEntries(
           Object.entries(state.attendanceDraft).map(([id, draft]) => [
             id,
