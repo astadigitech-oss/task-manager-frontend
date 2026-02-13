@@ -7,7 +7,16 @@ export interface AttendanceFormData {
   obstacle: string;
   images: File[];
   previews: string[];
-  submittedAt: string; // ISO timestamp
+  submittedAt: string;
+  workspaceId: number;
+}
+
+// Draft = isian yang belum disubmit (disimpan sementara)
+export interface AttendanceDraftData {
+  activity: string;
+  obstacle: string;
+  previews: string[]; // base64 previews (bisa di-persist)
+  savedAt: string;    // ISO timestamp saat terakhir disimpan
   workspaceId: number;
 }
 
@@ -17,28 +26,48 @@ export interface AuthState {
   isAuthenticated: boolean;
   isHydrated: boolean;
   profileBootstrapped?: boolean;
-  
+
   defaultWorkspaceId: number | null;
-  
-  // Attendance state
+
+  // Submitted attendance (setelah berhasil submit)
   todayAttendance: Record<number, AttendanceFormData>; // key: workspaceId
-  
-  login: (data: { 
-    user: UserProfile; 
+
+  // Draft attendance (sedang diisi, belum submit)
+  attendanceDraft: Record<number, AttendanceDraftData>; // key: workspaceId
+
+  login: (data: {
+    user: UserProfile;
     token: string;
-    defaultWorkspaceId?: number; 
+    defaultWorkspaceId?: number;
   }) => void;
   logout: () => void;
   updateUser: (user: Partial<UserProfile>) => void;
   setHydrated: (value: boolean) => void;
-  
+
   setDefaultWorkspaceId: (workspaceId: number) => void;
-  
-  // Attendance actions
-  saveAttendance: (workspaceId: number, data: Omit<AttendanceFormData, 'submittedAt' | 'workspaceId'>) => void;
+
+  // Submitted attendance actions
+  saveAttendance: (workspaceId: number, data: Omit<AttendanceFormData, "submittedAt" | "workspaceId">) => void;
   getAttendance: (workspaceId: number) => AttendanceFormData | null;
   hasSubmittedToday: (workspaceId: number) => boolean;
   clearExpiredAttendance: () => void;
+
+  // Draft actions
+  saveDraft: (workspaceId: number, data: Omit<AttendanceDraftData, "savedAt" | "workspaceId">) => void;
+  getDraft: (workspaceId: number) => AttendanceDraftData | null;
+  clearDraft: (workspaceId: number) => void;
+  clearExpiredDrafts: () => void;
+}
+
+// ─── Helper: cek apakah timestamp masih hari ini ──────────────────────────────
+function isToday(isoTimestamp: string): boolean {
+  const saved = new Date(isoTimestamp);
+  const now = new Date();
+  return (
+    saved.getFullYear() === now.getFullYear() &&
+    saved.getMonth() === now.getMonth() &&
+    saved.getDate() === now.getDate()
+  );
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -50,6 +79,7 @@ export const useAuthStore = create<AuthState>()(
       isHydrated: false,
       defaultWorkspaceId: null,
       todayAttendance: {},
+      attendanceDraft: {},
 
       setHydrated: (value: boolean) => set({ isHydrated: value }),
 
@@ -64,23 +94,23 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== "undefined") {
           document.cookie = `token=Bearer ${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
           document.cookie = `role=${user.role}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
-          window.dispatchEvent(new Event('user-logged-in'));
+          window.dispatchEvent(new Event("user-logged-in"));
         }
       },
 
       updateUser: (updatedFields) => {
         set((state) => {
           if (!state.user) return state;
-          
+
           const hasChanges = Object.keys(updatedFields).some(
-            key => updatedFields[key as keyof typeof updatedFields] !== state.user![key as keyof UserProfile]
+            (key) =>
+              updatedFields[key as keyof typeof updatedFields] !==
+              state.user![key as keyof UserProfile]
           );
-          
+
           if (!hasChanges) return state;
-          
-          return {
-            user: { ...state.user, ...updatedFields }
-          };
+
+          return { user: { ...state.user, ...updatedFields } };
         });
       },
 
@@ -88,7 +118,8 @@ export const useAuthStore = create<AuthState>()(
         set({ defaultWorkspaceId: workspaceId });
       },
 
-      // Save attendance after successful submission
+      // ── Submitted attendance ──────────────────────────────────────────────────
+
       saveAttendance: (workspaceId, data) => {
         set((state) => ({
           todayAttendance: {
@@ -97,53 +128,88 @@ export const useAuthStore = create<AuthState>()(
               ...data,
               submittedAt: new Date().toISOString(),
               workspaceId,
-            }
-          }
+            },
+          },
+          // Hapus draft setelah berhasil submit
+          attendanceDraft: (() => {
+            const next = { ...state.attendanceDraft };
+            delete next[workspaceId];
+            return next;
+          })(),
         }));
       },
 
-      // Get attendance for specific workspace
       getAttendance: (workspaceId) => {
         const attendance = get().todayAttendance[workspaceId];
         if (!attendance) return null;
-
-        // Check if attendance is from today
-        const submittedDate = new Date(attendance.submittedAt);
-        const today = new Date();
-        
-        const isSameDay = 
-          submittedDate.getDate() === today.getDate() &&
-          submittedDate.getMonth() === today.getMonth() &&
-          submittedDate.getFullYear() === today.getFullYear();
-
-        return isSameDay ? attendance : null;
+        return isToday(attendance.submittedAt) ? attendance : null;
       },
 
-      // Check if user has submitted attendance today
       hasSubmittedToday: (workspaceId) => {
-        const attendance = get().getAttendance(workspaceId);
-        return attendance !== null;
+        return get().getAttendance(workspaceId) !== null;
       },
 
-      // Clear expired attendance (called on mount/midnight)
       clearExpiredAttendance: () => {
-        const today = new Date();
         const filtered: Record<number, AttendanceFormData> = {};
 
-        Object.entries(get().todayAttendance).forEach(([workspaceId, attendance]) => {
-          const submittedDate = new Date(attendance.submittedAt);
-          
-          const isSameDay = 
-            submittedDate.getDate() === today.getDate() &&
-            submittedDate.getMonth() === today.getMonth() &&
-            submittedDate.getFullYear() === today.getFullYear();
-
-          if (isSameDay) {
-            filtered[Number(workspaceId)] = attendance;
+        Object.entries(get().todayAttendance).forEach(([id, attendance]) => {
+          if (isToday(attendance.submittedAt)) {
+            filtered[Number(id)] = attendance;
           }
         });
 
         set({ todayAttendance: filtered });
+      },
+
+      // ── Draft attendance ──────────────────────────────────────────────────────
+
+      /**
+       * Simpan draft form (dipanggil saat user mengetik / mengganti foto).
+       * File[] tidak bisa di-persist, jadi hanya previews (base64) yang disimpan.
+       */
+      saveDraft: (workspaceId, data) => {
+        set((state) => ({
+          attendanceDraft: {
+            ...state.attendanceDraft,
+            [workspaceId]: {
+              ...data,
+              savedAt: new Date().toISOString(),
+              workspaceId,
+            },
+          },
+        }));
+      },
+
+      /**
+       * Ambil draft hari ini untuk workspace tertentu.
+       * Mengembalikan null jika tidak ada atau sudah expired (beda hari).
+       */
+      getDraft: (workspaceId) => {
+        const draft = get().attendanceDraft[workspaceId];
+        if (!draft) return null;
+        return isToday(draft.savedAt) ? draft : null;
+      },
+
+      /** Hapus draft workspace tertentu (setelah submit atau user sengaja reset). */
+      clearDraft: (workspaceId) => {
+        set((state) => {
+          const next = { ...state.attendanceDraft };
+          delete next[workspaceId];
+          return { attendanceDraft: next };
+        });
+      },
+
+      /** Hapus semua draft yang sudah beda hari (dipanggil saat rehydrate / midnight). */
+      clearExpiredDrafts: () => {
+        const filtered: Record<number, AttendanceDraftData> = {};
+
+        Object.entries(get().attendanceDraft).forEach(([id, draft]) => {
+          if (isToday(draft.savedAt)) {
+            filtered[Number(id)] = draft;
+          }
+        });
+
+        set({ attendanceDraft: filtered });
       },
 
       logout: () => {
@@ -157,13 +223,13 @@ export const useAuthStore = create<AuthState>()(
           token: null,
           isAuthenticated: false,
           defaultWorkspaceId: null,
-          todayAttendance: {},
+          todayAttendance: get().todayAttendance,
+          attendanceDraft: get().attendanceDraft,
         });
 
         if (typeof window !== "undefined") {
           try {
-            localStorage.removeItem("auth-storage");
-            window.dispatchEvent(new Event('user-logged-out'));
+            window.dispatchEvent(new Event("user-logged-out"));
           } catch (e) {
             console.error("Error during logout cleanup:", e);
           }
@@ -172,6 +238,27 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage",
+      // File[] tidak bisa di-serialize → exclude dari persist
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
+        defaultWorkspaceId: state.defaultWorkspaceId,
+        todayAttendance: state.todayAttendance,
+
+        attendanceDraft: Object.fromEntries(
+          Object.entries(state.attendanceDraft).map(([id, draft]) => [
+            id,
+            {
+              activity: draft.activity,
+              obstacle: draft.obstacle,
+              previews: draft.previews,
+              savedAt: draft.savedAt,
+              workspaceId: draft.workspaceId,
+            },
+          ])
+        ),
+      }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHydrated(true);
@@ -180,8 +267,9 @@ export const useAuthStore = create<AuthState>()(
             document.cookie = `token=Bearer ${state.token}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
           }
 
-          // Clear expired attendance on rehydration
+          // Bersihkan data expired saat aplikasi dibuka
           state.clearExpiredAttendance();
+          state.clearExpiredDrafts();
         }
       },
     }
