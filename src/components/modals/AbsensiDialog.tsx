@@ -40,14 +40,15 @@ interface AbsensiDialogProps {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const DRAFT_DEBOUNCE_MS = 600; // simpan draft 600ms setelah user berhenti mengetik
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function getTodayDateString(): string {
   const now = new Date();
   const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`; // "YYYY-MM-DD" in local timezone
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function msUntilMidnight(): number {
@@ -58,27 +59,17 @@ function msUntilMidnight(): number {
 }
 
 function formatDateForFilename(date: string): string {
-  return date.replace(/-/g, '');
+  return date.replace(/-/g, "");
 }
 
 function extractErrorMessage(error: any): string {
-  console.error('Full error object:', error);
+  console.error("Full error object:", error);
 
-  if (error?.response?.data?.error) {
-    return error.response.data.error;
-  }
-
-  if (error?.response?.data?.message) {
-    return error.response.data.message;
-  }
-
-  if (typeof error?.response?.data === 'string') {
-    return error.response.data;
-  }
-
-  if (error?.message && !error.message.toLowerCase().includes('request failed')) {
+  if (error?.response?.data?.error) return error.response.data.error;
+  if (error?.response?.data?.message) return error.response.data.message;
+  if (typeof error?.response?.data === "string") return error.response.data;
+  if (error?.message && !error.message.toLowerCase().includes("request failed"))
     return error.message;
-  }
 
   return "Anda Sudah Melakukan Absensi Hari Ini.";
 }
@@ -91,14 +82,21 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
     saveAttendance,
     getAttendance,
     hasSubmittedToday,
-    clearExpiredAttendance
+    clearExpiredAttendance,
+    saveDraft,
+    getDraft,
+    clearDraft,
+    clearExpiredDrafts,
   } = useAuthStore();
 
   const isAdmin = user?.role === "admin";
 
-  // Check if already submitted today
-  const hasSubmitted = selectedWorkspaceId ? hasSubmittedToday(selectedWorkspaceId) : false;
-  const savedAttendance = selectedWorkspaceId ? getAttendance(selectedWorkspaceId) : null;
+  const hasSubmitted = selectedWorkspaceId
+    ? hasSubmittedToday(selectedWorkspaceId)
+    : false;
+  const savedAttendance = selectedWorkspaceId
+    ? getAttendance(selectedWorkspaceId)
+    : null;
 
   // ── Form state ───────────────────────────────────────────────────────────────
   const [activity, setActivity] = useState("");
@@ -119,19 +117,59 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // ── Load saved attendance when dialog opens ──────────────────────────────────
-  useEffect(() => {
-    if (!isOpen) return;
+  // ── Draft auto-save (debounced) ───────────────────────────────────────────────
+  // Ref untuk debounce timer
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    if (selectedWorkspaceId && hasSubmitted && savedAttendance) {
-      // Load saved attendance when user already submitted today
+  /**
+   * Dipanggil setiap kali activity/obstacle/previews berubah.
+   * Hanya simpan jika belum submit dan workspace sudah dipilih.
+   */
+  const scheduleDraftSave = useCallback(
+    (newActivity: string, newObstacle: string, newPreviews: string[]) => {
+      if (!selectedWorkspaceId || hasSubmitted) return;
+
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+
+      draftTimerRef.current = setTimeout(() => {
+        saveDraft(selectedWorkspaceId, {
+          activity: newActivity,
+          obstacle: newObstacle,
+          previews: newPreviews,
+        });
+      }, DRAFT_DEBOUNCE_MS);
+    },
+    [selectedWorkspaceId, hasSubmitted, saveDraft]
+  );
+
+  // Cleanup timer saat unmount
+  useEffect(() => {
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    };
+  }, []);
+
+  // ── Load state saat dialog dibuka ────────────────────────────────────────────
+  useEffect(() => {
+    if (!isOpen || !selectedWorkspaceId) return;
+
+    if (hasSubmitted && savedAttendance) {
+      // Tampilkan data yang sudah disubmit (read-only)
       setActivity(savedAttendance.activity);
       setObstacle(savedAttendance.obstacle);
       setPreviews(savedAttendance.previews || []);
-      // Note: Files cannot be restored, only previews
     } else if (!hasSubmitted) {
-      // Reset form if not submitted today
-      resetForm();
+      // Coba load draft hari ini
+      const draft = getDraft(selectedWorkspaceId);
+      if (draft) {
+        setActivity(draft.activity);
+        setObstacle(draft.obstacle);
+        setPreviews(draft.previews || []);
+        // File[] tidak bisa di-restore dari storage, hanya preview-nya
+        // selectedFiles tetap kosong → user perlu upload ulang jika perlu foto
+      } else {
+        resetFormFields();
+      }
     }
   }, [isOpen, selectedWorkspaceId, hasSubmitted]);
 
@@ -139,51 +177,78 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       clearExpiredAttendance();
-      resetForm();
+      clearExpiredDrafts();
+      resetFormFields();
     }, msUntilMidnight());
     return () => clearTimeout(timer);
-  }, [clearExpiredAttendance]);
+  }, [clearExpiredAttendance, clearExpiredDrafts]);
+
+  // ── Field change handlers (trigger draft auto-save) ──────────────────────────
+  const handleActivityChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setActivity(val);
+    scheduleDraftSave(val, obstacle, previews);
+  };
+
+  const handleObstacleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setObstacle(val);
+    scheduleDraftSave(activity, val, previews);
+  };
 
   // ── File helpers ──────────────────────────────────────────────────────────────
-  const validateAndAdd = useCallback((files: File[]) => {
-    if (hasSubmitted) {
-      showErrorToast("Anda sudah melakukan absensi hari ini");
-      return;
-    }
-
-    // Limit to 1 file only
-    if (selectedFiles.length > 0) {
-      showErrorToast("Hanya 1 file gambar yang diperbolehkan");
-      return;
-    }
-
-    if (files.length > 1) {
-      showErrorToast("Hanya 1 file gambar yang diperbolehkan");
-      return;
-    }
-
-    const valid: File[] = [];
-    files.forEach((f) => {
-      if (!ACCEPTED_TYPES.includes(f.type)) {
-        showErrorToast(`${f.name} bukan format yang didukung (JPEG/PNG/WebP)`);
+  const validateAndAdd = useCallback(
+    (files: File[]) => {
+      if (hasSubmitted) {
+        showErrorToast("Anda sudah melakukan absensi hari ini");
         return;
       }
-      if (f.size > MAX_FILE_SIZE) {
-        showErrorToast(`${f.name} melebihi batas 1MB`);
+
+      if (selectedFiles.length > 0) {
+        showErrorToast("Hanya 1 file gambar yang diperbolehkan");
         return;
       }
-      valid.push(f);
-    });
-    if (!valid.length) return;
-    setSelectedFiles((p) => [...p, ...valid]);
-    valid.forEach((f) => {
-      const r = new FileReader();
-      r.onload = () => {
-        if (r.result) setPreviews((p) => [...p, r.result as string]);
-      };
-      r.readAsDataURL(f);
-    });
-  }, [hasSubmitted, selectedFiles.length]);
+
+      if (files.length > 1) {
+        showErrorToast("Hanya 1 file gambar yang diperbolehkan");
+        return;
+      }
+
+      const valid: File[] = [];
+      files.forEach((f) => {
+        if (!ACCEPTED_TYPES.includes(f.type)) {
+          showErrorToast(`${f.name} bukan format yang didukung (JPEG/PNG/WebP)`);
+          return;
+        }
+        if (f.size > MAX_FILE_SIZE) {
+          showErrorToast(`${f.name} melebihi batas 1MB`);
+          return;
+        }
+        valid.push(f);
+      });
+
+      if (!valid.length) return;
+
+      setSelectedFiles((p) => [...p, ...valid]);
+
+      valid.forEach((f) => {
+        const r = new FileReader();
+        r.onload = () => {
+          if (r.result) {
+            const newPreview = r.result as string;
+            setPreviews((p) => {
+              const updated = [...p, newPreview];
+              // Simpan draft dengan preview baru
+              scheduleDraftSave(activity, obstacle, updated);
+              return updated;
+            });
+          }
+        };
+        r.readAsDataURL(f);
+      });
+    },
+    [hasSubmitted, selectedFiles.length, activity, obstacle, scheduleDraftSave]
+  );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) validateAndAdd(Array.from(e.target.files));
@@ -193,7 +258,12 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
   const removeImage = (idx: number) => {
     if (hasSubmitted) return;
     setSelectedFiles((p) => p.filter((_, i) => i !== idx));
-    setPreviews((p) => p.filter((_, i) => i !== idx));
+    setPreviews((p) => {
+      const updated = p.filter((_, i) => i !== idx);
+      // Update draft dengan preview yang sudah dihapus
+      scheduleDraftSave(activity, obstacle, updated);
+      return updated;
+    });
     setCurrentIndex((p) => Math.max(0, Math.min(p, selectedFiles.length - 2)));
   };
 
@@ -201,18 +271,25 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
   const onDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isSubmitting && !hasSubmitted && selectedFiles.length === 0) setIsDragging(true);
+    if (!isSubmitting && !hasSubmitted && selectedFiles.length === 0)
+      setIsDragging(true);
   };
   const onDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const r = e.currentTarget.getBoundingClientRect();
     if (
-      e.clientX <= r.left || e.clientX >= r.right ||
-      e.clientY <= r.top || e.clientY >= r.bottom
-    ) setIsDragging(false);
+      e.clientX <= r.left ||
+      e.clientX >= r.right ||
+      e.clientY <= r.top ||
+      e.clientY >= r.bottom
+    )
+      setIsDragging(false);
   };
-  const onDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); };
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -221,12 +298,15 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
     const imgs = Array.from(e.dataTransfer.files).filter((f) =>
       f.type.startsWith("image/")
     );
-    if (!imgs.length) { showErrorToast("Tidak ada gambar yang valid"); return; }
+    if (!imgs.length) {
+      showErrorToast("Tidak ada gambar yang valid");
+      return;
+    }
     validateAndAdd(imgs);
   };
 
   // ── Reset & close ─────────────────────────────────────────────────────────────
-  const resetForm = () => {
+  const resetFormFields = () => {
     setActivity("");
     setObstacle("");
     setSelectedFiles([]);
@@ -238,8 +318,10 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
 
   const handleClose = () => {
     if (!isSubmitting && !isExporting) {
-      if (!hasSubmitted) {
-        resetForm();
+      // Draft sudah tersimpan otomatis di Zustand → tidak perlu reset
+      // Hanya reset kalau belum submit DAN form kosong total
+      if (!hasSubmitted && !activity.trim() && !obstacle.trim() && previews.length === 0) {
+        if (selectedWorkspaceId) clearDraft(selectedWorkspaceId);
       }
       onClose();
     }
@@ -284,7 +366,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
         setUploadProgress(100);
       }
 
-      // Save to Zustand
+      // Simpan ke submitted store (sekaligus hapus draft otomatis)
       saveAttendance(selectedWorkspaceId, {
         activity: activity.trim(),
         obstacle: obstacle.trim(),
@@ -293,9 +375,6 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
       });
 
       showSuccessToast(`Absensi berhasil! Selamat bekerja, ${user?.name ?? ""}!`);
-
-      // Don't reset form after successful submission
-      // User can view their submitted data
       onClose();
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
@@ -318,10 +397,15 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
 
     setIsExporting(true);
     try {
-      const blob = await workspaceAttendanceService.export(selectedWorkspaceId, exportDate);
+      const blob = await workspaceAttendanceService.export(
+        selectedWorkspaceId,
+        exportDate
+      );
 
-      const workspaceName = selectedWorkspace?.name || 'workspace';
-      const sanitizedName = workspaceName.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30);
+      const workspaceName = selectedWorkspace?.name || "workspace";
+      const sanitizedName = workspaceName
+        .replace(/[^a-zA-Z0-9_-]/g, "_")
+        .substring(0, 30);
       const dateFormatted = formatDateForFilename(exportDate);
       const filename = `${sanitizedName}_absensi_${dateFormatted}.pdf`;
 
@@ -329,7 +413,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
       const a = document.createElement("a");
       a.href = url;
       a.download = filename;
-      a.style.display = 'none';
+      a.style.display = "none";
 
       document.body.appendChild(a);
       a.click();
@@ -355,7 +439,12 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <Dialog open={isOpen} onOpenChange={(o) => { if (!o) handleClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(o) => {
+        if (!o) handleClose();
+      }}
+    >
       <DialogContent
         showCloseButton={false}
         className="max-w-2xl p-0 gap-0 overflow-hidden max-h-[92vh] flex flex-col"
@@ -370,6 +459,12 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
               <span className="ml-auto flex items-center gap-1.5 text-sm font-normal text-green-600">
                 <CheckCircle2 className="w-4 h-4" />
                 Sudah Absen
+              </span>
+            )}
+            {/* Indikator draft tersimpan */}
+            {!hasSubmitted && selectedWorkspaceId && getDraft(selectedWorkspaceId) && (
+              <span className="ml-auto text-xs text-muted-foreground font-normal">
+                Draft tersimpan
               </span>
             )}
           </DialogTitle>
@@ -392,9 +487,32 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                     Absensi Hari Ini Sudah Tercatat
                   </p>
                   <p className="text-xs text-green-700 mt-1">
-                    Anda sudah melakukan absensi untuk workspace ini. Silakan coba lagi besok.
+                    Anda sudah melakukan absensi untuk workspace ini. Silakan
+                    coba lagi besok.
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* Draft info banner */}
+            {!hasSubmitted && selectedWorkspaceId && getDraft(selectedWorkspaceId) && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between gap-3">
+                <p className="text-xs text-blue-700">
+                  Draft ditemukan dan sudah dimuat. Form akan tersimpan otomatis
+                  saat Anda mengetik.
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs text-blue-600 hover:text-blue-800 shrink-0 px-2"
+                  onClick={() => {
+                    if (selectedWorkspaceId) clearDraft(selectedWorkspaceId);
+                    resetFormFields();
+                  }}
+                >
+                  Reset
+                </Button>
               </div>
             )}
 
@@ -419,7 +537,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
               <Textarea
                 id="activity"
                 value={activity}
-                onChange={(e) => setActivity(e.target.value)}
+                onChange={handleActivityChange}
                 placeholder="Deskripsikan kegiatan yang dilakukan hari ini..."
                 rows={3}
                 disabled={isSubmitting || hasSubmitted}
@@ -435,7 +553,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
               <Textarea
                 id="obstacle"
                 value={obstacle}
-                onChange={(e) => setObstacle(e.target.value)}
+                onChange={handleObstacleChange}
                 placeholder="Deskripsikan kendala yang dihadapi (opsional)..."
                 rows={3}
                 disabled={isSubmitting || hasSubmitted}
@@ -466,6 +584,14 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                       setSelectedFiles([]);
                       setPreviews([]);
                       setCurrentIndex(0);
+                      // Update draft tanpa foto
+                      if (selectedWorkspaceId) {
+                        saveDraft(selectedWorkspaceId, {
+                          activity,
+                          obstacle,
+                          previews: [],
+                        });
+                      }
                     }}
                     disabled={isSubmitting}
                   >
@@ -482,12 +608,24 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                     isDragging
                       ? "border-primary bg-primary/5 scale-[1.01]"
                       : "border-border bg-muted/30 hover:bg-muted/50",
-                    isSubmitting || selectedFiles.length > 0 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                    isSubmitting || selectedFiles.length > 0
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
                   )}
-                  onClick={() => !isSubmitting && selectedFiles.length === 0 && fileInputRef.current?.click()}
-                  onDragEnter={selectedFiles.length === 0 ? onDragEnter : undefined}
-                  onDragOver={selectedFiles.length === 0 ? onDragOver : undefined}
-                  onDragLeave={selectedFiles.length === 0 ? onDragLeave : undefined}
+                  onClick={() =>
+                    !isSubmitting &&
+                    selectedFiles.length === 0 &&
+                    fileInputRef.current?.click()
+                  }
+                  onDragEnter={
+                    selectedFiles.length === 0 ? onDragEnter : undefined
+                  }
+                  onDragOver={
+                    selectedFiles.length === 0 ? onDragOver : undefined
+                  }
+                  onDragLeave={
+                    selectedFiles.length === 0 ? onDragLeave : undefined
+                  }
                   onDrop={selectedFiles.length === 0 ? onDrop : undefined}
                 >
                   <Upload
@@ -522,7 +660,9 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                 accept={ACCEPTED_TYPES.join(",")}
                 className="hidden"
                 onChange={handleFileSelect}
-                disabled={isSubmitting || hasSubmitted || selectedFiles.length > 0}
+                disabled={
+                  isSubmitting || hasSubmitted || selectedFiles.length > 0
+                }
               />
 
               {/* Upload progress */}
@@ -546,7 +686,9 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                       variant="ghost"
                       className="h-8 w-8 shrink-0"
                       disabled={!canPrev || isSubmitting || hasSubmitted}
-                      onClick={() => setCurrentIndex((p) => Math.max(0, p - 4))}
+                      onClick={() =>
+                        setCurrentIndex((p) => Math.max(0, p - 4))
+                      }
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
@@ -615,7 +757,8 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                     Export PDF Laporan Absensi
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Download laporan absensi seluruh anggota berdasarkan tanggal.
+                    Download laporan absensi seluruh anggota berdasarkan
+                    tanggal.
                   </p>
                 </div>
 
