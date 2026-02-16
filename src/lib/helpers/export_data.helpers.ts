@@ -231,11 +231,11 @@ export function getWeeklyForwardExportData(
 }
 
 // ============================================
-// AGENDA EXPORT
+// MONITORING EXPORT
 // ============================================
 
-export interface AgendaExportData {
-    type: "agenda";
+export interface MonitoringExportData {
+    type: "monitoring";
     title: string;
     period: string;
     past: {
@@ -248,11 +248,11 @@ export interface AgendaExportData {
     };
 }
 
-export function getAgendaExportData(
+export function getMonitoringExportData(
     tasks: TaskApi[],
     projectId: number,
     referenceDate?: Date
-): AgendaExportData {
+): MonitoringExportData {
     const now = referenceDate || new Date();
     const today = startOfDay(now);
     const weekAgo = subDays(today, 7);
@@ -335,8 +335,8 @@ export function getAgendaExportData(
     });
 
     return {
-        type: "agenda",
-        title: "Agenda Report (2 Weeks View)",
+        type: "monitoring",
+        title: "Monitoring Report (2 Weeks View)",
         period: `${format(weekAgo, "MMM dd")} - ${format(weekAhead, "MMM dd, yyyy")}`,
         past: {
             completed: pastCompleted,
@@ -353,8 +353,8 @@ export function getAgendaExportData(
 // UNIFIED EXPORT DATA GETTER
 // ============================================
 
-export type ExportData = DailyExportData | WeeklyExportData | AgendaExportData;
-export type ExportType = "daily" | "weekly-forward" | "weekly-backward" | "agenda";
+export type ExportData = DailyExportData | WeeklyExportData | MonitoringExportData;
+export type ExportType = "daily" | "weekly-forward" | "weekly-backward" | "monitoring";
 
 export function getExportData(
     exportType: ExportType,
@@ -372,8 +372,8 @@ export function getExportData(
         case "weekly-forward":
             return getWeeklyForwardExportData(tasks, projectId, referenceDate);
         
-        case "agenda":
-            return getAgendaExportData(tasks, projectId, referenceDate);
+        case "monitoring":
+            return getMonitoringExportData(tasks, projectId, referenceDate);
         
         default:
             return getDailyExportData(tasks, projectId, referenceDate);

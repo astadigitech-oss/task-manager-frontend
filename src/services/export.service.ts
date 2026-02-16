@@ -8,7 +8,7 @@ import {
     formatExportError 
 } from "@/lib/utils/export.utils";
 
-export type ExportType = "daily" | "weekly-forward" | "weekly-backward" | "agenda";
+export type ExportType = "weekly-forward" | "weekly-backward" | "monitoring";
 
 export interface ExportPDFParams {
     project_id: number;
@@ -29,32 +29,32 @@ export interface DownloadResult {
  * Export Service - Handle PDF generation from backend
  */
 export const exportService = {
-    /**
-     * Export Daily PDF
-     */
-    exportDaily: async (project_id: number, date?: string): Promise<Blob> => {
-        try {
-            const response = await apiClient.get(
-                API_ENDPOINTS.EXPORT.DAILY(project_id),
-                {
-                    params: date ? { date } : undefined,
-                    responseType: "blob",
-                    headers: {
-                        'Accept': 'application/pdf',
-                    },
-                }
-            );
+    // /**
+    //  * Export Daily PDF
+    //  */
+    // exportDaily: async (project_id: number, date?: string): Promise<Blob> => {
+    //     try {
+    //         const response = await apiClient.get(
+    //             API_ENDPOINTS.EXPORT.DAILY(project_id),
+    //             {
+    //                 params: date ? { date } : undefined,
+    //                 responseType: "blob",
+    //                 headers: {
+    //                     'Accept': 'application/pdf',
+    //                 },
+    //             }
+    //         );
 
-            await validatePDFBlob(response.data);
-            return response.data;
-        } catch (err) {
-            console.error('Export Daily failed:', err);
-            throw new ApiError(
-                (err as any).status || 500, 
-                formatExportError(err)
-            );
-        }
-    },
+    //         await validatePDFBlob(response.data);
+    //         return response.data;
+    //     } catch (err) {
+    //         console.error('Export Daily failed:', err);
+    //         throw new ApiError(
+    //             (err as any).status || 500, 
+    //             formatExportError(err)
+    //         );
+    //     }
+    // },
 
     /**
      * Export Weekly Forward PDF
@@ -111,12 +111,12 @@ export const exportService = {
     },
 
     /**
-     * Export Agenda PDF
+     * Export Monitoring PDF
      */
-    exportAgenda: async (project_id: number, date?: string): Promise<Blob> => {
+    exportMonitoring: async (project_id: number, date?: string): Promise<Blob> => {
         try {
             const response = await apiClient.get(
-                API_ENDPOINTS.EXPORT.AGENDA(project_id),
+                API_ENDPOINTS.EXPORT.MONITORING(project_id),
                 {
                     params: date ? { date } : undefined,
                     responseType: "blob",
@@ -129,7 +129,7 @@ export const exportService = {
             await validatePDFBlob(response.data);
             return response.data;
         } catch (err) {
-            console.error('Export Agenda failed:', err);
+            console.error('Export Monitoring failed:', err);
             throw new ApiError(
                 (err as any).status || 500,
                 formatExportError(err)
@@ -144,8 +144,8 @@ export const exportService = {
         const { project_id, export_type, date } = params;
 
         switch (export_type) {
-            case "daily":
-                return exportService.exportDaily(project_id, date);
+            // case "daily":
+            //     return exportService.exportDaily(project_id, date);
             
             case "weekly-forward":
                 return exportService.exportWeeklyForward(project_id, date);
@@ -153,8 +153,8 @@ export const exportService = {
             case "weekly-backward":
                 return exportService.exportWeeklyBackward(project_id, date);
             
-            case "agenda":
-                return exportService.exportAgenda(project_id, date);
+            case "monitoring":
+                return exportService.exportMonitoring(project_id, date);
             
             default:
                 throw new ApiError(400, "Invalid export type");
