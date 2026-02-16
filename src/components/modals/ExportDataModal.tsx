@@ -37,7 +37,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
             {
                 project_id: projectId,
                 export_type: exportType,
-                date: exportType === "daily" ? format(new Date(), "yyyy-MM-dd") : undefined,
+                date: undefined,
             },
             projectName
         );
@@ -124,9 +124,9 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
             }
         }
 
-        // Agenda Format
-        if (data.type === "agenda") {
-            text += `AGENDA (2 WEEKS VIEW)\n`;
+        // Monitoring Format
+        if (data.type === "monitoring") {
+            text += `MONITORING (2 WEEKS VIEW)\n`;
             text += `${"-".repeat(50)}\n\n`;
 
             text += `PAST WEEK\n${"-".repeat(30)}\n\n`;
@@ -216,10 +216,10 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="daily">Daily - Today's Tasks</SelectItem>
+                                {/* <SelectItem value="daily">Daily - Today's Tasks</SelectItem> */}
                                 <SelectItem value="weekly-forward">Weekly Forward - Next 7 Days</SelectItem>
                                 <SelectItem value="weekly-backward">Weekly Backward - Last 7 Days</SelectItem>
-                                <SelectItem value="agenda">Agenda - 2 Weeks (Past & Future)</SelectItem>
+                                <SelectItem value="monitoring">Monitoring - 2 Weeks (Past & Future)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -286,8 +286,8 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                             </>
                         )}
 
-                        {/* Agenda Preview */}
-                        {previewData.type === "agenda" && (
+                        {/* Monitoring Preview */}
+                        {previewData.type === "monitoring" && (
                             <div className="space-y-3">
                                 <div className="border-t border-border pt-3">
                                     <p className="text-xs font-semibold mb-2">Past Week</p>

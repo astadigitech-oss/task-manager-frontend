@@ -138,8 +138,8 @@ export const API_ENDPOINTS = {
   },
 
   EXPORT: {
-    DAILY: (project_id: number) => `/api/projects/${project_id}/export/daily`,
-    AGENDA: (project_id: number) => `/api/projects/${project_id}/export/agenda`,
+    // DAILY: (project_id: number) => `/api/projects/${project_id}/export/daily`,
+    MONITORING: (project_id: number) => `/api/projects/${project_id}/export/monitoring`,
     WEEKLY_FORWARD: (project_id: number) => `/api/projects/${project_id}/export/weekly-forward`,
     WEEKLY_BACKWARD: (project_id: number) => `/api/projects/${project_id}/export/weekly-backward`,
   },

@@ -1,6 +1,6 @@
 import { TaskApi } from "./task.api";
 
-export type ExportType = "daily" | "weekly-forward" | "weekly-backward" | "agenda";
+export type ExportType =  "weekly-forward" | "weekly-backward" | "monitoring";
 
 export interface ExportPDFParams {
     project_id: number;
