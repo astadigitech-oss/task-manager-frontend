@@ -50,6 +50,7 @@ export function QuickAddTask({
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [assignees, setAssignees] = useState<number[]>([]);
+  const [startDate, setStartDate] = useState<string | undefined>();
   const [dueDate, setDueDate] = useState<string | undefined>();
   const [priority, setPriority] = useState<TaskPriority>("normal");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -69,6 +70,13 @@ export function QuickAddTask({
 
   useEffect(() => {
     if (isOpen) {
+      // Set start date to today automatically (using local timezone)
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const localDateString = `${year}-${month}-${day}`;
+      setStartDate(localDateString);
       inputRef.current?.focus();
     }
   }, [isOpen]);
@@ -80,6 +88,7 @@ export function QuickAddTask({
     }
 
     const payload = buildTaskPayload({
+      startDate: startDate,
       title: title.trim(),
       status,
       priority,
@@ -129,6 +138,7 @@ export function QuickAddTask({
   const handleCancel = () => {
     setTitle("");
     setAssignees([]);
+    setStartDate(undefined);
     setDueDate(undefined);
     setPriority("normal");
     setIsOpen(false);

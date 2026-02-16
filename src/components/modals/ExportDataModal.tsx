@@ -126,11 +126,10 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
 
         // Monitoring Format
         if (data.type === "monitoring") {
-            text += `MONITORING (2 WEEKS VIEW)\n`;
+            text += `MONITORING (7 DAYS BACKWARD)\n`;
             text += `${"-".repeat(50)}\n\n`;
 
-            text += `PAST WEEK\n${"-".repeat(30)}\n\n`;
-            text += `Completed (${data.past.completed.length})\n`;
+            text += `COMPLETED (${data.past.completed.length})\n`;
             data.past.completed.forEach((task, i) => {
                 text += `  ${i + 1}. ${task.title}\n`;
                 text += `     Deadline: ${formatTaskDeadline(task)}\n`;
@@ -140,28 +139,11 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                 text += `     Notes: ${formatTaskNotes(task)}\n`;
             });
 
-            text += `\nOn Progress (${data.past.onProgress.length})\n`;
+            text += `\nON PROGRESS (${data.past.onProgress.length})\n`;
             data.past.onProgress.forEach((task, i) => {
                 text += `  ${i + 1}. ${task.title} - ${task.status.toUpperCase()}\n`;
-                text += `     Notes: ${formatTaskNotes(task)}\n`;
-            });
-
-            text += `\n\nUPCOMING WEEK\n${"-".repeat(30)}\n\n`;
-            text += `Starting Soon (${data.upcoming.starting.length})\n`;
-            data.upcoming.starting.forEach((task, i) => {
-                text += `  ${i + 1}. ${task.title}\n`;
-                if (task.start_date) {
-                    text += `     Starts: ${format(new Date(task.start_date), "MMM dd, yyyy")}\n`;
-                }
-                text += `     Due: ${formatTaskDeadline(task)}\n`;
-                text += `     Notes: ${formatTaskNotes(task)}\n`;
-            });
-
-            text += `\nDue Soon (${data.upcoming.due.length})\n`;
-            data.upcoming.due.forEach((task, i) => {
-                text += `  ${i + 1}. ${task.title}\n`;
-                text += `     Due: ${formatTaskDeadline(task)}\n`;
                 text += `     Priority: ${task.priority.toUpperCase()}\n`;
+                text += `     Deadline: ${formatTaskDeadline(task)}\n`;
                 text += `     Notes: ${formatTaskNotes(task)}\n`;
             });
         }
@@ -219,7 +201,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                                 {/* <SelectItem value="daily">Daily - Today's Tasks</SelectItem> */}
                                 <SelectItem value="weekly-forward">Weekly Forward - Next 7 Days</SelectItem>
                                 <SelectItem value="weekly-backward">Weekly Backward - Last 7 Days</SelectItem>
-                                <SelectItem value="monitoring">Monitoring - 2 Weeks (Past & Future)</SelectItem>
+                                <SelectItem value="monitoring">Monitoring - Last 7 Days</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -290,28 +272,21 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                         {previewData.type === "monitoring" && (
                             <div className="space-y-3">
                                 <div className="border-t border-border pt-3">
-                                    <p className="text-xs font-semibold mb-2">Past Week</p>
+                                    <p className="text-xs font-semibold mb-2">Last 7 Days</p>
                                     <div className="space-y-2">
-                                        <div className="flex justify-between text-xs p-2 rounded hover:bg-accent">
-                                            <span>Completed</span>
-                                            <Badge variant="outline" className="h-5">{previewData.past.completed.length}</Badge>
+                                        <div className="flex items-center justify-between p-3 bg-card border border-border rounded hover:bg-accent">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                                <span className="text-sm text-foreground">Completed</span>
+                                            </div>
+                                            <Badge variant="secondary">{previewData.past.completed.length}</Badge>
                                         </div>
-                                        <div className="flex justify-between text-xs p-2 rounded hover:bg-accent">
-                                            <span>In Progress</span>
-                                            <Badge variant="outline" className="h-5">{previewData.past.onProgress.length}</Badge>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="border-t border-border pt-3">
-                                    <p className="text-xs font-semibold mb-2">Upcoming Week</p>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-xs p-2 rounded hover:bg-accent">
-                                            <span>Starting Soon</span>
-                                            <Badge variant="outline" className="h-5">{previewData.upcoming.starting.length}</Badge>
-                                        </div>
-                                        <div className="flex justify-between text-xs p-2 rounded hover:bg-accent">
-                                            <span>Due Soon</span>
-                                            <Badge variant="outline" className="h-5">{previewData.upcoming.due.length}</Badge>
+                                        <div className="flex items-center justify-between p-3 bg-card border border-border rounded hover:bg-accent">
+                                            <div className="flex items-center gap-2">
+                                                <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                                <span className="text-sm text-foreground">On Progress</span>
+                                            </div>
+                                            <Badge variant="secondary">{previewData.past.onProgress.length}</Badge>
                                         </div>
                                     </div>
                                 </div>
