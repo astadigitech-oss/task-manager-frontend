@@ -478,6 +478,13 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <div className="space-y-5 py-5 px-6 overflow-y-auto flex-1">
 
+            {/* Daily Limit Alert */}
+            <div className=" flex items-start">
+              <p className="text-xs text-mudted-foreground">
+                <span className="font-semibold">Note:</span> Absensi hanya dapat dilakukan <span className="font-semibold">1 kali per hari</span>
+              </p>
+            </div>
+
             {/* Success Message */}
             {hasSubmitted && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">

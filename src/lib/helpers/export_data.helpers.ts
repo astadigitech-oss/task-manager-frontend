@@ -122,44 +122,22 @@ export function getWeeklyBackwardExportData(
     
     const projectTasks = filterTasksByProject(tasks, projectId);
 
-    const completed = projectTasks.filter(task => {
-        if (task.status !== "done") return false;
-        
-        const dueDate = parseDate(task.due_date);
-        if (dueDate && isWithinInterval(dueDate, { start: weekAgo, end: now })) {
-            return true;
-        }
-        
-        const createdAt = parseDate(task.created_at);
-        if (createdAt && isWithinInterval(createdAt, { start: weekAgo, end: now })) {
-            return true;
-        }
-        
-        return false;
-    });
-
-    const completedIds = new Set(completed.map(t => t.id));
-
-    const onProgress = projectTasks.filter(task => {
-        if (completedIds.has(task.id)) return false;
-        if (task.status === "done" || task.status === "canceled") return false;
-        
-        const dueDate = parseDate(task.due_date);
-        if (dueDate && isWithinInterval(dueDate, { start: weekAgo, end: now })) {
-            return true;
-        }
+    // Filter based on start_date, exclude on_board status
+    const filteredTasks = projectTasks.filter(task => {
+        if (task.status === "on_board") return false;
         
         const startDate = parseDate(task.start_date);
-        if (startDate && isWithinInterval(startDate, { start: weekAgo, end: now })) {
-            return true;
-        }
+        if (!startDate) return false;
         
-        const createdAt = parseDate(task.created_at);
-        if (createdAt && isWithinInterval(createdAt, { start: weekAgo, end: now })) {
-            return true;
-        }
-        
-        return false;
+        return isWithinInterval(startDate, { start: weekAgo, end: today });
+    });
+
+    const completed = filteredTasks.filter(task => task.status === "done");
+    const completedIds = new Set(completed.map(t => t.id));
+
+    const onProgress = filteredTasks.filter(task => {
+        if (completedIds.has(task.id)) return false;
+        return task.status !== "done";
     });
 
     const overdue = completed.filter(task => isCompletedLate(task));
@@ -185,40 +163,20 @@ export function getWeeklyForwardExportData(
     
     const projectTasks = filterTasksByProject(tasks, projectId);
 
-    const completed = projectTasks.filter(task => {
-        if (task.status !== "done") return false;
+    // Filter based on start_date, exclude done status
+    const filteredTasks = projectTasks.filter(task => {
+        if (task.status === "done") return false;
         
-        const dueDate = parseDate(task.due_date);
-        if (!dueDate) return false;
+        const startDate = parseDate(task.start_date);
+        if (!startDate) return false;
         
-        return isWithinInterval(dueDate, { start: now, end: weekAhead });
+        return isWithinInterval(startDate, { start: today, end: weekAhead });
     });
 
-    const completedIds = new Set(completed.map(t => t.id));
+    const onProgress = filteredTasks.filter(task => task.status !== "canceled");
 
-    const overdue = projectTasks.filter(task => {
-        if (completedIds.has(task.id)) return false; // ← Prevent duplicate
-        if (task.status === "done" || task.status === "canceled") return false;
-        
-        const dueDate = parseDate(task.due_date);
-        if (!dueDate) return false;
-        
-        return isWithinInterval(dueDate, { start: now, end: weekAhead }) && 
-            isTaskOverdue(task);
-    });
-
-    const overdueIds = new Set(overdue.map(t => t.id));
-
-    const onProgress = projectTasks.filter(task => {
-        if (completedIds.has(task.id)) return false;  // ← Prevent duplicate
-        if (overdueIds.has(task.id)) return false;    // ← Prevent duplicate
-        if (task.status === "done" || task.status === "canceled") return false;
-        
-        const dueDate = parseDate(task.due_date);
-        if (!dueDate) return false;
-        
-        return isWithinInterval(dueDate, { start: now, end: weekAhead });
-    });
+    const completed: TaskApi[] = [];
+    const overdue: TaskApi[] = [];
 
     return {
         type: "weekly",
@@ -256,95 +214,32 @@ export function getMonitoringExportData(
     const now = referenceDate || new Date();
     const today = startOfDay(now);
     const weekAgo = subDays(today, 7);
-    const weekAhead = addDays(today, 7);
     
     const projectTasks = filterTasksByProject(tasks, projectId);
 
-    const pastCompleted = projectTasks.filter(task => {
-        if (task.status !== "done") return false;
-        
-        const dueDate = parseDate(task.due_date);
-        if (dueDate && isWithinInterval(dueDate, { start: weekAgo, end: now })) {
-            return true;
-        }
-        
-        const createdAt = parseDate(task.created_at);
-        if (createdAt && isWithinInterval(createdAt, { start: weekAgo, end: now })) {
-            return true;
-        }
-        
-        return false;
-    });
-
-    const pastCompletedIds = new Set(pastCompleted.map(t => t.id));
-
-    const pastOnProgress = projectTasks.filter(task => {
-        if (pastCompletedIds.has(task.id)) return false; // ← Prevent duplicate
-        if (task.status === "done" || task.status === "canceled") return false;
-        
-        const dueDate = parseDate(task.due_date);
-        if (dueDate && isWithinInterval(dueDate, { start: weekAgo, end: now })) {
-            return true;
-        }
-        
-        const startDate = parseDate(task.start_date);
-        if (startDate && isWithinInterval(startDate, { start: weekAgo, end: now })) {
-            return true;
-        }
-        
-        const createdAt = parseDate(task.created_at);
-        if (createdAt && isWithinInterval(createdAt, { start: weekAgo, end: now })) {
-            return true;
-        }
-        
-        return false;
-    });
-
-    const upcomingStarting = projectTasks.filter(task => {
-        if (task.status === "done" || task.status === "canceled") return false;
-        
+    // Filter all tasks based on start_date within 7 days backward, all statuses
+    const allTasksInRange = projectTasks.filter(task => {
         const startDate = parseDate(task.start_date);
         if (!startDate) return false;
         
-        if (isFuture(startDate) && isWithinInterval(startDate, { start: now, end: weekAhead })) {
-            return true;
-        }
-        
-        if (isPast(startDate)) {
-            const dueDate = parseDate(task.due_date);
-            if (!dueDate) return false;
-            
-            if (isFuture(dueDate) && isWithinInterval(dueDate, { start: now, end: weekAhead })) {
-                return true;
-            }
-        }
-        
-        return false;
+        return isWithinInterval(startDate, { start: weekAgo, end: today });
     });
 
-    const upcomingStartingIds = new Set(upcomingStarting.map(t => t.id));
-
-    const upcomingDue = projectTasks.filter(task => {
-        if (upcomingStartingIds.has(task.id)) return false; // ← Prevent duplicate
-        if (task.status === "done" || task.status === "canceled") return false;
-        
-        const dueDate = parseDate(task.due_date);
-        if (!dueDate) return false;
-        
-        return isWithinInterval(dueDate, { start: now, end: weekAhead });
-    });
+    // Separate by status
+    const completed = allTasksInRange.filter(task => task.status === "done");
+    const onProgress = allTasksInRange.filter(task => task.status !== "done");
 
     return {
         type: "monitoring",
-        title: "Monitoring Report (2 Weeks View)",
-        period: `${format(weekAgo, "MMM dd")} - ${format(weekAhead, "MMM dd, yyyy")}`,
+        title: "Monitoring Report (7 Days Backward)",
+        period: `${format(weekAgo, "MMM dd")} - ${format(now, "MMM dd, yyyy")}`,
         past: {
-            completed: pastCompleted,
-            onProgress: pastOnProgress,
+            completed: completed,
+            onProgress: onProgress,
         },
         upcoming: {
-            starting: upcomingStarting,
-            due: upcomingDue,
+            starting: [],
+            due: [],
         },
     };
 }
