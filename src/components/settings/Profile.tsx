@@ -83,6 +83,7 @@ export function SettingsPage() {
         profileData.name !== user.name ||
         profileData.avatar !== user.avatar ||
         profileData.position !== user.position ||
+        profileData.telegram_chat_id !== user.telegram_chat_id ||
         profileData.updated_at !== user.updated_at;
 
       if (hasChanges) {
@@ -90,6 +91,7 @@ export function SettingsPage() {
           name: profileData.name,
           avatar: profileData.avatar,
           position: profileData.position,
+          telegram_chat_id: profileData.telegram_chat_id,
           updated_at: profileData.updated_at,
         });
       }
@@ -98,6 +100,7 @@ export function SettingsPage() {
     profileData?.name,
     profileData?.avatar,
     profileData?.position,
+    profileData?.telegram_chat_id,
     profileData?.updated_at,
 
   ]);
@@ -116,7 +119,7 @@ export function SettingsPage() {
         telegramChatId: profileData.telegram_chat_id || "",
       });
     }
-  }, [profileData?.id]);
+  }, [profileData?.id, profileData?.name, profileData?.email, profileData?.position, profileData?.telegram_chat_id]);
 
   useEffect(() => {
     const hasChanged =
@@ -190,6 +193,7 @@ export function SettingsPage() {
     if (user) {
       setFullName(user.name);
       setPosition((user.position as PositionKey) || "");
+      setTelegramChatId(user.telegram_chat_id || "");
     }
   }, [user]);
 
