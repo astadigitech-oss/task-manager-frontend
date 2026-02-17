@@ -6,6 +6,7 @@ export interface ProfileApiData {
     email: string;
     name: string;
     position: string | null;
+    telegram_chat_id?: string | null;
 }
 
 export interface ProfileGetResponse {
@@ -29,6 +30,7 @@ export interface ProfileApiResponse {
     workspaces: number | null;
     projects: number | null;
     tasks: number | null;
+    telegram_chat_id?: string | null;
     CreatedAt: string;
     UpdatedAt: string;
     deleted_at: string | null;
