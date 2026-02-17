@@ -42,6 +42,7 @@ export interface UserProfile extends UserApi {
     projectsCount?: number;
     tasksCompleted?: number;
     last_active_workspace_id: number | null;
+    telegram_chat_id?: string | null;
 }
 
 // Auth response (biasanya return UserProfile dengan token)

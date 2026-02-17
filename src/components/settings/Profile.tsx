@@ -45,6 +45,7 @@ export function SettingsPage() {
   const { data: profileData, isLoading: isLoadingProfile } = useGetProfile();
 
   const [fullName, setFullName] = useState("");
+  const [telegramChatId, setTelegramChatId] = useState("");
   const [email, setEmail] = useState("");
   const [position, setPosition] = useState<PositionKey | "">("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -58,6 +59,7 @@ export function SettingsPage() {
     fullName: "",
     email: "",
     position: "" as PositionKey | "",
+    telegramChatId: "",
   });
 
   const [isDirty, setIsDirty] = useState(false);
@@ -105,11 +107,13 @@ export function SettingsPage() {
       setFullName(profileData.name);
       setEmail(profileData.email);
       setPosition((profileData.position as PositionKey) || "");
+      setTelegramChatId(profileData.telegram_chat_id || "");
 
       setInitialProfile({
         fullName: profileData.name,
         email: profileData.email,
         position: (profileData.position as PositionKey) || "",
+        telegramChatId: profileData.telegram_chat_id || "",
       });
     }
   }, [profileData?.id]);
@@ -118,10 +122,11 @@ export function SettingsPage() {
     const hasChanged =
       fullName !== initialProfile.fullName ||
       position !== initialProfile.position ||
-      avatarFile !== null;
+      avatarFile !== null ||
+      telegramChatId !== initialProfile.telegramChatId;
 
     setIsDirty(hasChanged);
-  }, [fullName, position, avatarFile, initialProfile]);
+  }, [fullName, position, avatarFile, telegramChatId, initialProfile]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -199,6 +204,9 @@ export function SettingsPage() {
     if (avatarFile) {
       formData.append("profile_image", avatarFile);
     }
+    if (telegramChatId) {
+      formData.append("telegram_chat_id", telegramChatId);
+    }
 
     updateProfile(formData, {
       onSuccess: () => {
@@ -212,6 +220,7 @@ export function SettingsPage() {
           fullName,
           email,
           position,
+          telegramChatId,
         });
       }
     });
@@ -221,7 +230,7 @@ export function SettingsPage() {
     setFullName(initialProfile.fullName);
     setEmail(initialProfile.email);
     setPosition(initialProfile.position);
-
+    setTelegramChatId(initialProfile.telegramChatId);
     if (avatarPreview) {
       URL.revokeObjectURL(avatarPreview);
     }
@@ -348,7 +357,7 @@ export function SettingsPage() {
 
                 {/* Form Fields */}
                 <div className="space-y-5">
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-w-sm">
                     <Label htmlFor="fullName">Full Name</Label>
                     <Input
                       id="fullName"
@@ -358,7 +367,7 @@ export function SettingsPage() {
                     />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-w-sm">
                     <Label htmlFor="email">Email Address</Label>
                     <Input
                       id="email"
@@ -372,7 +381,7 @@ export function SettingsPage() {
                     </p>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 ">
                     <Label htmlFor="position">Position</Label>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -405,6 +414,17 @@ export function SettingsPage() {
                       </p>
                     )}
                   </div>
+
+                  <div className="space-y-2 max-w-sm">
+                    <Label htmlFor="telegram">Telegram</Label>
+                    <Input
+                      id="telegram"
+                      value={telegramChatId || ""}
+                      onChange={(e) => setTelegramChatId(e.target.value)}
+                      placeholder="..."
+                    />
+                  </div>
+
                 </div>
 
                 <Separator />
