@@ -37,6 +37,7 @@ export function useUpdateProfile() {
                 name: updatedProfile.name,
                 avatar: updatedProfile.avatar,
                 position: updatedProfile.position,
+                telegram_chat_id: updatedProfile.telegram_chat_id,
                 updated_at: updatedProfile.updated_at,
             });
 
