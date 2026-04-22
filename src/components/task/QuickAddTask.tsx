@@ -305,6 +305,7 @@ export function QuickAddTask({
               size="sm"
               onClick={handleSubmit}
               disabled={createMutation.isPending || !title.trim()}
+              className="bg-sky-500 hover:bg-sky-600 text-white"
             >
               {createMutation.isPending ? "Adding..." : "Add"}
             </Button>

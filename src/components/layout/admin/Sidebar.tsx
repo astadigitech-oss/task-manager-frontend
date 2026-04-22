@@ -12,6 +12,8 @@ import {
   Plus,
   MoreVertical,
   Search,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useWorkspace } from "@/context/WorkspaceContext";
@@ -32,17 +34,33 @@ import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { WorkspaceApi } from "@/types/api/workspace.api";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
 
 interface SidebarProps {
   isOpen?: boolean;
+  isCollapsed?: boolean;
   onClose?: () => void;
   onOpen?: () => void;
+  onToggleCollapse?: () => void;
   currentPage?: string;
   onCreate?: () => void;
   onNavigate?: (page: string, project_id?: string) => void;
 }
 
-export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarProps) {
+export function AdminSidebar({
+  isOpen,
+  isCollapsed = false,
+  onOpen,
+  onClose,
+  onToggleCollapse,
+  onNavigate,
+}: SidebarProps) {
   const pathname = usePathname();
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -195,7 +213,7 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
   const isLoading = isLoadingWorkspaces || isLoadingProjects;
 
   return (
-    <>
+    <TooltipProvider delayDuration={300}>
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -205,14 +223,21 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
 
       <aside
         className={cn(
-          "fixed top-0 left-0 w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform",
+          "fixed top-0 left-0 h-screen bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-all duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "-translate-x-full",
-          "lg:translate-x-0"
+          "lg:translate-x-0",
+          isCollapsed ? "lg:w-16" : "lg:w-64",
+          "w-64"
         )}
       >
         {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mt-1 border-b shrink-0">
-          <div className="relative w-15 h-15 shrink-0">
+        <div
+          className={cn(
+            "flex items-center gap-3 mt-1 shrink-0 transition-all duration-300",
+            isCollapsed ? "justify-center px-0" : "justify-center"
+          )}
+        >
+          <div className="relative w-12 h-12 shrink-0">
             <img
               src="/assets/logo_hitam.png"
               alt="ASTA Logo"
@@ -224,19 +249,47 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
               className="w-full h-full object-contain hidden dark:block"
             />
           </div>
-          <div className="flex flex-col">
-            <span className="text-[14px] font-bold text-foreground leading-tight">
+
+          <div
+            className={cn(
+              "flex flex-col transition-all duration-200 overflow-hidden",
+              isCollapsed ? "lg:hidden" : "flex"
+            )}
+          >
+            <span className="text-[14px] font-bold text-foreground leading-tight whitespace-nowrap">
               TASK MANAGER
             </span>
           </div>
         </div>
+        
+        <Separator />
 
         {/* Fixed Navigation Section */}
-        <div className="p-4 shrink-0">
+        <div className={cn("p-4 shrink-0", isCollapsed && "lg:px-2")}>
           <nav className="space-y-1">
             {menuItems.map((item) => {
               const active = isMenuActive(item.id);
-              return (
+              return isCollapsed ? (
+                // Collapsed: icon only with tooltip
+                <Tooltip key={item.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => onNavigate?.(item.id)}
+                      className={cn(
+                        "w-full flex items-center justify-center p-2.5 rounded-lg transition-colors",
+                        active
+                          ? "bg-primary/10 text-primary"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5 shrink-0" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>{item.title}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
                 <button
                   key={item.id}
                   onClick={() => onNavigate?.(item.id)}
@@ -247,7 +300,7 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
                       : "text-sidebar-foreground hover:bg-sidebar-accent"
                   )}
                 >
-                  <item.icon className="h-5 w-5" />
+                  <item.icon className="h-5 w-5 shrink-0" />
                   {item.title}
                 </button>
               );
@@ -255,206 +308,278 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
           </nav>
         </div>
 
-        {/* Workspaces Section */}
-        <div className="flex-1 min-h-0 flex flex-col border-t border-sidebar-border">
-          <div className="p-4 pb-2 shrink-0">
-            <div className="flex items-center justify-between px-2 mb-3">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Workspaces
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={createWsDialog.createWorkspace.open}
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-
-            <div className="relative px-2">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 text-sm"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-4 top-1/2 -translate-y-1/2"
+        {/* Workspaces Section — hidden when collapsed */}
+        {!isCollapsed && (
+          <div className="flex-1 min-h-0 flex flex-col border-t border-sidebar-border">
+            <div className="p-4 pb-2 shrink-0">
+              <div className="flex items-center justify-between px-2 mb-3">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Workspaces
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={createWsDialog.createWorkspace.open}
                 >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
 
-          <ScrollArea className="overflow-hidden scrollbar-thin scrollbar-thumb-sidebar-ring scrollbar-track-transparent">
-            <div className="flex-1 px-4">
-              <div className="space-y-1 pb-4">
-                {isLoading ? (
-                  <div className="text-center py-4 text-sm text-muted-foreground">
-                    Loading...
-                  </div>
-                ) : filteredWorkspaces.length === 0 ? (
-                  <div className="text-center py-4 text-sm text-muted-foreground">
-                    {searchQuery ? "No results found" : "No workspaces"}
-                  </div>
-                ) : (
-                  <>
-                    {filteredWorkspaces.map((ws) => {
-                      const wsProjects = getFilteredProjects(ws.id);
-                      const expanded = shouldAutoExpand(ws.id);
-                      const selected = selectedWorkspaceId === ws.id;
-                      const projectCount = getWorkspaceProjects(ws.id)?.length || 0;
-                      const workspaceColor =
-                        ws.color && ws.color.trim() !== "" ? ws.color : "";
-
-                      const highlightText = (text: string) => {
-                        if (!searchQuery.trim()) return text;
-
-                        const query = searchQuery.toLowerCase();
-                        const index = text.toLowerCase().indexOf(query);
-
-                        if (index === -1) return text;
-
-                        return (
-                          <>
-                            {text.slice(0, index)}
-                            <mark className="bg-primary/20 text-primary font-medium">
-                              {text.slice(index, index + searchQuery.length)}
-                            </mark>
-                            {text.slice(index + searchQuery.length)}
-                          </>
-                        );
-                      };
-
-                      return (
-                        <div key={ws.id} className="space-y-1">
-                          <div className="flex items-center group">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0"
-                              onClick={() => toggleWorkspace(ws.id)}
-                            >
-                              {expanded ? (
-                                <ChevronDown className="h-4 w-4" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4" />
-                              )}
-                            </Button>
-
-                            <button
-                              onClick={() => handleWorkspaceClick(ws.id)}
-                              className={cn(
-                                "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors",
-                                selected
-                                  ? "bg-primary/10 text-primary font-medium ring-2 ring-primary/20"
-                                  : "hover:bg-sidebar-accent"
-                              )}
-                            >
-                              <Folder
-                                className="h-4 w-4 shrink-0"
-                                style={{ color: workspaceColor }}
-                                fill={selected ? workspaceColor : "none"}
-                              />
-                              <span className="text-sm leading-snug wrap-break-word line-clamp-2 flex-1">
-                                {highlightText(ws.name)}
-                              </span>
-                              <span className={cn(
-                                "text-xs px-1.5 py-0.5 rounded shrink-0",
-                                selected
-                                  ? "bg-primary/20 text-primary font-medium"
-                                  : "bg-sidebar-accent"
-                              )}>
-                                {projectCount}
-                              </span>
-                            </button>
-                            
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 shrink-0"
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => handleEditWorkspace(ws)}
-                                >
-                                  Edit Workspace
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() =>
-                                    handleDeleteWorkspace(ws.id, ws.name)
-                                  }
-                                >
-                                  Hapus Workspace
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-
-                          {expanded && wsProjects && wsProjects.length > 0 && (
-                            <div className="ml-8 space-y-1">
-                              {wsProjects.map((p) => (
-                                <button
-                                  key={p.id}
-                                  onClick={() => handleProjectClick(p.id)}
-                                  className="flex w-full items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-sidebar-accent transition-colors group/project"
-                                >
-                                  <FolderKanban className="h-4 w-4 shrink-0" />
-                                  <span className="flex-1 min-w-0 text-left wrap-break-word line-clamp-2">
-                                    {highlightText(p.name)}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
-                          {expanded && (!wsProjects || wsProjects.length === 0) && (
-                            <div className="ml-8 px-3 py-2 text-xs text-muted-foreground">
-                              {searchQuery ? "No matching projects" : "No projects yet"}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                    {searchQuery && filteredWorkspaces.length > 0 && (
-                      <div className="mt-3 text-xs text-muted-foreground">
-                        Found {filteredWorkspaces.length} workspace
-                        {filteredWorkspaces.length !== 1 ? "s" : ""}
-                      </div>
-                    )}
-                  </>
+              <div className="relative px-2">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9 text-sm"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-4 top-1/2 -translate-y-1/2"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 )}
               </div>
             </div>
-          </ScrollArea>
-        </div>
 
-        {/* Logout */}
-        <div className="p-4 border-t border-sidebar-border shrink-0">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 text-destructive hover:bg-destructive/10"
-            onClick={() => {
-              logout();
-              window.location.href = "/auth/login";
-            }}
-          >
-            <LogOut className="h-5 w-5" />
-            Logout
-          </Button>
+            <ScrollArea className="overflow-hidden scrollbar-thin scrollbar-thumb-sidebar-ring scrollbar-track-transparent">
+              <div className="flex-1 px-4">
+                <div className="space-y-1 pb-4">
+                  {isLoading ? (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      Loading...
+                    </div>
+                  ) : filteredWorkspaces.length === 0 ? (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      {searchQuery ? "No results found" : "No workspaces"}
+                    </div>
+                  ) : (
+                    <>
+                      {filteredWorkspaces.map((ws) => {
+                        const wsProjects = getFilteredProjects(ws.id);
+                        const expanded = shouldAutoExpand(ws.id);
+                        const selected = selectedWorkspaceId === ws.id;
+                        const projectCount = getWorkspaceProjects(ws.id)?.length || 0;
+                        const workspaceColor =
+                          ws.color && ws.color.trim() !== "" ? ws.color : "";
+
+                        const highlightText = (text: string) => {
+                          if (!searchQuery.trim()) return text;
+
+                          const query = searchQuery.toLowerCase();
+                          const index = text.toLowerCase().indexOf(query);
+
+                          if (index === -1) return text;
+
+                          return (
+                            <>
+                              {text.slice(0, index)}
+                              <mark className="bg-primary/20 text-primary font-medium">
+                                {text.slice(index, index + searchQuery.length)}
+                              </mark>
+                              {text.slice(index + searchQuery.length)}
+                            </>
+                          );
+                        };
+
+                        return (
+                          <div key={ws.id} className="space-y-1">
+                            <div className="flex items-center group">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0"
+                                onClick={() => toggleWorkspace(ws.id)}
+                              >
+                                {expanded ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                              </Button>
+
+                              <button
+                                onClick={() => handleWorkspaceClick(ws.id)}
+                                className={cn(
+                                  "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors",
+                                  selected
+                                    ? "bg-primary/10 text-primary font-medium ring-2 ring-primary/20"
+                                    : "hover:bg-sidebar-accent"
+                                )}
+                              >
+                                <Folder
+                                  className="h-4 w-4 shrink-0"
+                                  style={{ color: workspaceColor }}
+                                  fill={selected ? workspaceColor : "none"}
+                                />
+                                <span className="text-sm leading-snug wrap-break-word line-clamp-2 flex-1">
+                                  {highlightText(ws.name)}
+                                </span>
+                                <span className={cn(
+                                  "text-xs px-1.5 py-0.5 rounded shrink-0",
+                                  selected
+                                    ? "bg-primary/20 text-primary font-medium"
+                                    : "bg-sidebar-accent"
+                                )}>
+                                  {projectCount}
+                                </span>
+                              </button>
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 shrink-0"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => handleEditWorkspace(ws)}
+                                  >
+                                    Edit Workspace
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() =>
+                                      handleDeleteWorkspace(ws.id, ws.name)
+                                    }
+                                  >
+                                    Hapus Workspace
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+
+                            {expanded && wsProjects && wsProjects.length > 0 && (
+                              <div className="ml-8 space-y-1">
+                                {wsProjects.map((p) => (
+                                  <button
+                                    key={p.id}
+                                    onClick={() => handleProjectClick(p.id)}
+                                    className="flex w-full items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-sidebar-accent transition-colors group/project"
+                                  >
+                                    <FolderKanban className="h-4 w-4 shrink-0" />
+                                    <span className="flex-1 min-w-0 text-left wrap-break-word line-clamp-2">
+                                      {highlightText(p.name)}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {expanded && (!wsProjects || wsProjects.length === 0) && (
+                              <div className="ml-8 px-3 py-2 text-xs text-muted-foreground">
+                                {searchQuery ? "No matching projects" : "No projects yet"}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {searchQuery && filteredWorkspaces.length > 0 && (
+                        <div className="mt-3 text-xs text-muted-foreground">
+                          Found {filteredWorkspaces.length} workspace
+                          {filteredWorkspaces.length !== 1 ? "s" : ""}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </ScrollArea>
+          </div>
+        )}
+
+        {/* Collapsed: Workspace icon shortcut with tooltip */}
+        {isCollapsed && (
+          <div className="flex-1 flex flex-col items-center gap-1 px-2 pt-2 border-t border-sidebar-border overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-ring scrollbar-track-transparent">
+            {isLoading ? (
+              <div className="text-xs text-muted-foreground py-2">…</div>
+            ) : (
+              workspaces.map((ws) => {
+                const selected = selectedWorkspaceId === ws.id;
+                const workspaceColor =
+                  ws.color && ws.color.trim() !== "" ? ws.color : undefined;
+
+                return (
+                  <Tooltip key={ws.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handleWorkspaceClick(ws.id)}
+                        className={cn(
+                          "w-full flex items-center justify-center p-2.5 rounded-lg transition-colors",
+                          selected
+                            ? "bg-primary/10 ring-2 ring-primary/20"
+                            : "hover:bg-sidebar-accent"
+                        )}
+                      >
+                        <Folder
+                          className="h-5 w-5 shrink-0"
+                          style={{ color: workspaceColor }}
+                          fill={selected ? workspaceColor : "none"}
+                        />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>{ws.name}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })
+            )}
+
+            {/* Add workspace button (collapsed) */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 mt-1"
+                  onClick={createWsDialog.createWorkspace.open}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>New Workspace</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        )}
+
+        {/* Collapse Toggle Button — desktop only */}
+        <div
+          className={cn(
+            "hidden lg:flex shrink-0 border-t border-sidebar-border p-2",
+            isCollapsed ? "justify-center" : "justify-end"
+          )}
+        >
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={onToggleCollapse}
+              >
+                {isCollapsed ? (
+                  <PanelLeftOpen className="h-4 w-4" />
+                ) : (
+                  <PanelLeftClose className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>{isCollapsed ? "Expand sidebar" : "Collapse sidebar"}</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </aside>
 
@@ -475,6 +600,6 @@ export function AdminSidebar({ isOpen, onOpen, onClose, onNavigate }: SidebarPro
           onUpdate={updateWorkspace}
         />
       )}
-    </>
+    </TooltipProvider>
   );
 }

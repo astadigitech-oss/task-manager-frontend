@@ -30,6 +30,7 @@ import {
   Calendar,
   CheckCircle2,
 } from "lucide-react";
+import { ScrollArea } from "../ui/scroll-area";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AbsensiDialogProps {
@@ -40,7 +41,7 @@ interface AbsensiDialogProps {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const DRAFT_DEBOUNCE_MS = 600; // simpan draft 600ms setelah user berhenti mengetik
+const DRAFT_DEBOUNCE_MS = 600;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getTodayDateString(): string {
@@ -446,369 +447,354 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
       }}
     >
       <DialogContent
-        showCloseButton={false}
-        className="max-w-2xl p-0 gap-0 overflow-hidden max-h-[92vh] flex flex-col"
-        aria-describedby="absensi-desc"
+        className="max-w-2xl p-0 gap-0 flex flex-col"
+        style={{ maxHeight: "90vh", height: "90vh" }}
+        aria-describedby={undefined}
       >
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <UserCheck className="w-5 h-5 text-primary" />
             Daily Attendance
-            {hasSubmitted && (
-              <span className="ml-auto flex items-center gap-1.5 text-sm font-normal text-green-600">
-                <CheckCircle2 className="w-4 h-4" />
-                Sudah Absen
-              </span>
-            )}
-            {/* Indikator draft tersimpan */}
-            {!hasSubmitted && selectedWorkspaceId && getDraft(selectedWorkspaceId) && (
-              <span className="ml-auto text-xs text-muted-foreground font-normal">
-                Draft tersimpan
-              </span>
-            )}
           </DialogTitle>
-          <DialogDescription id="absensi-desc">
-            {selectedWorkspace?.name
-              ? `Workspace: ${selectedWorkspace.name}`
-              : "Isi form untuk melakukan absensi hari ini"}
+          <DialogDescription
+            className="flex flex-1 justify-between"
+            id="absensi-desc"
+          >
+            <span>
+              {selectedWorkspace?.name
+                ? `Workspace: ${selectedWorkspace.name}`
+                : "Isi form untuk melakukan absensi hari ini"}
+            </span>
+
+            <span className="flex items-center gap-2">
+              {hasSubmitted && (
+                <span className="flex items-center gap-1.5 text-sm text-green-600">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Sudah Absen
+                </span>
+              )}
+
+              {!hasSubmitted && selectedWorkspaceId && getDraft(selectedWorkspaceId) && (
+                <span className="text-xs text-muted-foreground">
+                  Draft tersimpan
+                </span>
+              )}
+            </span>
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-          <div className="space-y-5 py-5 px-6 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="space-y-4 px-6 py-4">
 
-            {/* Daily Limit Alert */}
-            <div className=" flex items-start">
-              <p className="text-xs text-mudted-foreground">
-                <span className="font-semibold">Note:</span> Absensi hanya dapat dilakukan <span className="font-semibold">1 kali per hari</span>
-              </p>
-            </div>
-
-            {/* Success Message */}
-            {hasSubmitted && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-green-900">
-                    Absensi Hari Ini Sudah Tercatat
-                  </p>
-                  <p className="text-xs text-green-700 mt-1">
-                    Anda sudah melakukan absensi untuk workspace ini. Silakan
-                    coba lagi besok.
+                {/* Daily Limit Note */}
+                <div className="flex items-start">
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-semibold">Note:</span> Absensi hanya dapat dilakukan{" "}
+                    <span className="font-semibold">1 kali per hari</span>
                   </p>
                 </div>
-              </div>
-            )}
 
-            {/* Draft info banner */}
-            {!hasSubmitted && selectedWorkspaceId && getDraft(selectedWorkspaceId) && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between gap-3">
-                <p className="text-xs text-blue-700">
-                  Draft ditemukan dan sudah dimuat. Form akan tersimpan otomatis
-                  saat Anda mengetik.
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-xs text-blue-600 hover:text-blue-800 shrink-0 px-2"
-                  onClick={() => {
-                    if (selectedWorkspaceId) clearDraft(selectedWorkspaceId);
-                    resetFormFields();
-                  }}
-                >
-                  Reset
-                </Button>
-              </div>
-            )}
-
-            {/* Nama – readonly */}
-            <div className="space-y-2">
-              <Label htmlFor="nama">Nama</Label>
-              <Input
-                id="nama"
-                value={user?.name ?? ""}
-                readOnly
-                disabled
-                className="bg-muted text-muted-foreground cursor-not-allowed"
-              />
-            </div>
-
-            {/* Kegiatan */}
-            <div className="space-y-2">
-              <Label htmlFor="activity">
-                Kegiatan yang Dilakukan{" "}
-                <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                id="activity"
-                value={activity}
-                onChange={handleActivityChange}
-                placeholder="Deskripsikan kegiatan yang dilakukan hari ini..."
-                rows={3}
-                disabled={isSubmitting || hasSubmitted}
-                className="min-h-20 resize-none"
-                required
-                readOnly={hasSubmitted}
-              />
-            </div>
-
-            {/* Kendala */}
-            <div className="space-y-2">
-              <Label htmlFor="obstacle">Kendala yang Dihadapi</Label>
-              <Textarea
-                id="obstacle"
-                value={obstacle}
-                onChange={handleObstacleChange}
-                placeholder="Deskripsikan kendala yang dihadapi (opsional)..."
-                rows={3}
-                disabled={isSubmitting || hasSubmitted}
-                className="min-h-20 resize-none"
-                readOnly={hasSubmitted}
-              />
-            </div>
-
-            {/* Bukti Foto */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>
-                  Bukti Foto{" "}
-                  <span className="text-destructive">*</span>
-                  {previews.length > 0 && (
-                    <span className="ml-2 text-xs text-muted-foreground font-normal">
-                      ({previews.length} foto)
-                    </span>
-                  )}
-                </Label>
-                {previews.length > 0 && !hasSubmitted && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-muted-foreground"
-                    onClick={() => {
-                      setSelectedFiles([]);
-                      setPreviews([]);
-                      setCurrentIndex(0);
-                      // Update draft tanpa foto
-                      if (selectedWorkspaceId) {
-                        saveDraft(selectedWorkspaceId, {
-                          activity,
-                          obstacle,
-                          previews: [],
-                        });
-                      }
-                    }}
-                    disabled={isSubmitting}
-                  >
-                    Hapus semua
-                  </Button>
-                )}
-              </div>
-
-              {/* Drop Zone */}
-              {!hasSubmitted && (
-                <div
-                  className={cn(
-                    "border-2 border-dashed rounded-lg p-6 text-center transition-all",
-                    isDragging
-                      ? "border-primary bg-primary/5 scale-[1.01]"
-                      : "border-border bg-muted/30 hover:bg-muted/50",
-                    isSubmitting || selectedFiles.length > 0
-                      ? "opacity-50 cursor-not-allowed"
-                      : "cursor-pointer"
-                  )}
-                  onClick={() =>
-                    !isSubmitting &&
-                    selectedFiles.length === 0 &&
-                    fileInputRef.current?.click()
-                  }
-                  onDragEnter={
-                    selectedFiles.length === 0 ? onDragEnter : undefined
-                  }
-                  onDragOver={
-                    selectedFiles.length === 0 ? onDragOver : undefined
-                  }
-                  onDragLeave={
-                    selectedFiles.length === 0 ? onDragLeave : undefined
-                  }
-                  onDrop={selectedFiles.length === 0 ? onDrop : undefined}
-                >
-                  <Upload
-                    className={cn(
-                      "w-7 h-7 mx-auto mb-2 text-muted-foreground transition-transform",
-                      isDragging && "scale-110 text-primary"
-                    )}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    {isDragging ? (
-                      <span className="font-medium text-primary">
-                        Drop gambar di sini
-                      </span>
-                    ) : (
-                      <>
-                        Drag & drop atau{" "}
-                        <span className="underline font-medium">
-                          klik untuk upload
-                        </span>
-                      </>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    JPEG, PNG, WebP • Maks 1MB per file
-                  </p>
-                </div>
-              )}
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={ACCEPTED_TYPES.join(",")}
-                className="hidden"
-                onChange={handleFileSelect}
-                disabled={
-                  isSubmitting || hasSubmitted || selectedFiles.length > 0
-                }
-              />
-
-              {/* Upload progress */}
-              {isSubmitting && uploadProgress > 0 && (
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Mengupload foto...</span>
-                    <span className="font-medium">{uploadProgress}%</span>
+                {/* Success Message */}
+                {hasSubmitted && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-green-900">
+                        Absensi Hari Ini Sudah Tercatat
+                      </p>
+                      <p className="text-xs text-green-700 mt-1">
+                        Anda sudah melakukan absensi untuk workspace ini. Silakan coba lagi besok.
+                      </p>
+                    </div>
                   </div>
-                  <Progress value={uploadProgress} className="h-1.5" />
-                </div>
-              )}
+                )}
 
-              {/* Preview grid */}
-              {previews.length > 0 && (
-                <div className="space-y-2">
-                  <div className="relative flex items-center gap-2">
+                {/* Draft info banner */}
+                {!hasSubmitted && selectedWorkspaceId && getDraft(selectedWorkspaceId) && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between gap-3">
+                    <p className="text-xs text-blue-700">
+                      Draft ditemukan dan sudah dimuat. Form akan tersimpan otomatis saat Anda mengetik.
+                    </p>
                     <Button
                       type="button"
-                      size="icon"
                       variant="ghost"
-                      className="h-8 w-8 shrink-0"
-                      disabled={!canPrev || isSubmitting || hasSubmitted}
-                      onClick={() =>
-                        setCurrentIndex((p) => Math.max(0, p - 4))
-                      }
+                      size="sm"
+                      className="h-6 text-xs text-blue-600 hover:text-blue-800 shrink-0 px-2"
+                      onClick={() => {
+                        if (selectedWorkspaceId) clearDraft(selectedWorkspaceId);
+                        resetFormFields();
+                      }}
                     >
-                      <ChevronLeft className="w-4 h-4" />
+                      Reset
                     </Button>
+                  </div>
+                )}
 
-                    <div className="grid grid-cols-4 gap-2 flex-1">
-                      {visible.map((src, i) => {
-                        const ri = currentIndex + i;
-                        return (
-                          <div
-                            key={ri}
-                            className="relative aspect-square rounded-md overflow-hidden border border-border group"
-                          >
-                            <img
-                              src={src}
-                              alt={`Preview ${ri + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                            {!isSubmitting && !hasSubmitted && (
-                              <button
-                                type="button"
-                                className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => removeImage(ri)}
+                {/* Nama – readonly */}
+                <div className="space-y-2">
+                  <Label htmlFor="nama">Nama</Label>
+                  <Input
+                    id="nama"
+                    value={user?.name ?? ""}
+                    readOnly
+                    disabled
+                    className="bg-muted text-muted-foreground cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Kegiatan */}
+                <div className="space-y-2">
+                  <Label htmlFor="activity">
+                    Kegiatan yang Dilakukan <span className="text-destructive">*</span>
+                  </Label>
+                  <Textarea
+                    id="activity"
+                    value={activity}
+                    onChange={handleActivityChange}
+                    placeholder="Deskripsikan kegiatan yang dilakukan hari ini..."
+                    rows={3}
+                    disabled={isSubmitting || hasSubmitted}
+                    className="min-h-20 resize-none"
+                    required
+                    readOnly={hasSubmitted}
+                  />
+                </div>
+
+                {/* Kendala */}
+                <div className="space-y-2">
+                  <Label htmlFor="obstacle">Kendala yang Dihadapi</Label>
+                  <Textarea
+                    id="obstacle"
+                    value={obstacle}
+                    onChange={handleObstacleChange}
+                    placeholder="Deskripsikan kendala yang dihadapi (opsional)..."
+                    rows={3}
+                    disabled={isSubmitting || hasSubmitted}
+                    className="min-h-20 resize-none"
+                    readOnly={hasSubmitted}
+                  />
+                </div>
+
+                {/* Bukti Foto */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>
+                      Bukti Foto <span className="text-destructive">*</span>
+                      {previews.length > 0 && (
+                        <span className="ml-2 text-xs text-muted-foreground font-normal">
+                          ({previews.length} foto)
+                        </span>
+                      )}
+                    </Label>
+                    {previews.length > 0 && !hasSubmitted && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-muted-foreground"
+                        onClick={() => {
+                          setSelectedFiles([]);
+                          setPreviews([]);
+                          setCurrentIndex(0);
+                          if (selectedWorkspaceId) {
+                            saveDraft(selectedWorkspaceId, { activity, obstacle, previews: [] });
+                          }
+                        }}
+                        disabled={isSubmitting}
+                      >
+                        Hapus semua
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Drop Zone */}
+                  {!hasSubmitted && (
+                    <div
+                      className={cn(
+                        "border-2 border-dashed rounded-lg p-6 text-center transition-all",
+                        isDragging
+                          ? "border-primary bg-primary/5 scale-[1.01]"
+                          : "border-border bg-muted/30 hover:bg-muted/50",
+                        isSubmitting || selectedFiles.length > 0
+                          ? "opacity-50 cursor-not-allowed"
+                          : "cursor-pointer"
+                      )}
+                      onClick={() =>
+                        !isSubmitting && selectedFiles.length === 0 && fileInputRef.current?.click()
+                      }
+                      onDragEnter={selectedFiles.length === 0 ? onDragEnter : undefined}
+                      onDragOver={selectedFiles.length === 0 ? onDragOver : undefined}
+                      onDragLeave={selectedFiles.length === 0 ? onDragLeave : undefined}
+                      onDrop={selectedFiles.length === 0 ? onDrop : undefined}
+                    >
+                      <Upload
+                        className={cn(
+                          "w-7 h-7 mx-auto mb-2 text-muted-foreground transition-transform",
+                          isDragging && "scale-110 text-primary"
+                        )}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        {isDragging ? (
+                          <span className="font-medium text-primary">Drop gambar di sini</span>
+                        ) : (
+                          <>
+                            Drag & drop atau{" "}
+                            <span className="underline font-medium">klik untuk upload</span>
+                          </>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        JPEG, PNG, WebP • Maks 1MB per file
+                      </p>
+                    </div>
+                  )}
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={ACCEPTED_TYPES.join(",")}
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    disabled={isSubmitting || hasSubmitted || selectedFiles.length > 0}
+                  />
+
+                  {/* Upload progress */}
+                  {isSubmitting && uploadProgress > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Mengupload foto...</span>
+                        <span className="font-medium">{uploadProgress}%</span>
+                      </div>
+                      <Progress value={uploadProgress} className="h-1.5" />
+                    </div>
+                  )}
+
+                  {/* Preview grid */}
+                  {previews.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="relative flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0"
+                          disabled={!canPrev || isSubmitting || hasSubmitted}
+                          onClick={() => setCurrentIndex((p) => Math.max(0, p - 4))}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+
+                        <div className="grid grid-cols-4 gap-2 flex-1">
+                          {visible.map((src, i) => {
+                            const ri = currentIndex + i;
+                            return (
+                              <div
+                                key={ri}
+                                className="relative aspect-square rounded-md overflow-hidden border border-border group"
                               >
-                                <div className="w-8 h-8 rounded-full bg-destructive/90 flex items-center justify-center">
-                                  <Trash2 className="w-4 h-4 text-white" />
-                                </div>
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
+                                <img
+                                  src={src}
+                                  alt={`Preview ${ri + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                                {!isSubmitting && !hasSubmitted && (
+                                  <button
+                                    type="button"
+                                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => removeImage(ri)}
+                                  >
+                                    <div className="w-8 h-8 rounded-full bg-destructive/90 flex items-center justify-center">
+                                      <Trash2 className="w-4 h-4 text-white" />
+                                    </div>
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0"
+                          disabled={!canNext || isSubmitting || hasSubmitted}
+                          onClick={() =>
+                            setCurrentIndex((p) => Math.min(previews.length - 1, p + 4))
+                          }
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      {previews.length > 4 && (
+                        <p className="text-xs text-center text-muted-foreground">
+                          {currentIndex + 1}–{Math.min(currentIndex + 4, previews.length)} dari{" "}
+                          {previews.length} foto
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Export PDF – Admin Only */}
+                {isAdmin && (
+                  <div className="space-y-3 pt-2 border-t">
+                    <div>
+                      <Label className="text-sm font-semibold">
+                        Export PDF Laporan Absensi
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Download laporan absensi seluruh anggota berdasarkan tanggal.
+                      </p>
                     </div>
 
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 shrink-0"
-                      disabled={!canNext || isSubmitting || hasSubmitted}
-                      onClick={() =>
-                        setCurrentIndex((p) =>
-                          Math.min(previews.length - 1, p + 4)
-                        )
-                      }
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-2 items-center">
+                      <div className="relative flex-1">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                        <Input
+                          type="date"
+                          value={exportDate}
+                          onChange={(e) => setExportDate(e.target.value)}
+                          max={getTodayDateString()}
+                          disabled={isExporting || isSubmitting}
+                          className="pl-9 bg-background"
+                        />
+                      </div>
+
+                      <Button
+                        type="button"
+                        // variant="outline"
+                        onClick={handleExportPdf}
+                        disabled={isExporting || isSubmitting || !exportDate}
+                        className="shrink-0 gap-1.5 bg-sky-500 hover:bg-sky-600 text-white"
+                      >
+                        {isExporting ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                        {isExporting ? "Memproses..." : "Export PDF"}
+                      </Button>
+                    </div>
                   </div>
+                )}
 
-                  {previews.length > 4 && (
-                    <p className="text-xs text-center text-muted-foreground">
-                      {currentIndex + 1}–
-                      {Math.min(currentIndex + 4, previews.length)} dari{" "}
-                      {previews.length} foto
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* ── Export PDF – Admin Only ── */}
-            {isAdmin && (
-              <div className="space-y-3 pt-2 border-t">
-                <div>
-                  <Label className="text-sm font-semibold">
-                    Export PDF Laporan Absensi
-                  </Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Download laporan absensi seluruh anggota berdasarkan
-                    tanggal.
-                  </p>
-                </div>
-
-                <div className="flex gap-2 items-center">
-                  <div className="relative flex-1">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                      type="date"
-                      value={exportDate}
-                      onChange={(e) => setExportDate(e.target.value)}
-                      max={getTodayDateString()}
-                      disabled={isExporting || isSubmitting}
-                      className="pl-9 bg-background"
-                    />
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExportPdf}
-                    disabled={isExporting || isSubmitting || !exportDate}
-                    className="shrink-0 gap-1.5"
-                  >
-                    {isExporting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Download className="w-4 h-4" />
-                    )}
-                    {isExporting ? "Memproses..." : "Export PDF"}
-                  </Button>
-                </div>
               </div>
-            )}
+            </ScrollArea>
           </div>
 
           {/* Footer */}
           <DialogFooter className="px-6 py-4 border-t mt-0 shrink-0">
             <Button
               type="button"
-              variant="outline"
+              // variant="outline"
               onClick={handleClose}
               disabled={isSubmitting || isExporting}
+              className="hover:bg-red-500"
             >
               {hasSubmitted ? "Tutup" : "Batal"}
             </Button>
@@ -816,6 +802,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
               <Button
                 type="submit"
                 disabled={isSubmitting || !activity.trim()}
+                className="bg-sky-500 hover:bg-sky-600 text-white w-32"
               >
                 {isSubmitting ? (
                   <>

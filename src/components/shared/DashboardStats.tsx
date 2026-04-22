@@ -32,7 +32,7 @@ export function DashboardStats() {
     {
       title: "Team Members",
       value: usersLoading ? "..." : users.length,
-      description: "Anggota aktif",
+      description: " ",
       icon: Users,
       color: "text-primary",
       isLoading: usersLoading,

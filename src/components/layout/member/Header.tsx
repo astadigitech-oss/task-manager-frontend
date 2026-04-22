@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, Settings } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Menu, LogOut, Settings, User, Moon, Sun } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -15,6 +16,8 @@ import { useRouter } from "next/navigation";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { useEffect } from "react";
 import { useGetProfile } from "@/hooks/api/useProfile";
+import { useTheme } from "@/components/providers/ThemeProvider";
+import { Separator } from "@/components/ui/separator";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -25,6 +28,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const { user, logout, updateUser } = useAuthStore();
 
   const { data: profileData } = useGetProfile();
+
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     logout();
@@ -42,7 +47,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   }, [profileData?.updated_at]);
 
   return (
-    <header className="flex items-center justify-between bg-background border-b border-border shadow-sm px-6 py-4">
+    <header className="flex items-center justify-between bg-background dark:bg-card border-b border-border shadow-sm px-6 py-2 rounded-xl mx-4 mt-4">
       <Button
         variant="ghost"
         size="icon"
@@ -55,12 +60,27 @@ export default function Header({ onMenuClick }: HeaderProps) {
       <h1 className="text-lg font-semibold text-foreground"></h1>
 
       <div className="flex items-center gap-4">
-        <span className="hidden md:inline text-sm text-muted-foreground">
+        <Badge variant="outline" className="hidden md:inline-flex px-2 text-sm [&>svg]:size-4 border-green-500/50 text-green-600 dark:text-green-400">
+          <User className="fill-gray-500 text-gray-500 w-5 h-5" />
           {user?.role
             ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
             : "Guest"}{" "}
-          Mode
-        </span>
+        </Badge>
+
+        <div className="pl-4 border-l border-border flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="h-8 w-8"
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

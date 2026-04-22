@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  useEffect,
-  useState,
   createContext,
   useContext,
-  ReactNode
+  useEffect,
+  useState,
+  ReactNode,
 } from "react";
 
 type Theme = "light" | "dark";
@@ -19,13 +19,20 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
-  const [mounted, setMounted] = useState(false);
+  // Baca langsung dari <html> class yang sudah diset oleh inline script
+  // Ini sync — tidak perlu tunggu useEffect
+  const getInitialTheme = (): Theme => {
+    if (typeof window === "undefined") return "light";
+    return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  };
+
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
 
   const applyTheme = (newTheme: Theme) => {
-    if (typeof window === 'undefined') return;
-    
     const html = document.documentElement;
+
+    // Matikan semua transition sementara agar ganti theme instan
+    html.classList.add("no-transition");
 
     if (newTheme === "dark") {
       html.classList.add("dark");
@@ -34,6 +41,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
 
     localStorage.setItem("app-theme", newTheme);
+
+    // Re-enable transition setelah 1 frame
+    requestAnimationFrame(() => {
+      html.classList.remove("no-transition");
+    });
   };
 
   const setTheme = (newTheme: Theme) => {
@@ -42,30 +54,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
+    setTheme(theme === "light" ? "dark" : "light");
   };
 
+  // Sync jika ada perubahan dari tab lain
   useEffect(() => {
-    const savedTheme = localStorage.getItem("app-theme") as Theme | null;
-    const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
-
-    const initial = savedTheme || systemTheme;
-
-    setThemeState(initial);
-    applyTheme(initial);
-    setMounted(true);
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "app-theme" && e.newValue) {
+        const newTheme = e.newValue as Theme;
+        setThemeState(newTheme);
+        applyTheme(newTheme);
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
-
-  if (!mounted) {
-    return (
-      <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
-        <div style={{ visibility: 'hidden' }}>{children}</div>
-      </ThemeContext.Provider>
-    );
-  }
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
@@ -76,8 +79,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used within ThemeProvider");
-  }
+  if (!context) throw new Error("useTheme must be used within ThemeProvider");
   return context;
 }

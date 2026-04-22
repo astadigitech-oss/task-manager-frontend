@@ -11,6 +11,7 @@ import { selectUpcomingReminders } from "@/lib/selectors/reminder.selector";
 import { Bell, Calendar, Clock, AlertCircle } from "lucide-react";
 import { priorityConfig } from "@/constants/task";
 import type { TaskApi } from "@/types/api/task.api";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ReminderGroup {
     date: string;
@@ -144,8 +145,8 @@ export function TaskReminderWidget({ isAdmin = false }: TaskReminderWidgetProps)
             <div
                 key={task.id}
                 className={`p-3 rounded-lg border-l-4 ${isOverdue
-                        ? "bg-red-50 dark:bg-red-900/20 border-l-red-500"
-                        : "bg-white dark:bg-slate-800"
+                    ? "bg-red-50 dark:bg-red-900/20 border-l-red-500"
+                    : "bg-white dark:bg-slate-800"
                     } hover:shadow-sm transition-shadow ${!isOverdue && getPriorityColor(task.priority)}`}
             >
                 <div className="flex items-start justify-between gap-3">
@@ -261,18 +262,19 @@ export function TaskReminderWidget({ isAdmin = false }: TaskReminderWidgetProps)
                 </Alert>
             )}
 
-            <div className="space-y-6 max-h-125 overflow-y-auto">
+            {/* <div className="space-y-6 max-h-125 overflow-hidden"> */}
+            <ScrollArea className="flex h-125 pr-4">
                 {reminderGroups.map((group) => (
                     <div key={group.date} className="space-y-3">
-                        <div className="flex items-center gap-2 sticky top-0 bg-white dark:bg-slate-900 py-2 z-10">
+                        <div className="flex items-center gap-2 bg-card dark:bg-card sticky top-0 py-2 z-10">
                             {group.isOverdue ? (
                                 <AlertCircle className="size-4 text-red-500" />
                             ) : (
                                 <Clock className="size-4 text-slate-400 dark:text-slate-500" />
                             )}
                             <h3 className={`text-sm font-semibold ${group.isOverdue
-                                    ? "text-red-600 dark:text-red-400"
-                                    : "text-slate-700 dark:text-slate-300"
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-slate-700 dark:text-slate-300"
                                 }`}>
                                 {group.dateLabel}
                             </h3>
@@ -286,7 +288,8 @@ export function TaskReminderWidget({ isAdmin = false }: TaskReminderWidgetProps)
                         </div>
                     </div>
                 ))}
-            </div>
+            </ScrollArea>
+            {/* </div> */}
 
             {totalReminders === 0 && (
                 <div className="text-center py-12">

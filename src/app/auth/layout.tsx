@@ -24,8 +24,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   }, [mounted, isHydrated, isAuthenticated, user, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md">{children}</div>
+    <div>
+      <div className="w-full">{children}</div>
     </div>
   );
 }

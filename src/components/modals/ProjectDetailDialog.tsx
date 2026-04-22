@@ -8,7 +8,6 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/shared/UserAvatar";
-import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { projectMembersService } from "@/services/projects/projectMember.service";
 import { ProjectApi, ProjectMemberApi } from "@/types/api/project.api";

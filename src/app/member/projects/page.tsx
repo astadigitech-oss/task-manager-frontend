@@ -94,7 +94,7 @@ export default function AdminProjectsPage() {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <Button
                 onClick={Attendance.open}
-                className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                className="flex items-center bg-sky-500 hover:bg-sky-600 text-white justify-center gap-2 w-full sm:w-auto"
                 size="sm"
               >
                 <CalendarCheck className="w-4 h-4" />

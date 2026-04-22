@@ -94,7 +94,7 @@ function ProjectCard({
       <div className="mb-3 sm:mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs sm:text-sm text-foreground">Progress</span>
-          <span className="text-xs sm:text-sm font-medium text-foreground">
+          <span className="text-xs sm:text-sm font-medium text-muted-foreground">
             {progressValue}%
           </span>
         </div>
