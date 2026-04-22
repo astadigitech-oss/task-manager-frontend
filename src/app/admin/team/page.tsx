@@ -55,7 +55,6 @@ export default function TeamPage() {
   const users = data?.data.users ?? [];
 
   //  SIMPLIFIED: Hitung online count langsung dari users array
-  // Karena users sudah di-update via cache oleh OnlineUserContext
   const onlineCount = useMemo(() => {
     if (!canViewOnlineUsers) return 0;
     
@@ -96,37 +95,6 @@ export default function TeamPage() {
       onError: (error) => {
         showErrorToast(error.message || "Gagal menghapus user");
       },
-    });
-  };
-
-  const handleRefreshAll = async () => {
-    console.log(" Manual refresh triggered");
-    try {
-      await Promise.all([
-        refetch(),
-        refreshOnlineUsers(),
-      ]);
-      showSuccessToast("Data berhasil diperbarui");
-    } catch (error) {
-      showErrorToast("Gagal memperbarui data");
-    }
-  };
-
-  const handleDebugClick = () => {
-    console.log(" ===== FULL DEBUG DUMP =====");
-    console.log("1. Raw users from API:");
-    users.forEach(u => {
-      console.log(`   ${u.id}: ${u.name} - is_online: ${u.is_online}`);
-    });
-    console.log("\n2. Online count:", onlineCount);
-    console.log("3. Can view online users:", canViewOnlineUsers);
-    // console.log("4. WebSocket connected:", isConnected);
-    console.log("5. Current user:", user?.id, user?.name);
-    
-    console.log("\n6. Testing isUserOnline for each user:");
-    users.forEach(u => {
-      const online = isUserOnline(u.id);
-      console.log(`   User ${u.name} (${u.id}): isUserOnline() = ${online}, is_online = ${u.is_online}`);
     });
   };
 

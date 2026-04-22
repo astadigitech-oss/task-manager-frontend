@@ -46,6 +46,7 @@
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
+  --background-root: oklch(92.494% 0.00011 271.152);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -473,4 +474,8 @@
     linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
   background-size: 40px 40px;
+}
+
+.no-transition * {
+  transition: none !important;
 }

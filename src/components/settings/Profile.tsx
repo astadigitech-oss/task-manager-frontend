@@ -246,7 +246,7 @@ export function SettingsPage() {
 
   const menuItems = [
     { id: "profile" as SettingsTab, label: "Profile Settings", icon: User },
-    { id: "preferences" as SettingsTab, label: "Preferences", icon: SettingsIcon },
+    // { id: "preferences" as SettingsTab, label: "Preferences", icon: SettingsIcon },
   ];
 
   const basePath = user?.role === "admin" ? "/admin" : "/member";
@@ -436,10 +436,10 @@ export function SettingsPage() {
                 {/* Action Buttons */}
                 {isDirty && (
                   <div className="flex justify-end gap-3">
-                    <Button variant="outline" onClick={handleCancel} disabled={isPending}>
+                    <Button className="bg-gray-500 hover:bg-gray-600 text-white" onClick={handleCancel} disabled={isPending}>
                       Cancel
                     </Button>
-                    <Button onClick={handleSave} disabled={isPending}>
+                    <Button onClick={handleSave} disabled={isPending} className="bg-sky-500 hover:bg-sky-600 text-white">
                       {isPending ? "Saving..." : "Save Changes"}
                     </Button>
                   </div>
@@ -447,12 +447,12 @@ export function SettingsPage() {
               </div>
             )}
 
-            {activeTab === "preferences" && (
+            {/* {activeTab === "preferences" && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-foreground font-bold text-xl mb-1">Preferences</h2>
                   <p className="text-sm text-muted-foreground">
-                    Atur preferensi dan notifikasi Anda
+                    Atur preferensi appearance dan notifikasi Anda
                   </p>
                 </div>
                 <Separator />
@@ -477,14 +477,6 @@ export function SettingsPage() {
                           onCheckedChange={toggleTheme}
                         />
                       </div>
-                      <Separator />
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">Compact View</p>
-                          <p className="text-xs text-muted-foreground">Use compact layout for lists</p>
-                        </div>
-                        <Switch />
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -500,7 +492,7 @@ export function SettingsPage() {
                   </div>
                 )}
               </div>
-            )}
+            )} */}
 
           </div>
         </div>

@@ -40,6 +40,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { taskKeys } from "@/lib/react-query/taskKeys";
 import { FilesSection } from "../task/task-detail/FilesSection";
 import { useDeleteTaskFile, useDownloadTaskFile, useTaskFiles, useUploadTaskFiles } from "@/hooks/task/useTaskFiles";
+import { ScrollArea } from "../ui/scroll-area";
 
 interface TaskEditModalProps {
     task: TaskApi;
@@ -87,7 +88,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
     const [dueDate, setDueDate] = useState<string | undefined>(task.due_date);
     const [dueTime, setDueTime] = useState(task.due_time || "");
     const [hasChanges, setHasChanges] = useState(false);
-    
+
     const { data: taskFiles = [] } = useTaskFiles(
         isAdmin ? workspace_id : null,
         isAdmin ? task.project_id : null,
@@ -408,248 +409,249 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                 </DialogHeader>
 
                 <div className="flex flex-col h-[80vh] max-h-200">
-                    <div className="flex-1 overflow-y-auto">
-                        <div className="p-6 space-y-6">
-                            {/* TITLE SECTION */}
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1">
-                                    <Input
-                                        value={title}
-                                        onChange={(e) => {
-                                            setTitle(e.target.value);
+                    <div className="flex-1 overflow-hidden">
+                        <ScrollArea className="flex h-full">
+                            <div className="p-6 space-y-6">
+                                {/* TITLE SECTION */}
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                        <Input
+                                            value={title}
+                                            onChange={(e) => {
+                                                setTitle(e.target.value);
+                                                setHasChanges(true);
+                                            }}
+                                            className="text-xl font-semibold border-0 px-0 focus-visible:ring-0"
+                                            placeholder="Task name"
+                                            disabled={!canEdit}
+                                        />
+                                        {project && (
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Layout className="w-4 h-4 text-foreground" />
+                                                <p className="text-sm text-muted-foreground">in {project.name}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* STATUS AND PRIORITY */}
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    <Select
+                                        value={status}
+                                        onValueChange={(value: string) => {
+                                            setStatus(value as TaskStatus);
                                             setHasChanges(true);
                                         }}
-                                        className="text-xl font-semibold border-0 px-0 focus-visible:ring-0"
-                                        placeholder="Task name"
+                                        disabled={!canEditTask}
+                                    >
+                                        <SelectTrigger className="w-40 h-8">
+                                            <Badge variant="outline" className={statusConfig[status].className}>
+                                                {statusConfig[status].label}
+                                            </Badge>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.entries(statusConfig).map(([key, config]) => (
+                                                <SelectItem key={key} value={key}>
+                                                    <Badge variant="outline" className={config.className}>
+                                                        {config.label}
+                                                    </Badge>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+
+                                    <Select
+                                        value={priority}
+                                        onValueChange={(value: string) => {
+                                            setPriority(value as TaskPriority);
+                                            setHasChanges(true);
+                                        }}
+                                        disabled={!canEdit}
+                                    >
+                                        <SelectTrigger className="w-35 h-8">
+                                            <div className="flex items-center gap-1.5">
+                                                <Flag
+                                                    className="w-3.5 h-3.5"
+                                                    style={{ color: priorityConfig[priority].color }}
+                                                    fill={priorityConfig[priority].color}
+                                                />
+                                                <span className="text-sm">{priorityConfig[priority].label}</span>
+                                            </div>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.entries(priorityConfig).map(([key, config]) => (
+                                                <SelectItem key={key} value={key}>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Flag
+                                                            className="w-3.5 h-3.5"
+                                                            style={{ color: config.color }}
+                                                            fill={config.color}
+                                                        />
+                                                        <span>{config.label}</span>
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <Separator />
+
+                                {/* ASSIGNEE SECTION */}
+                                <AssigneesSection
+                                    member={membersForSection}
+                                    assignedMemberIds={assignedMemberIds}
+                                    onToggleAssignee={toggleAssignee}
+                                    readOnly={!canEdit}
+                                />
+
+                                <Separator />
+
+                                {/* START DATES SECTION */}
+                                <DateSection
+                                    startDate={startDate}
+                                    dueDate={dueDate}
+                                    onDateChange={handleDateChange}
+                                    readOnly={!canEdit}
+                                />
+
+                                <Separator />
+
+                                {/* DUE TIME SECTION*/}
+                                {dueDate && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label>Due Time (Optional)</Label>
+                                            <div className="flex gap-2 items-center">
+                                                <Input
+                                                    type="time"
+                                                    value={dueTime}
+                                                    onChange={(e) => {
+                                                        setDueTime(e.target.value);
+                                                        setHasChanges(true);
+                                                    }}
+                                                    className="w-40"
+                                                    placeholder="HH:MM"
+                                                    disabled={!canEdit}
+                                                />
+
+                                                <div className="flex gap-1">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setDueTime("09:00");
+                                                            setHasChanges(true);
+                                                        }}
+                                                        disabled={!canEdit}
+                                                    >
+                                                        9 AM
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setDueTime("17:00");
+                                                            setHasChanges(true);
+                                                        }}
+                                                        disabled={!canEdit}
+                                                    >
+                                                        5 PM
+                                                    </Button>
+                                                </div>
+
+                                                {dueTime && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setDueTime("");
+                                                            setHasChanges(true);
+                                                        }}
+                                                        disabled={!canEdit}
+                                                    >
+                                                        Clear
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                Set specific deadline time. If empty, deadline is end of day (23:59).
+                                            </p>
+                                        </div>
+
+                                        <Separator />
+                                    </>
+                                )}
+
+                                {/* DESCRIPTION SECTION */}
+                                <div className="space-y-2">
+                                    <Label>Description</Label>
+                                    <Textarea
+                                        value={description}
+                                        onChange={(e) => {
+                                            setDescription(e.target.value);
+                                            setHasChanges(true);
+                                        }}
+                                        className="min-h-30 resize-none"
+                                        placeholder="Add a description..."
                                         disabled={!canEdit}
                                     />
-                                    {project && (
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <Layout className="w-4 h-4 text-foreground" />
-                                            <p className="text-sm text-muted-foreground">in {project.name}</p>
-                                        </div>
-                                    )}
                                 </div>
+
+                                <Separator />
+
+                                {/* NOTES SECTION */}
+                                <div className="space-y-2">
+                                    <Label>Notes</Label>
+                                    <Textarea
+                                        value={notes}
+                                        onChange={(e) => {
+                                            setNotes(e.target.value);
+                                            setHasChanges(true);
+                                        }}
+                                        className="min-h-30 resize-none"
+                                        placeholder="Add some notes..."
+                                        disabled={!canEditTask}
+                                    />
+                                </div>
+
+                                <Separator />
+
+                                {/* FILES / DOCUMENTS SECTION */}
+                                {isAdmin && workspace_id > 0 && (
+                                    <FilesSection
+                                        files={taskFiles}
+                                        onFileUpload={handleFileUpload}
+                                        onDownloadFile={handleDownloadFile}
+                                        onRemoveFile={handleRemoveFile}
+                                        readOnly={false}
+                                        isUploading={uploadFilesMutation.isPending}
+                                        uploadProgress={fileUploadProgress}
+                                        workspaceId={workspace_id}
+                                        projectId={task.project_id}
+                                        taskId={task.id}
+                                    />
+                                )}
+
+                                <Separator />
+
+                                {/* IMAGES SECTION */}
+                                {workspace_id > 0 && (
+                                    <AttachmentsSection
+                                        images={taskImages || []}
+                                        restrictDownload={restrictDownload}
+                                        onRestrictDownloadChange={setRestrictDownload}
+                                        onFileUpload={handleImageUpload}
+                                        onPreviewImage={handlePreviewImage}
+                                        onDownloadImage={handleDownloadImage}
+                                        onRemoveImage={handleRemoveImage}
+                                        readOnly={false}
+                                        isUploading={uploadImagesMutation.isPending}
+                                        uploadProgress={uploadProgress}
+                                    />
+                                )}
                             </div>
-
-                            {/* STATUS AND PRIORITY */}
-                            <div className="flex items-center gap-3 flex-wrap">
-                                <Select
-                                    value={status}
-                                    onValueChange={(value: string) => {
-                                        setStatus(value as TaskStatus);
-                                        setHasChanges(true);
-                                    }}
-                                    disabled={!canEditTask}
-                                >
-                                    <SelectTrigger className="w-40 h-8">
-                                        <Badge variant="outline" className={statusConfig[status].className}>
-                                            {statusConfig[status].label}
-                                        </Badge>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Object.entries(statusConfig).map(([key, config]) => (
-                                            <SelectItem key={key} value={key}>
-                                                <Badge variant="outline" className={config.className}>
-                                                    {config.label}
-                                                </Badge>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-
-                                <Select
-                                    value={priority}
-                                    onValueChange={(value: string) => {
-                                        setPriority(value as TaskPriority);
-                                        setHasChanges(true);
-                                    }}
-                                    disabled={!canEdit}
-                                >
-                                    <SelectTrigger className="w-35 h-8">
-                                        <div className="flex items-center gap-1.5">
-                                            <Flag
-                                                className="w-3.5 h-3.5"
-                                                style={{ color: priorityConfig[priority].color }}
-                                                fill={priorityConfig[priority].color}
-                                            />
-                                            <span className="text-sm">{priorityConfig[priority].label}</span>
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Object.entries(priorityConfig).map(([key, config]) => (
-                                            <SelectItem key={key} value={key}>
-                                                <div className="flex items-center gap-1.5">
-                                                    <Flag
-                                                        className="w-3.5 h-3.5"
-                                                        style={{ color: config.color }}
-                                                        fill={config.color}
-                                                    />
-                                                    <span>{config.label}</span>
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <Separator />
-
-                            {/* ASSIGNEE SECTION */}
-                            <AssigneesSection
-                                member={membersForSection}
-                                assignedMemberIds={assignedMemberIds}
-                                onToggleAssignee={toggleAssignee}
-                                readOnly={!canEdit}
-                            />
-
-                            <Separator />
-
-                            {/* START DATES SECTION */}
-                            <DateSection
-                                startDate={startDate}
-                                dueDate={dueDate}
-                                onDateChange={handleDateChange}
-                                readOnly={!canEdit}
-                            />
-
-                            <Separator />
-
-                            {/* DUE TIME SECTION*/}
-                            {dueDate && (
-                                <>
-                                    <div className="space-y-2">
-                                        <Label>Due Time (Optional)</Label>
-                                        <div className="flex gap-2 items-center">
-                                            <Input
-                                                type="time"
-                                                value={dueTime}
-                                                onChange={(e) => {
-                                                    setDueTime(e.target.value);
-                                                    setHasChanges(true);
-                                                }}
-                                                className="w-40"
-                                                placeholder="HH:MM"
-                                                disabled={!canEdit}
-                                            />
-
-                                            <div className="flex gap-1">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        setDueTime("09:00");
-                                                        setHasChanges(true);
-                                                    }}
-                                                    disabled={!canEdit}
-                                                >
-                                                    9 AM
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        setDueTime("17:00");
-                                                        setHasChanges(true);
-                                                    }}
-                                                    disabled={!canEdit}
-                                                >
-                                                    5 PM
-                                                </Button>
-                                            </div>
-
-                                            {dueTime && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        setDueTime("");
-                                                        setHasChanges(true);
-                                                    }}
-                                                    disabled={!canEdit}
-                                                >
-                                                    Clear
-                                                </Button>
-                                            )}
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">
-                                            Set specific deadline time. If empty, deadline is end of day (23:59).
-                                        </p>
-                                    </div>
-
-                                    <Separator />
-                                </>
-                            )}
-
-                            {/* DESCRIPTION SECTION */}
-                            <div className="space-y-2">
-                                <Label>Description</Label>
-                                <Textarea
-                                    value={description}
-                                    onChange={(e) => {
-                                        setDescription(e.target.value);
-                                        setHasChanges(true);
-                                    }}
-                                    className="min-h-30 resize-none"
-                                    placeholder="Add a description..."
-                                    disabled={!canEdit}
-                                />
-                            </div>
-
-                            <Separator />
-
-                            {/* NOTES SECTION */}
-                            <div className="space-y-2">
-                                <Label>Notes</Label>
-                                <Textarea
-                                    value={notes}
-                                    onChange={(e) => {
-                                        setNotes(e.target.value);
-                                        setHasChanges(true);
-                                    }}
-                                    className="min-h-30 resize-none"
-                                    placeholder="Add some notes..."
-                                    disabled={!canEditTask}
-                                />
-                            </div>
-
-                            <Separator />
-
-                            {/* FILES / DOCUMENTS SECTION */}
-                            {isAdmin && workspace_id > 0 && (
-                                <FilesSection
-                                    files={taskFiles}
-                                    onFileUpload={handleFileUpload}
-                                    onDownloadFile={handleDownloadFile}
-                                    onRemoveFile={handleRemoveFile}
-                                    readOnly={false}
-                                    isUploading={uploadFilesMutation.isPending}
-                                    uploadProgress={fileUploadProgress}
-                                    workspaceId={workspace_id}
-                                    projectId={task.project_id}
-                                    taskId={task.id}
-                                />
-                            )}
-
-                            <Separator />
-
-                            {/* IMAGES SECTION */}
-                            {workspace_id > 0 && (
-                                <AttachmentsSection
-                                    images={taskImages || []}
-                                    restrictDownload={restrictDownload}
-                                    onRestrictDownloadChange={setRestrictDownload}
-                                    onFileUpload={handleImageUpload}
-                                    onPreviewImage={handlePreviewImage}
-                                    onDownloadImage={handleDownloadImage}
-                                    onRemoveImage={handleRemoveImage}
-                                    readOnly={false}
-                                    isUploading={uploadImagesMutation.isPending}
-                                    uploadProgress={uploadProgress}
-                                />
-                            )}
-
-                        </div>
+                        </ScrollArea>
                     </div>
 
                     {/* FOOTER SECTION */}
@@ -663,13 +665,14 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                 {deleteMutation.isPending ? "Deleting..." : "Delete Task"}
                             </Button>
                             <div className="flex gap-2">
-                                <Button variant="outline" onClick={onClose}>
+                                <Button onClick={onClose} className="bg-gray-500 hover:bg-gray-600 text-white">
                                     {hasChanges ? "Cancel" : "Close"}
                                 </Button>
                                 {hasChanges && (
                                     <Button
                                         onClick={handleSave}
                                         disabled={updateMutation.isPending}
+                                        className="bg-sky-500 hover:bg-sky-600 text-white"
                                     >
                                         {updateMutation.isPending ? "Saving..." : "Save Changes"}
                                     </Button>

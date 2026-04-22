@@ -299,7 +299,7 @@ export function CreateWorkspaceDialog({ isOpen, onClose, onCreate }: Props) {
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || isLoadingUsers}
-            className="w-full"
+            className="w-full bg-sky-500 hover:bg-sky-600 text-white"
           >
             {isSubmitting ? (
               <>

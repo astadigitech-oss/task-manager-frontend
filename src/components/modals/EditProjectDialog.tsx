@@ -232,7 +232,7 @@ export function EditProjectDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-screen flex flex-col"
+      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-screen h-[80vh] flex flex-col"
         aria-describedby={undefined}>
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle>Edit Project</DialogTitle>
@@ -241,203 +241,207 @@ export function EditProjectDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <div className="space-y-6 py-4 px-6 overflow-y-auto flex-1">
-            {/* Name Project Section */}
-            <div className="space-y-2">
-              <Label>Nama Project</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Masukkan nama project"
-                className="text-gray-900 dark:text-gray-100 bg-white dark:bg-neutral-800"
-              />
-            </div>
-
-            {/* Description Section */}
-            <div className="space-y-2">
-              <Label>Deskripsi</Label>
-              <Textarea
-                value={desc}
-                onChange={(e) => setDesc(e.target.value)}
-                placeholder="Deskripsikan project Anda"
-                rows={3}
-                className="text-gray-900 dark:text-gray-100 bg-white dark:bg-neutral-800 min-h-30 resize-none"
-              />
-            </div>
-
-            {/* Workspace Section */}
-            <div className="space-y-2">
-              <Label htmlFor="workspace">Workspace</Label>
-              <Select
-                value={selectedWorkspace || ""}
-                onValueChange={(value) => {
-                  setSelectedWorkspace(value);
-                  setSelectedUsers([]);
-                }}
-              >
-                <SelectTrigger id="workspace" className="w-full border bg-white dark:bg-neutral-800">
-                  <FolderSearch className="w-4 h-4 mr-2 text-gray-500" />
-                  <SelectValue placeholder="Pilih workspace" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-neutral-900">
-                  {workspaces.map((workspace) => (
-                    <SelectItem
-                      key={workspace.id}
-                      value={String(workspace.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded"
-                          style={{ backgroundColor: workspace.color }}
-                        />
-                        {workspace.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Team Members Section */}
-            <div className="mt-4">
-              <Label>Anggota Tim Saat Ini ({currentProjectMembers.length})</Label>
-              {isLoadingProjectMembers ? (
-                <div className="border rounded-lg p-4 mt-2">
-                  <p className="text-sm text-muted-foreground text-center">
-                    Memuat anggota project...
-                  </p>
+        <div className="flex flex-col flex-1 h-full overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="flex-1 h-full">
+              <div className="space-y-6 py-4 px-6">
+                {/* Name Project Section */}
+                <div className="space-y-2">
+                  <Label>Nama Project</Label>
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Masukkan nama project"
+                    className="text-gray-900 dark:text-gray-100 bg-white dark:bg-neutral-800"
+                  />
                 </div>
-              ) : currentProjectMembers.length > 0 ? (
-                <ScrollArea className="h-48 border rounded-md mt-2 p-2">
-                  <div className="p-2">
-                    {currentProjectMembers.map((member) => (
-                      <div
-                        key={member.id}
-                        className="flex items-center justify-between p-2 hover:bg-muted rounded-lg group"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <UserAvatar
-                            name={member.name}
-                            avatar={member.profile_img}
-                            size="sm"
-                            className="h-8 w-8"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {member.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {member.role}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveMember(member.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+
+                {/* Description Section */}
+                <div className="space-y-2">
+                  <Label>Deskripsi</Label>
+                  <Textarea
+                    value={desc}
+                    onChange={(e) => setDesc(e.target.value)}
+                    placeholder="Deskripsikan project Anda"
+                    rows={3}
+                    className="text-gray-900 dark:text-gray-100 bg-white dark:bg-neutral-800 min-h-30 resize-none"
+                  />
+                </div>
+
+                {/* Workspace Section */}
+                <div className="space-y-2">
+                  <Label htmlFor="workspace">Workspace</Label>
+                  <Select
+                    value={selectedWorkspace || ""}
+                    onValueChange={(value) => {
+                      setSelectedWorkspace(value);
+                      setSelectedUsers([]);
+                    }}
+                  >
+                    <SelectTrigger id="workspace" className="w-full border bg-white dark:bg-neutral-800">
+                      <FolderSearch className="w-4 h-4 mr-2 text-gray-500" />
+                      <SelectValue placeholder="Pilih workspace" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-neutral-900">
+                      {workspaces.map((workspace) => (
+                        <SelectItem
+                          key={workspace.id}
+                          value={String(workspace.id)}
                         >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg mt-2">
-                  Belum ada anggota tim
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between border-b pb-2 mb-2">
-              <Label>Tambah Anggota Baru dari Workspace</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Pilih Semua</span>
-                <input
-                  type="checkbox"
-                  checked={selectedUsers.length === availableMembers.length && availableMembers.length > 0}
-                  onChange={toggleSelectAll}
-                  disabled={availableMembers.length === 0}
-                  className="cursor-pointer w-4 h-4"
-                />
-              </div>
-            </div>
-
-            {isLoadingWorkspaceMembers ? (
-              <div className="border rounded-lg p-4 mt-2">
-                <p className="text-sm text-muted-foreground text-center">
-                  Memuat anggota workspace...
-                </p>
-              </div>
-            ) : !selectedWorkspace ? (
-              <div className="border rounded-lg p-4 mt-2">
-                <p className="text-sm text-muted-foreground text-center">
-                  Pilih workspace terlebih dahulu
-                </p>
-              </div>
-            ) : availableMembers.length === 0 ? (
-              <div className="border rounded-lg p-4 mt-2">
-                <p className="text-sm text-muted-foreground text-center">
-                  {workspaceMembers.length === 0
-                    ? "Workspace ini belum memiliki anggota"
-                    : "Semua anggota workspace sudah ditambahkan ke project"}
-                </p>
-              </div>
-            ) : (
-              <>
-                <ScrollArea className="h-48 border rounded-md mt-2 p-2">
-                  {availableMembers.map((m) => {
-                    const userId = m.user_id || m.user?.id || m.id;
-                    const numericUserId = Number(userId);
-
-                    return (
-                      <div
-                        key={m.id}
-                        className="flex items-center justify-between p-2 rounded-md hover:bg-muted"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <UserAvatar
-                            name={m.name}
-                            avatar={m.avatar || null}
-                            size="sm"
-                            className="h-8 w-8"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{m.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {m.role}
-                            </p>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded"
+                              style={{ backgroundColor: workspace.color }}
+                            />
+                            {workspace.name}
                           </div>
-                        </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                        <input
-                          type="checkbox"
-                          checked={selectedUsers.includes(numericUserId)}
-                          onChange={() => toggleUser(m)}
-                          className="cursor-pointer shrink-0"
-                        />
+                {/* Team Members Section */}
+                <div className="mt-4">
+                  <Label>Anggota Tim Saat Ini ({currentProjectMembers.length})</Label>
+                  {isLoadingProjectMembers ? (
+                    <div className="border rounded-lg p-4 mt-2">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Memuat anggota project...
+                      </p>
+                    </div>
+                  ) : currentProjectMembers.length > 0 ? (
+                    <ScrollArea className="h-48 border rounded-md mt-2 p-2">
+                      <div className="p-2">
+                        {currentProjectMembers.map((member) => (
+                          <div
+                            key={member.id}
+                            className="flex items-center justify-between p-2 hover:bg-muted rounded-lg group"
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <UserAvatar
+                                name={member.name}
+                                avatar={member.profile_img}
+                                size="sm"
+                                className="h-8 w-8"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">
+                                  {member.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {member.role}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveMember(member.id)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
-                    );
-                  })}
-                </ScrollArea>
+                    </ScrollArea>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg mt-2">
+                      Belum ada anggota tim
+                    </p>
+                  )}
+                </div>
 
-                <p className="text-sm text-muted-foreground mt-1">
-                  {selectedUsers.length} anggota dipilih untuk ditambahkan
-                </p>
-              </>
-            )}
+                <div className="flex items-center justify-between border-b pb-2 mb-2">
+                  <Label>Tambah Anggota Baru dari Workspace</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Pilih Semua</span>
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.length === availableMembers.length && availableMembers.length > 0}
+                      onChange={toggleSelectAll}
+                      disabled={availableMembers.length === 0}
+                      className="cursor-pointer w-4 h-4"
+                    />
+                  </div>
+                </div>
+
+                {isLoadingWorkspaceMembers ? (
+                  <div className="border rounded-lg p-4 mt-2">
+                    <p className="text-sm text-muted-foreground text-center">
+                      Memuat anggota workspace...
+                    </p>
+                  </div>
+                ) : !selectedWorkspace ? (
+                  <div className="border rounded-lg p-4 mt-2">
+                    <p className="text-sm text-muted-foreground text-center">
+                      Pilih workspace terlebih dahulu
+                    </p>
+                  </div>
+                ) : availableMembers.length === 0 ? (
+                  <div className="border rounded-lg p-4 mt-2">
+                    <p className="text-sm text-muted-foreground text-center">
+                      {workspaceMembers.length === 0
+                        ? "Workspace ini belum memiliki anggota"
+                        : "Semua anggota workspace sudah ditambahkan ke project"}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <ScrollArea className="h-48 border rounded-md mt-2 p-2">
+                      {availableMembers.map((m) => {
+                        const userId = m.user_id || m.user?.id || m.id;
+                        const numericUserId = Number(userId);
+
+                        return (
+                          <div
+                            key={m.id}
+                            className="flex items-center justify-between p-2 rounded-md hover:bg-muted"
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <UserAvatar
+                                name={m.name}
+                                avatar={m.avatar || null}
+                                size="sm"
+                                className="h-8 w-8"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{m.name}</p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {m.role}
+                                </p>
+                              </div>
+                            </div>
+
+                            <input
+                              type="checkbox"
+                              checked={selectedUsers.includes(numericUserId)}
+                              onChange={() => toggleUser(m)}
+                              className="cursor-pointer shrink-0"
+                            />
+                          </div>
+                        );
+                      })}
+                    </ScrollArea>
+
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {selectedUsers.length} anggota dipilih untuk ditambahkan
+                    </p>
+                  </>
+                )}
+              </div>
+            </ScrollArea>
           </div>
 
           <DialogFooter className="px-6 py-4 border-t">
             <DialogClose asChild>
-              <Button variant="outline" disabled={isUpdating}>
+              <Button className="bg-gray-600 hover:bg-gray-700 text-white" disabled={isUpdating}>
                 Batal
               </Button>
             </DialogClose>
-            <Button onClick={handleSubmit} disabled={isUpdating}>
+            <Button className="bg-sky-600 hover:bg-sky-700 text-white" onClick={handleSubmit} disabled={isUpdating}>
               {isUpdating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

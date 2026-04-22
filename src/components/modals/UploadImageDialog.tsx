@@ -332,7 +332,7 @@ export function UploadImageDialog({
 
           <div className="border-t p-4 flex justify-end gap-2">
             <Button
-              variant="outline"
+              className="bg-gray-500 hover:bg-gray-600 text-white"
               onClick={() => setOpen(false)}
               disabled={isUploading}
             >
@@ -341,6 +341,7 @@ export function UploadImageDialog({
             <Button
               onClick={handleUpload}
               disabled={!selectedFiles.length || isUploading}
+              className="bg-sky-500 hover:bg-sky-600 text-white"
             >
               {isUploading
                 ? `Uploading ${progress}%`

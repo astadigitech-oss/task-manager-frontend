@@ -170,7 +170,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button size="sm"variant="outline" className="gap-2">
+                <Button size="sm" className="gap-2 bg-sky-500 hover:bg-sky-600 text-white">
                     <Download className="w-4 h-4" />
                     Export Tasks
                 </Button>
@@ -298,7 +298,8 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
                 {/* Footer Buttons */}
                 <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-border">
                     <Button
-                        variant="outline"
+                        // variant="outline"
+                        className="bg-gray-500 hover:bg-gray-600 text-white"
                         onClick={() => setOpen(false)}
                         disabled={loading}
                     >
@@ -307,7 +308,7 @@ export function ExportTasksModal({ projectId, projectName, tasks }: ExportTasksM
 
                     <Button
                         onClick={handleExportPDF}
-                        className="gap-2"
+                        className="gap-2 bg-sky-500 hover:bg-sky-600 text-white"
                         disabled={loading}
                     >
                         {loading ? (

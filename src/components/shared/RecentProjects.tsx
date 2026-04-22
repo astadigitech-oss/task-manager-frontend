@@ -44,7 +44,7 @@ function RecentProjectCard({ project, onClick }: RecentProjectCardProps) {
         {/* Progress Section */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-muted">Progress</span>
+            <span className="text-xs text-muted-foreground">Progress</span>
             <span className="text-xs text-foreground">
               {progressValue}%
             </span>

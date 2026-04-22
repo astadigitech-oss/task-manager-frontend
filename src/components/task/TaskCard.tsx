@@ -113,11 +113,12 @@ const SingleTaskCard = memo(({
       onDragEnd={handleDragEnd}
       className={cn(
         "card border border-border shadow-sm hover:shadow-md cursor-pointer transition-all group relative",
+        "mx-0.5",
         isMyTask ? "ring-1 ring-primary/12" : ""
       )}
       onClick={() => onSelectTask(task)}
     >
-      <CardContent className="p-3 flex flex-col gap-2">
+      <CardContent className="p-3 flex flex-col gap-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1 w-full">
             <button

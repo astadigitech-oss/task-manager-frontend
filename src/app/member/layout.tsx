@@ -1,4 +1,3 @@
-// app/member/layout.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,14 +6,22 @@ import { MemberSidebar } from "@/components/layout/member/Sidebar";
 import Header from "@/components/layout/member/Header";
 import Footer from "@/components/layout/member/Footer";
 import { useAuthStore } from "@/store/useAuthStore";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { usePathname } from "next/navigation";
 
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const router = useRouter();
   const { isAuthenticated, user, isHydrated } = useAuthStore();
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const sidebarWidth = sidebarCollapsed ? "lg:ml-16" : "lg:ml-64";
+
+  const isProjectBoard = pathname?.includes("/member/projects/");
 
   useEffect(() => setMounted(true), []);
+
 
   useEffect(() => {
     if (!mounted || !isHydrated) return;
@@ -35,12 +42,21 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-      <div className="min-h-screen bg-background text-foreground">
+    <main className="w-screen h-screen flex flex-col bg-background text-foreground overflow-hidden">
+      <div className={`transition-all duration-300 ${sidebarWidth}`}>
+        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+      </div>
+
+      <div className={`flex flex-1 overflow-hidden transition-all duration-300 ${sidebarWidth}`}>
         <MemberSidebar
           currentPage="dashboard"
           isOpen={sidebarOpen}
+          isCollapsed={sidebarCollapsed}
           onClose={() => setSidebarOpen(false)}
-          onNavigate={(page: string, projectId?: string) => {
+          onOpen={() => setSidebarOpen(true)}
+          onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+          onNavigate={(page: string, projectId?: unknown) => {
+            setSidebarOpen(false);
             if (page === "project-detail" && projectId) {
               router.push(`/member/projects/${projectId}`);
             } else {
@@ -49,18 +65,21 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
           }}
         />
 
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        <div className={`flex flex-col h-screen transition-all duration-300 md:ml-64`}>
-          <Header onMenuClick={() => setSidebarOpen(true)} />
-          <main className="flex-1 overflow-hidden">{children}</main>
-          <Footer />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {isProjectBoard ? (
+            <div className="flex-1 overflow-hidden">
+              {children}
+            </div>
+          ) : (
+            <ScrollArea className="flex-1 h-full">
+              <div className="flex flex-col min-h-full">
+                <main className="flex-1 p-6">{children}</main>
+                <Footer />
+              </div>
+            </ScrollArea>
+          )}
         </div>
       </div>
+    </main>
   );
 }

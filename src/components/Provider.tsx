@@ -79,7 +79,7 @@ function ProvidersWithWorkspace({ children }: { children: React.ReactNode }) {
 export default function Provider({ children }: { children: React.ReactNode }) {
   return (
     <QueryProvider>
-      <ThemeProvider>
+      <ThemeProvider >
         <WorkspaceProvider>
           <ProvidersWithWorkspace>{children}</ProvidersWithWorkspace>
         </WorkspaceProvider>

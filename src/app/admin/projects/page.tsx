@@ -97,7 +97,7 @@ export default function AdminProjectsPage() {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <Button
                 onClick={createProject.open}
-                className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                className="flex items-center justify-center gap-2 w-full sm:w-auto bg-sky-500 hover:bg-sky-600 text-white transition-colors duration-200"
                 size="sm"
               >
                 <Plus className="w-4 h-4" />
@@ -105,7 +105,7 @@ export default function AdminProjectsPage() {
               </Button>
               <Button
                 onClick={Attendance.open}
-                className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                className="flex items-center justify-center gap-2 w-full sm:w-auto bg-sky-500 hover:bg-sky-600 text-white transition-colors duration-200"
                 size="sm"
               >
                 <CalendarCheck className="w-4 h-4" />

@@ -218,180 +218,188 @@ export function CreateProjectDialog({
         onClose();
       }
     }}>
-      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden max-h-screen flex flex-col"
-        aria-describedby={undefined}>
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
+      <DialogContent
+        className="max-w-2xl p-0 gap-0 flex flex-col"
+        style={{ maxHeight: "90vh", height: "90vh" }}
+        aria-describedby={undefined}
+      >
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle>Buat Project Baru</DialogTitle>
           <DialogDescription>
             Isi form berikut untuk membuat project baru dan assign anggota tim
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col flex-1 overflow-hidden"
-        >
-          <div className="space-y-6 py-4 px-6 overflow-y-auto flex-1">
-            {/* Project Name Section */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Nama Project</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Masukkan nama project"
-                required
-                disabled={isSubmitting}
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
 
-            {/* Description Section */}
-            <div className="space-y-2">
-              <Label htmlFor="description">Deskripsi</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Deskripsikan project Anda"
-                rows={3}
-                disabled={isSubmitting}
-                className="min-h-30 resize-none"
-              />
-            </div>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="space-y-4 px-6 py-4">
 
-            {/* Workspace Selection Section */}
-            <div className="space-y-2">
-              <Label htmlFor="workspace">Workspace</Label>
-              <Select
-                value={workspaceId ? String(workspaceId) : undefined}
-                onValueChange={(value) => {
-                  setWorkspaceId(Number(value));
-                  setSelectedUserIds([]);
-                }}
-              >
-                <SelectTrigger id="workspace" className="w-full border bg-white dark:bg-neutral-800">
-                  <FolderSearch className="w-4 h-4 mr-2 text-gray-500" />
-                  <SelectValue placeholder="Pilih workspace" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-neutral-900">
-                  {workspaces.map((workspace) => (
-                    <SelectItem key={workspace.id} value={String(workspace.id)}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded"
-                          style={{ backgroundColor: workspace.color }}
-                        />
-                        {workspace.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                {/* Nama Project */}
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nama Project</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Masukkan nama project"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
 
-            {/* Team Members Section */}
-            <div className="flex items-center justify-between border-b pb-2 mb-2">
-              <Label>Tambah Anggota dari Workspace</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Pilih Semua</span>
-                <input
-                  type="checkbox"
-                  checked={selectedUserIds.length === selectableMembersCount && selectableMembersCount > 0}
-                  onChange={toggleSelectAll}
-                  disabled={isSubmitting || isLoadingMembers || selectableMembersCount === 0}
-                  className="cursor-pointer w-4 h-4 mt-0.5"
-                />
-              </div>
-            </div>
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="description">Deskripsi</Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Deskripsikan project Anda"
+                    rows={3}
+                    disabled={isSubmitting}
+                    className="min-h-30 resize-none"
+                  />
+                </div>
 
-            {isLoadingMembers ? (
-              <div className="border rounded-lg p-4 mt-2 flex justify-center">
-                <Loader2 className="w-5 h-5 animate-spin" />
-              </div>
-            ) : workspaceMembers.length === 0 ? (
-              <div className="border rounded-lg p-4 mt-2">
-                <p className="text-sm text-muted-foreground text-center">
-                  Tidak ada anggota di workspace ini
-                </p>
-              </div>
-            ) : (
-              <>
-                <ScrollArea className="h-48 border rounded-md mt-2 p-2">
-                  {workspaceMembers.map((m) => {
-                    const userId = m.user_id || m.user?.id || m.id;
-                    const numericUserId = Number(userId);
-                    const isCurrentUserMember = isCurrentUser(m);
-                    const selectable = isMemberSelectable(m);
-
-                    return (
-                      <div
-                        key={m.id}
-                        className={`flex items-center justify-between p-2 rounded-md ${selectable ? 'hover:bg-muted' : 'bg-muted/50 opacity-75'
-                          }`}
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <UserAvatar
-                            name={m.name}
-                            avatar={m.avatar || m.profile_img || ""}
-                            size="sm"
-                            className="w-6 h-6"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium truncate">{m.name}</p>
-                              {isCurrentUserMember && (
-                                <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                                  <UserCheck className="w-3 h-3" />
-                                  Anda
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {m.user_email || m.role}
-                            </p>
+                {/* Workspace Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="workspace">Workspace</Label>
+                  <Select
+                    value={workspaceId ? String(workspaceId) : undefined}
+                    onValueChange={(value) => {
+                      setWorkspaceId(Number(value));
+                      setSelectedUserIds([]);
+                    }}
+                  >
+                    <SelectTrigger id="workspace" className="w-full border bg-white dark:bg-neutral-800">
+                      <FolderSearch className="w-4 h-4 mr-2 text-gray-500" />
+                      <SelectValue placeholder="Pilih workspace" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-neutral-900">
+                      {workspaces.map((workspace) => (
+                        <SelectItem key={workspace.id} value={String(workspace.id)}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded"
+                              style={{ backgroundColor: workspace.color }}
+                            />
+                            {workspace.name}
                           </div>
-                        </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                        <div className="flex items-center gap-2">
-                          {isCurrentUserMember && (
-                            <span className="text-xs text-muted-foreground mr-2">
-                              Auto added
-                            </span>
-                          )}
-                          <input
-                            type="checkbox"
-                            checked={isCurrentUserMember || selectedUserIds.includes(numericUserId)}
-                            onChange={() => toggleMember(m)}
-                            disabled={isSubmitting || !selectable || isCurrentUserMember}
-                            className={`shrink-0 ${selectable && !isCurrentUserMember ? 'cursor-pointer' : 'cursor-not-allowed'
-                              }`}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </ScrollArea>
+                {/* Team Members */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <Label>Tambah Anggota dari Workspace</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Pilih Semua</span>
+                      <input
+                        type="checkbox"
+                        checked={selectedUserIds.length === selectableMembersCount && selectableMembersCount > 0}
+                        onChange={toggleSelectAll}
+                        disabled={isSubmitting || isLoadingMembers || selectableMembersCount === 0}
+                        className="cursor-pointer w-4 h-4 mt-0.5"
+                      />
+                    </div>
+                  </div>
 
-                <p className="text-sm text-muted-foreground mt-1">
-                  {selectedUserIds.length} anggota dipilih + Anda (otomatis)
-                </p>
-              </>
-            )}
+                  {isLoadingMembers ? (
+                    <div className="border rounded-lg p-4 flex justify-center">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    </div>
+                  ) : workspaceMembers.length === 0 ? (
+                    <div className="border rounded-lg p-4">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Tidak ada anggota di workspace ini
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <ScrollArea className="h-48 border rounded-md p-2">
+                        {workspaceMembers.map((m) => {
+                          const userId = m.user_id || m.user?.id || m.id;
+                          const numericUserId = Number(userId);
+                          const isCurrentUserMember = isCurrentUser(m);
+                          const selectable = isMemberSelectable(m);
+
+                          return (
+                            <div
+                              key={m.id}
+                              className={`flex items-center justify-between p-2 rounded-md ${selectable ? "hover:bg-muted" : "bg-muted/50 opacity-75"
+                                }`}
+                            >
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <UserAvatar
+                                  name={m.name}
+                                  avatar={m.avatar || m.profile_img || ""}
+                                  size="sm"
+                                  className="w-6 h-6"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium truncate">{m.name}</p>
+                                    {isCurrentUserMember && (
+                                      <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                        <UserCheck className="w-3 h-3" />
+                                        Anda
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {m.user_email || m.role}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {isCurrentUserMember && (
+                                  <span className="text-xs text-muted-foreground mr-2">
+                                    Auto added
+                                  </span>
+                                )}
+                                <input
+                                  type="checkbox"
+                                  checked={isCurrentUserMember || selectedUserIds.includes(numericUserId)}
+                                  onChange={() => toggleMember(m)}
+                                  disabled={isSubmitting || !selectable || isCurrentUserMember}
+                                  className={`shrink-0 ${selectable && !isCurrentUserMember
+                                      ? "cursor-pointer"
+                                      : "cursor-not-allowed"
+                                    }`}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </ScrollArea>
+
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {selectedUserIds.length} anggota dipilih + Anda (otomatis)
+                      </p>
+                    </>
+                  )}
+                </div>
+
+              </div>
+            </ScrollArea>
           </div>
 
-          <DialogFooter className="px-6 py-4 border-t mt-0">
+          <DialogFooter className="px-6 py-4 border-t shrink-0">
             <Button
               type="button"
-              variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
+              className="text-white bg-gray-500 hover:bg-gray-600"
             >
               Batal
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || isLoadingMembers}
-            >
+            <Button type="submit" disabled={isSubmitting || isLoadingMembers} className="text-white bg-sky-500 hover:bg-sky-600">
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
