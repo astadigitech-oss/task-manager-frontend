@@ -22,9 +22,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Baca langsung dari <html> class yang sudah diset oleh inline script
   // Ini sync — tidak perlu tunggu useEffect
   const getInitialTheme = (): Theme => {
-    if (typeof window === "undefined") return "light";
-    return document.documentElement.classList.contains("dark") ? "dark" : "light";
-  };
+  if (typeof window === "undefined") return "light";
+  
+  // Prioritas 1: class dari inline script (sudah jalan sebelum React)
+  if (document.documentElement.classList.contains("dark")) return "dark";
+  
+  // Prioritas 2: localStorage (fallback jika inline script belum ada)
+  const saved = localStorage.getItem("app-theme");
+  if (saved === "dark" || saved === "light") return saved;
+  
+  // Prioritas 3: system preference
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+};
 
   const [theme, setThemeState] = useState<Theme>(getInitialTheme);
 
