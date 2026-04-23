@@ -20,12 +20,19 @@ export function LoginForm() {
     const { setTheme } = useTheme();
 
     useEffect(() => {
-        const previousTheme = localStorage.getItem('app-theme');
+    const previousTheme = localStorage.getItem('app-theme');
+    
+    // Hanya set jika memang belum 'light'
+    if (previousTheme !== 'light') {
         setTheme('light');
-        return () => {
-            if (previousTheme) setTheme(previousTheme as 'light' | 'dark');
-        };
-    }, [setTheme]);
+    }
+
+    return () => {
+        if (previousTheme && previousTheme !== 'light') {
+            setTheme(previousTheme as 'light' | 'dark');
+        }
+    };
+}, []); // Hapus setTheme dari dependency array
 
     const validateForm = () => {
         const newErrors = { email: '', password: '' };
