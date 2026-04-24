@@ -24,8 +24,10 @@ import {
 } from "@/hooks/task/useTaskMember";
 import {
     useTaskImages,
-    useUploadTaskImage,
-    useUploadMultipleTaskImages,
+    useUploadTaskImagesBefore, 
+    useUploadTaskImagesAfter,   
+    useTaskImagesBefore,       
+    useTaskImagesAfter,        
     useDeleteTaskImage
 } from "@/hooks/task/useTaskImages";
 import { normalizeTask } from "@/lib/utils/normalizeTask";
@@ -56,7 +58,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
     const [selectedProjectId, setSelectedProjectIdState] = useState<number | null>(null);
     const [selectedWorkspaceId, setSelectedWorkspaceIdState] = useState<number | null>(null);
-    
+
     // Ref untuk tracking perubahan workspace dari context
     const lastContextWorkspaceId = useRef<number | null>(null);
     // Ref untuk tracking perubahan workspace lokal
@@ -73,11 +75,11 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         if (contextWorkspaceId !== lastContextWorkspaceId.current) {
             console.log(`[TaskContext] Workspace changed from context: ${lastContextWorkspaceId.current} -> ${contextWorkspaceId}`);
-            
+
 
             lastContextWorkspaceId.current = contextWorkspaceId;
             lastLocalWorkspaceId.current = contextWorkspaceId;
-            
+
             setSelectedWorkspaceIdState(contextWorkspaceId);
             setSelectedProjectIdState(null);
         }
@@ -88,7 +90,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         if (selectedWorkspaceId !== lastLocalWorkspaceId.current) {
             console.log(`[TaskContext] Workspace changed locally: ${lastLocalWorkspaceId.current} -> ${selectedWorkspaceId}`);
             lastLocalWorkspaceId.current = selectedWorkspaceId;
-            
+
             if (selectedWorkspaceId !== lastContextWorkspaceId.current) {
                 lastContextWorkspaceId.current = selectedWorkspaceId;
             }
@@ -149,8 +151,10 @@ export {
     useAddTaskMember,
     useRemoveTaskMember,
     useTaskImages,
-    useUploadTaskImage,
-    useUploadMultipleTaskImages,
+    useTaskImagesBefore,          
+    useTaskImagesAfter,           
+    useUploadTaskImagesBefore,   
+    useUploadTaskImagesAfter,  
     useDeleteTaskImage,
     useTaskFiles,
     useUploadTaskFiles,

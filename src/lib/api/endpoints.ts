@@ -87,7 +87,7 @@ export const API_ENDPOINTS = {
       `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}`,
 
     UPDATE_ORDER: (workspace_id: number, project_id: number) =>
-    `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/reorder`,
+      `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/reorder`,
 
     SOFT_DELETE: (workspace_id: number, project_id: number, task_id: number) =>
       `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}`,
@@ -115,12 +115,15 @@ export const API_ENDPOINTS = {
       LIST: (workspace_id: number, project_id: number, task_id: number) =>
         `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}/images`,
 
-      UPLOAD: (workspace_id: number, project_id: number, task_id: number) =>
-        `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}/images`,
+      UPLOAD_BEFORE: (workspace_id: number, project_id: number, task_id: number) =>
+        `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}/images/before`,
+
+      UPLOAD_AFTER: (workspace_id: number, project_id: number, task_id: number) =>
+        `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}/images/after`,
 
       DELETE: (workspace_id: number, project_id: number, task_id: number, image_id: number) =>
         `/api/workspaces/${workspace_id}/projects/${project_id}/tasks/${task_id}/images/${image_id}`,
-    }
+    },
   },
 
   // File 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { format } from "date-fns";
 import { Flag, Layout, Clock } from "lucide-react";
-import { resolveImageUrl } from "@/lib/helpers/imageUrlHelper";
+import { resolveImageUrl, resolveValidImageUrls } from "@/lib/helpers/imageUrlHelper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +23,8 @@ import {
     useAddTaskMember,
     useRemoveTaskMember,
     useTaskImages,
-    useUploadMultipleTaskImages,
+    useUploadTaskImagesBefore,
+    useUploadTaskImagesAfter,
     useDeleteTaskImage
 } from "@/context/TaskContext";
 import { useProjectMembers } from "@/hooks/project/useProjectMembers";
@@ -41,6 +42,7 @@ import { taskKeys } from "@/lib/react-query/taskKeys";
 import { FilesSection } from "../task/task-detail/FilesSection";
 import { useDeleteTaskFile, useDownloadTaskFile, useTaskFiles, useUploadTaskFiles } from "@/hooks/task/useTaskFiles";
 import { ScrollArea } from "../ui/scroll-area";
+import { useTaskImagesAfter, useTaskImagesBefore, } from "@/hooks/task/useTaskImages";
 
 interface TaskEditModalProps {
     task: TaskApi;
@@ -61,7 +63,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
     const deleteMutation = useDeleteTask();
     const addMemberMutation = useAddTaskMember();
     const removeMemberMutation = useRemoveTaskMember();
-    const uploadImagesMutation = useUploadMultipleTaskImages();
+    // const uploadImagesMutation = useUploadMultipleTaskImages();
     const deleteImageMutation = useDeleteTaskImage();
 
     const role = user?.role;
@@ -77,6 +79,15 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
 
     // Queries
     const { data: taskImages = [] } = useTaskImages(workspace_id, task.project_id, task.id);
+
+    const uploadBeforeMutation = useUploadTaskImagesBefore();
+    const uploadAfterMutation = useUploadTaskImagesAfter();
+
+    const [restrictDownloadBefore, setRestrictDownloadBefore] = useState(false);
+    const [restrictDownloadAfter, setRestrictDownloadAfter] = useState(false);
+
+    const [uploadBeforeProgress, setUploadBeforeProgress] = useState(0);
+    const [uploadAfterProgress, setUploadAfterProgress] = useState(0);
 
     // Form state
     const [title, setTitle] = useState(task.title);
@@ -121,11 +132,26 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
     const [uploadProgress, setUploadProgress] = useState(0);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState(0);
+    const [lightboxType, setLightboxType] = useState<"before" | "after">("before");
 
-    const imageUrls = useMemo(
-        () => taskImages.map(img => resolveImageUrl(img.url)).filter(Boolean),
-        [taskImages]
+    const taskImagesBefore = useMemo(() => {
+        return taskImages.filter(img => img.type === "before");
+    }, [taskImages]);
+
+    const taskImagesAfter = useMemo(() => {
+        return taskImages.filter(img => img.type === "after");
+    }, [taskImages]);
+
+    const imageUrlsBefore = useMemo(
+        () => taskImagesBefore.map(img => resolveImageUrl(img.image_url || img.url)),
+        [taskImagesBefore]
     );
+
+    const imageUrlsAfter = useMemo(
+        () => taskImagesAfter.map(img => resolveImageUrl(img.image_url || img.url)),
+        [taskImagesAfter]
+    );
+
 
 
     const project = useMemo(
@@ -272,28 +298,43 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
         setHasChanges(true);
     }, []);
 
-    const handleImageUpload = useCallback(async (files: File[]) => {
-        if (files.length === 0) return;
-
+    const handleImageBeforeUpload = useCallback(async (files: File[]) => {
+        if (!files.length) return;
         try {
-            await uploadImagesMutation.mutateAsync({
+            await uploadBeforeMutation.mutateAsync({
                 workspaceId: workspace_id,
                 projectId: task.project_id,
                 taskId: task.id,
                 files,
-                options: {
-                    onProgress: (progress) => setUploadProgress(progress)
-                }
+                options: { onProgress: setUploadBeforeProgress },
             });
-            setUploadProgress(0);
-        } catch (err) {
-            console.error('Upload failed:', err);
-            setUploadProgress(0);
-        }
-    }, [workspace_id, task.project_id, task.id, uploadImagesMutation]);
+            setUploadBeforeProgress(0);
+        } catch { setUploadBeforeProgress(0); }
+    }, [workspace_id, task.project_id, task.id, uploadBeforeMutation]);
 
-    const handlePreviewImage = useCallback((index: number) => {
+    const handleImageAfterUpload = useCallback(async (files: File[]) => {
+        if (!files.length) return;
+        try {
+            await uploadAfterMutation.mutateAsync({
+                workspaceId: workspace_id,
+                projectId: task.project_id,
+                taskId: task.id,
+                files,
+                options: { onProgress: setUploadAfterProgress },
+            });
+            setUploadAfterProgress(0);
+        } catch { setUploadAfterProgress(0); }
+    }, [workspace_id, task.project_id, task.id, uploadAfterMutation]);
+
+    const handlePreviewBeforeImage = useCallback((index: number) => {
         setLightboxIndex(index);
+        setLightboxType("before");
+        setLightboxOpen(true);
+    }, []);
+
+    const handlePreviewAfterImage = useCallback((index: number) => {
+        setLightboxIndex(index);
+        setLightboxType("after");
         setLightboxOpen(true);
     }, []);
 
@@ -600,6 +641,50 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
 
                                 <Separator />
 
+                                {/* IMAGES SECTION — Before (kiri) & After (kanan) */}
+                                {workspace_id > 0 && (
+                                    <div className="space-y-3">
+                                        <Label className="text-sm font-semibold">Images</Label>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {/* BEFORE */}
+                                            <div className="border rounded-lg p-4 space-y-3">
+                                                <AttachmentsSection
+                                                    label="Before"
+                                                    images={taskImagesBefore}
+                                                    restrictDownload={restrictDownloadBefore}
+                                                    onRestrictDownloadChange={setRestrictDownloadBefore}
+                                                    onFileUpload={handleImageBeforeUpload}
+                                                    onPreviewImage={handlePreviewBeforeImage}
+                                                    onDownloadImage={handleDownloadImage}
+                                                    onRemoveImage={handleRemoveImage}
+                                                    readOnly={false}
+                                                    isUploading={uploadBeforeMutation.isPending}
+                                                    uploadProgress={uploadBeforeProgress}
+                                                />
+                                            </div>
+
+                                            {/* AFTER */}
+                                            <div className="border rounded-lg p-4 space-y-3">
+                                                <AttachmentsSection
+                                                    label="After"
+                                                    images={taskImagesAfter}
+                                                    restrictDownload={restrictDownloadAfter}
+                                                    onRestrictDownloadChange={setRestrictDownloadAfter}
+                                                    onFileUpload={handleImageAfterUpload}
+                                                    onPreviewImage={handlePreviewAfterImage}
+                                                    onDownloadImage={handleDownloadImage}
+                                                    onRemoveImage={handleRemoveImage}
+                                                    readOnly={false}
+                                                    isUploading={uploadAfterMutation.isPending}
+                                                    uploadProgress={uploadAfterProgress}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <Separator />
+
                                 {/* NOTES SECTION */}
                                 <div className="space-y-2">
                                     <Label>Notes</Label>
@@ -633,23 +718,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                                     />
                                 )}
 
-                                <Separator />
-
-                                {/* IMAGES SECTION */}
-                                {workspace_id > 0 && (
-                                    <AttachmentsSection
-                                        images={taskImages || []}
-                                        restrictDownload={restrictDownload}
-                                        onRestrictDownloadChange={setRestrictDownload}
-                                        onFileUpload={handleImageUpload}
-                                        onPreviewImage={handlePreviewImage}
-                                        onDownloadImage={handleDownloadImage}
-                                        onRemoveImage={handleRemoveImage}
-                                        readOnly={false}
-                                        isUploading={uploadImagesMutation.isPending}
-                                        uploadProgress={uploadProgress}
-                                    />
-                                )}
+                                {/* <Separator /> */}
                             </div>
                         </ScrollArea>
                     </div>
@@ -683,7 +752,7 @@ export function TaskEditModal({ task, onClose, workspace_id }: TaskEditModalProp
                 </div>
             </DialogContent>
             <ImageLightBoxModal
-                images={imageUrls}
+                images={lightboxType === "before" ? imageUrlsBefore : imageUrlsAfter}
                 initialIndex={lightboxIndex}
                 open={lightboxOpen}
                 onOpenChange={setLightboxOpen}

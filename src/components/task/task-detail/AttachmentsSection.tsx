@@ -18,9 +18,10 @@ import { cn } from "@/lib/utils/utils";
 import { toast } from "sonner";
 
 interface AttachmentsSectionProps {
+  label?: string;
   images: TaskImageApi[];
-  restrictDownload: boolean;
-  onRestrictDownloadChange: (value: boolean) => void;
+  restrictDownload?: boolean;
+  onRestrictDownloadChange?: (value: boolean) => void;
   onFileUpload: (files: File[]) => Promise<void>;
   onPreviewImage: (index: number) => void;
   onDownloadImage: (image: TaskImageApi) => void;
@@ -31,9 +32,10 @@ interface AttachmentsSectionProps {
 }
 
 export function AttachmentsSection({
+  label = "Images",
   images,
-  restrictDownload,
-  onRestrictDownloadChange,
+  restrictDownload = false,
+  onRestrictDownloadChange = () => {},
   onFileUpload,
   onPreviewImage,
   onDownloadImage,
@@ -158,7 +160,7 @@ export function AttachmentsSection({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-foreground">
-          <Label className="text-sm font-semibold">Images</Label>
+          <Label className="text-sm font-semibold">{label}</Label>
           {images.length > 0 && (
             <span className="text-sm text-muted-foreground">({images.length})</span>
           )}
@@ -248,8 +250,8 @@ export function AttachmentsSection({
 
       {!readOnly && images.length > 0 && (
         <div className="flex items-center gap-2">
-          <Switch 
-            checked={restrictDownload} 
+          <Switch
+            checked={restrictDownload}
             onCheckedChange={onRestrictDownloadChange}
             disabled={isUploading}
           />

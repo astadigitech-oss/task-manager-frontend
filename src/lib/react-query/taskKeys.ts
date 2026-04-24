@@ -15,6 +15,13 @@ export const taskKeys = {
 
     images: (workspaceId: number, projectId: number, taskId: number) =>
         [...taskKeys.all, 'images', { workspaceId, projectId, taskId }] as const,
+
+    imagesBefore: (workspaceId: number, projectId: number, taskId: number) =>
+        [...taskKeys.all, 'images', 'before', { workspaceId, projectId, taskId }] as const,
+
+    imagesAfter: (workspaceId: number, projectId: number, taskId: number) =>
+        [...taskKeys.all, 'images', 'after', { workspaceId, projectId, taskId }] as const,
+
 };
 
 export const invalidateTaskQueries = {
@@ -39,7 +46,19 @@ export const invalidateTaskQueries = {
 
     taskImages: (queryClient: any, workspaceId: number, projectId: number, taskId: number) => {
         queryClient.invalidateQueries({
-            queryKey: taskKeys.images(workspaceId, projectId, taskId)
+            queryKey: [...taskKeys.all, 'images']
+        });
+    },
+
+    taskImagesBefore: (queryClient: any, workspaceId: number, projectId: number, taskId: number) => {
+        queryClient.invalidateQueries({
+            queryKey: taskKeys.imagesBefore(workspaceId, projectId, taskId)
+        });
+    },
+
+    taskImagesAfter: (queryClient: any, workspaceId: number, projectId: number, taskId: number) => {
+        queryClient.invalidateQueries({
+            queryKey: taskKeys.imagesAfter(workspaceId, projectId, taskId)
         });
     },
 
@@ -48,7 +67,6 @@ export const invalidateTaskQueries = {
             queryKey: taskKeys.images(workspaceId, projectId, taskId)
         });
     },
-    
 };
 
 export const fileKeys = {

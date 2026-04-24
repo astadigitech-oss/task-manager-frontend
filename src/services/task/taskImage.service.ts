@@ -32,57 +32,82 @@ export const taskImageService = {
     },
 
     /**
-     * Upload single image to task
+     * Upload image before
      */
-    upload: async (
+    uploadBefore: async (
         workspace_id: number,
         project_id: number,
         task_id: number,
         file: File,
         options?: {
             title?: string;
-            description?: string;
             onProgress?: (progress: number) => void;
         }
     ): Promise<TaskImageResponse> => {
         try {
-            const url = API_ENDPOINTS.TASKS.IMAGES.UPLOAD(workspace_id, project_id, task_id);
-
+            const url = API_ENDPOINTS.TASKS.IMAGES.UPLOAD_BEFORE(workspace_id, project_id, task_id);
             const formData = new FormData();
-            formData.append("image", file);
+            formData.append("title", "before");
+            // if (options?.title) formData.append("title", options.title);
 
-            if (options?.title) formData.append("title", options.title);
-            if (options?.description) formData.append("description", options.description);
-
-            // Upload with progress tracking
             const response = await apiClient.post(url, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
+                headers: { "Content-Type": "multipart/form-data" },
                 onUploadProgress: (progressEvent) => {
                     if (options?.onProgress && progressEvent.total) {
-                        const percentCompleted = Math.round(
-                            (progressEvent.loaded * 100) / progressEvent.total
-                        );
-                        options.onProgress(percentCompleted);
+                        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        options.onProgress(percent);
                     }
                 },
             });
-
             return response.data;
         } catch (error) {
-            throw handleApiError(error, "Gagal upload gambar");
+            throw handleApiError(error, "Gagal upload gambar before");
         }
     },
 
     /**
-     * Upload multiple images task
+     * Upload image after
      */
-    uploadMultiple: async (
+    uploadAfter: async (
+        workspace_id: number,
+        project_id: number,
+        task_id: number,
+        file: File,
+        options?: {
+            title?: string;
+            onProgress?: (progress: number) => void;
+        }
+    ): Promise<TaskImageResponse> => {
+        try {
+            const url = API_ENDPOINTS.TASKS.IMAGES.UPLOAD_AFTER(workspace_id, project_id, task_id);
+            const formData = new FormData();
+            formData.append("image", file);
+            // formData.append("title", options?.title || "after");
+
+            const response = await apiClient.post(url, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+                onUploadProgress: (progressEvent) => {
+                    if (options?.onProgress && progressEvent.total) {
+                        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        options.onProgress(percent);
+                    }
+                },
+            });
+            return response.data;
+        } catch (error) {
+            throw handleApiError(error, "Gagal upload gambar after");
+        }
+    },
+
+    /**
+     * Upload multiple before/after
+     */
+    uploadMultipleByType: async (
         workspace_id: number,
         project_id: number,
         task_id: number,
         files: File[],
+        type: "before" | "after",
         options?: {
             onProgress?: (progress: number) => void;
             onSingleComplete?: (file: File, result: TaskImageApi) => void;
@@ -92,29 +117,26 @@ export const taskImageService = {
         const totalFiles = files.length;
         let completedFiles = 0;
 
+        const uploadFn = type === "before"
+            ? taskImageService.uploadBefore
+            : taskImageService.uploadAfter;
+
         for (const file of files) {
             try {
-                const response = await taskImageService.upload(
-                    workspace_id,
-                    project_id,
-                    task_id,
-                    file,
-                    {
-                        onProgress: (fileProgress) => {
-                            const totalProgress =
-                                ((completedFiles + fileProgress / 100) / totalFiles) * 100;
-                            options?.onProgress?.(totalProgress);
-                        },
-                    }
-                );
+                const response = await uploadFn(workspace_id, project_id, task_id, file, {
+                    onProgress: (fileProgress) => {
+                        const totalProgress =
+                            ((completedFiles + fileProgress / 100) / totalFiles) * 100;
+                        options?.onProgress?.(totalProgress);
+                    },
+                });
 
                 if (response.success && response.data) {
                     results.push(response.data);
                     completedFiles++;
                     options?.onSingleComplete?.(file, response.data);
                 }
-            } catch (error) {
-
+            } catch {
                 completedFiles++;
             }
         }

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { MoreVertical, Users } from "lucide-react";
 import {
   DropdownMenu,
@@ -24,6 +23,67 @@ interface ProjectListProps {
   onViewDetail?: (project_id: number) => void;
 }
 
+// Tipe progress kumulatif dari API
+interface ProgressBreakdown {
+  done: number;
+  on_progress: number;
+  on_board: number;
+  pending: number;
+  canceled: number;
+}
+
+const PROGRESS_SEGMENTS: {
+  key: keyof ProgressBreakdown;
+  label: string;
+  color: string;
+}[] = [
+  { key: "done", label: "Done", color: "bg-green-500" },
+  { key: "on_progress", label: "On Progress", color: "bg-blue-500" },
+  { key: "on_board", label: "On Board", color: "bg-gray-500" },
+  { key: "pending", label: "Pending", color: "bg-yellow-500" },
+  { key: "canceled", label: "Canceled", color: "bg-red-500" },
+];
+
+function SegmentedProgressBar({ progress }: { progress: ProgressBreakdown }) {
+  const donePercent = progress.done ?? 0;
+
+  return (
+    <div>
+      {/* Bar */}
+      <div className="flex h-2 w-full rounded-full overflow-hidden bg-muted gap-px">
+        {PROGRESS_SEGMENTS.map(({ key, color }) => {
+          const value = progress[key] ?? 0;
+          if (value <= 0) return null;
+          return (
+            <div
+              key={key}
+              className={`${color} transition-all`}
+              style={{ width: `${value}%` }}
+            />
+          );
+        })}
+      </div>
+
+      {/* Legend — hanya tampilkan segment yang > 0 */}
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+        {PROGRESS_SEGMENTS.map(({ key, label, color }) => {
+          const value = progress[key] ?? 0;
+          if (value <= 0) return null;
+          return (
+            <span
+              key={key}
+              className="flex items-center gap-1 text-[10px] text-muted-foreground"
+            >
+              <span className={`inline-block h-2 w-2 rounded-sm ${color}`} />
+              {label} {value}%
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ProjectCard({
   project,
   onEdit,
@@ -37,16 +97,20 @@ function ProjectCard({
   onViewDetail: (project: ProjectApi) => void;
   isReadOnly: boolean;
 }) {
-  const rawProgress = Number(project.progress) || 0;
-  const progressValue = Math.round(rawProgress);
   const { task_count, members = [] } = project;
+
+  // Hitung donePercent untuk label header
+  const donePercent =
+    typeof project.progress === "object"
+      ? Math.round(project.progress.done ?? 0)
+      : Math.round(Number(project.progress) || 0);
 
   return (
     <Card
       className="p-4 sm:p-6 hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => onViewDetail(project)}
     >
-      {/* Header dengan responsive spacing */}
+      {/* Header */}
       <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2">
         <div className="flex-1 min-w-0">
           <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1 truncate">
@@ -90,36 +154,45 @@ function ProjectCard({
         )}
       </div>
 
-      {/* Progress dengan responsive text */}
+      {/* Progress */}
       <div className="mb-3 sm:mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs sm:text-sm text-foreground">Progress</span>
           <span className="text-xs sm:text-sm font-medium text-muted-foreground">
-            {progressValue}%
+            {donePercent}% done
           </span>
         </div>
 
-        <Progress value={progressValue} className="h-2" />
+        {typeof project.progress === "object" ? (
+          <SegmentedProgressBar progress={project.progress as ProgressBreakdown} />
+        ) : (
+          // Fallback jika progress masih berupa angka
+          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-green-500 transition-all"
+              style={{ width: `${donePercent}%` }}
+            />
+          </div>
+        )}
 
         {task_count > 0 && (
           <p className="text-xs text-muted-foreground mt-1">
-            {task_count} {task_count === 1 ? 'task' : 'tasks'}
+            {task_count} {task_count === 1 ? "task" : "tasks"}
           </p>
         )}
       </div>
 
-      {/* Team Members dengan responsive layout */}
+      {/* Team Members */}
       <div className="space-y-2 sm:space-y-3 pt-3 sm:pt-4 border-t">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span>Team</span>
           </div>
-          
+
           <div className="flex -space-x-2">
             {members.length > 0 ? (
               <>
-                {/* Tampilkan 2 avatar di mobile, 3 di desktop */}
                 {members.slice(0, window.innerWidth < 640 ? 2 : 3).map((member) => (
                   <UserAvatar
                     key={member.id}
@@ -138,9 +211,7 @@ function ProjectCard({
                 )}
               </>
             ) : (
-              <span className="text-xs text-muted-foreground">
-                No members
-              </span>
+              <span className="text-xs text-muted-foreground">No members</span>
             )}
           </div>
         </div>

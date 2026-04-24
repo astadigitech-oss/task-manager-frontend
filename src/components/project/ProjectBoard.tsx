@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback, memo } from "react";
 import { useProject } from "@/context/ProjectContext";
 import { useTask, useUpdateTask } from "@/context/TaskContext";
-import { useProjectProgress } from "@/hooks/project/useProjectProgress";
+import { useProjectProgress, ProgressBreakdown } from "@/hooks/project/useProjectProgress";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProjectMembers } from "@/hooks/project/useProjectMembers";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
@@ -34,7 +34,7 @@ import {
   FolderKanban,
   Loader2,
   Users,
-  Image as ImageIcon,
+  Image,
   X
 } from "lucide-react";
 import { cn } from "@/lib/utils/utils";
@@ -235,7 +235,7 @@ function ProjectBoardLayout({
     return project?.members ?? [];
   }, [projectMembers, project?.members]);
 
-  const { progress } = useProjectProgress(project_id);
+  const { progress, breakdown } = useProjectProgress(project_id);
   const updateTaskMutation = useUpdateTask();
 
   const [hoveredStatus, setHoveredStatus] = useState<string | null>(null);
@@ -441,7 +441,24 @@ function ProjectBoardLayout({
                 <span>Progress</span>
                 <span>{progress}% Complete</span>
               </div>
-              <Progress value={progress} className="h-2" />
+
+              {/* Segmented bar */}
+              <div className="flex h-2 w-full rounded-full overflow-hidden bg-muted gap-px">
+                {breakdown.done > 0 && <div className="bg-green-500  transition-all" style={{ width: `${breakdown.done}%` }} title={`Done: ${breakdown.done}%`} />}
+                {breakdown.on_progress > 0 && <div className="bg-blue-500   transition-all" style={{ width: `${breakdown.on_progress}%` }} title={`On Progress: ${breakdown.on_progress}%`} />}
+                {breakdown.on_board > 0 && <div className="bg-gray-500 transition-all" style={{ width: `${breakdown.on_board}%` }} title={`On Board: ${breakdown.on_board}%`} />}
+                {breakdown.pending > 0 && <div className="bg-yellow-500 transition-all" style={{ width: `${breakdown.pending}%` }} title={`Pending: ${breakdown.pending}%`} />}
+                {breakdown.canceled > 0 && <div className="bg-red-500    transition-all" style={{ width: `${breakdown.canceled}%` }} title={`Canceled: ${breakdown.canceled}%`} />}
+              </div>
+
+              {/* Legend */}
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+                {breakdown.done > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-green-500" />Done {breakdown.done}%</span>}
+                {breakdown.on_progress > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-blue-500" />On Progress {breakdown.on_progress}%</span>}
+                {breakdown.on_board > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-gray-500" />On Board {breakdown.on_board}%</span>}
+                {breakdown.pending > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-yellow-500" />Pending {breakdown.pending}%</span>}
+                {breakdown.canceled > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-red-500" />Canceled {breakdown.canceled}%</span>}
+              </div>
             </div>
           </div>
 
@@ -610,12 +627,12 @@ function ProjectBoardLayout({
           ) : (
             <ScrollArea className="flex-1 h-full">
               <div className="p-3 sm:p-4">
-              <TaskList
-                tasks={sortTasks(displayedTasks, globalSortOption)}
-                project_id={Number(project_id)}
-                workspace_id={validWorkspaceId}
-                readOnly={!canCreateTask}
-              />
+                <TaskList
+                  tasks={sortTasks(displayedTasks, globalSortOption)}
+                  project_id={Number(project_id)}
+                  workspace_id={validWorkspaceId}
+                  readOnly={!canCreateTask}
+                />
               </div>
             </ScrollArea>
           )}

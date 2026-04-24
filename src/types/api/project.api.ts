@@ -15,12 +15,20 @@ export interface ProjectMemberInList {
     profile_image: string | null;
 }
 
+export interface ProgressBreakdown {
+    done: number;
+    on_progress: number;
+    on_board: number;
+    pending: number;
+    canceled: number;
+}
+
 export interface ProjectApi {
     id: number;
     name: string;
     description: string | null;
     workspace_id: number;
-    progress: number;
+    progress: number | ProgressBreakdown;
     task_count: number;
     member_count: number;
     members: ProjectMemberInList[];

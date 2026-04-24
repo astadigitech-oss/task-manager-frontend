@@ -82,6 +82,7 @@ export interface TaskImageApi {
     url: string;
     created_at: string;
     fullUrl?: string;
+    type?: "before" | "after" | undefined;
 }
 
 export interface TaskFileUploaderApi {

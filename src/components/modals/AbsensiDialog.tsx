@@ -29,6 +29,9 @@ import {
   Download,
   Calendar,
   CheckCircle2,
+  Plus,
+  X,
+  GripVertical,
 } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 
@@ -36,6 +39,11 @@ import { ScrollArea } from "../ui/scroll-area";
 interface AbsensiDialogProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface TodoItem {
+  id: string;
+  text: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -75,6 +83,28 @@ function extractErrorMessage(error: any): string {
   return "Anda Sudah Melakukan Absensi Hari Ini.";
 }
 
+/** Convert todo items array → single string (joined by "\n- ") */
+function todosToActivityString(todos: TodoItem[]): string {
+  return todos
+    .map((t) => t.text.trim())
+    .filter(Boolean)
+    .map((t) => `- ${t}`)
+    .join("\n");
+}
+
+/** Parse activity string back to todo items (for read-only display) */
+function activityStringToTodos(activity: string): TodoItem[] {
+  return activity
+    .split("\n")
+    .map((line) => line.replace(/^-\s*/, "").trim())
+    .filter(Boolean)
+    .map((text, i) => ({ id: `restored-${i}`, text }));
+}
+
+function generateId(): string {
+  return `todo-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
   const { selectedWorkspaceId, selectedWorkspace } = useWorkspace();
@@ -100,8 +130,12 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
     : null;
 
   // ── Form state ───────────────────────────────────────────────────────────────
-  const [activity, setActivity] = useState("");
+  // Activity is now stored as a list of TodoItem; serialized to string on submit
+  const [todos, setTodos] = useState<TodoItem[]>([{ id: generateId(), text: "" }]);
   const [obstacle, setObstacle] = useState("");
+
+  // Derived: activity string from todos
+  const activityString = todosToActivityString(todos);
 
   // ── Export state (admin only) ─────────────────────────────────────────────────
   const [exportDate, setExportDate] = useState<string>(getTodayDateString());
@@ -118,23 +152,21 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  // ── Refs for todo input focus management ─────────────────────────────────────
+  const todoInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+
   // ── Draft auto-save (debounced) ───────────────────────────────────────────────
-  // Ref untuk debounce timer
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /**
-   * Dipanggil setiap kali activity/obstacle/previews berubah.
-   * Hanya simpan jika belum submit dan workspace sudah dipilih.
-   */
   const scheduleDraftSave = useCallback(
-    (newActivity: string, newObstacle: string, newPreviews: string[]) => {
+    (newTodos: TodoItem[], newObstacle: string, newPreviews: string[]) => {
       if (!selectedWorkspaceId || hasSubmitted) return;
 
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
 
       draftTimerRef.current = setTimeout(() => {
         saveDraft(selectedWorkspaceId, {
-          activity: newActivity,
+          activity: todosToActivityString(newTodos),
           obstacle: newObstacle,
           previews: newPreviews,
         });
@@ -143,7 +175,6 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
     [selectedWorkspaceId, hasSubmitted, saveDraft]
   );
 
-  // Cleanup timer saat unmount
   useEffect(() => {
     return () => {
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
@@ -155,19 +186,19 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
     if (!isOpen || !selectedWorkspaceId) return;
 
     if (hasSubmitted && savedAttendance) {
-      // Tampilkan data yang sudah disubmit (read-only)
-      setActivity(savedAttendance.activity);
+      setTodos(activityStringToTodos(savedAttendance.activity));
       setObstacle(savedAttendance.obstacle);
       setPreviews(savedAttendance.previews || []);
     } else if (!hasSubmitted) {
-      // Coba load draft hari ini
       const draft = getDraft(selectedWorkspaceId);
       if (draft) {
-        setActivity(draft.activity);
+        setTodos(
+          activityStringToTodos(draft.activity).length
+            ? activityStringToTodos(draft.activity)
+            : [{ id: generateId(), text: "" }]
+        );
         setObstacle(draft.obstacle);
         setPreviews(draft.previews || []);
-        // File[] tidak bisa di-restore dari storage, hanya preview-nya
-        // selectedFiles tetap kosong → user perlu upload ulang jika perlu foto
       } else {
         resetFormFields();
       }
@@ -184,17 +215,77 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
     return () => clearTimeout(timer);
   }, [clearExpiredAttendance, clearExpiredDrafts]);
 
-  // ── Field change handlers (trigger draft auto-save) ──────────────────────────
-  const handleActivityChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setActivity(val);
-    scheduleDraftSave(val, obstacle, previews);
+  // ── Todo handlers ─────────────────────────────────────────────────────────────
+
+  const updateTodo = (id: string, text: string) => {
+    setTodos((prev) => {
+      const updated = prev.map((t) => (t.id === id ? { ...t, text } : t));
+      scheduleDraftSave(updated, obstacle, previews);
+      return updated;
+    });
   };
 
+  const addTodo = (afterId?: string) => {
+    const newItem: TodoItem = { id: generateId(), text: "" };
+    setTodos((prev) => {
+      let updated: TodoItem[];
+      if (afterId) {
+        const idx = prev.findIndex((t) => t.id === afterId);
+        updated = [...prev.slice(0, idx + 1), newItem, ...prev.slice(idx + 1)];
+      } else {
+        updated = [...prev, newItem];
+      }
+      scheduleDraftSave(updated, obstacle, previews);
+      return updated;
+    });
+    // Focus new input after render
+    setTimeout(() => {
+      todoInputRefs.current.get(newItem.id)?.focus();
+    }, 50);
+  };
+
+  const removeTodo = (id: string) => {
+    setTodos((prev) => {
+      if (prev.length === 1) {
+        // Keep at least one empty item
+        const updated = [{ id: generateId(), text: "" }];
+        scheduleDraftSave(updated, obstacle, previews);
+        return updated;
+      }
+      const idx = prev.findIndex((t) => t.id === id);
+      const updated = prev.filter((t) => t.id !== id);
+      scheduleDraftSave(updated, obstacle, previews);
+      // Focus previous item
+      const focusIdx = Math.max(0, idx - 1);
+      const focusId = updated[focusIdx]?.id;
+      setTimeout(() => {
+        if (focusId) todoInputRefs.current.get(focusId)?.focus();
+      }, 50);
+      return updated;
+    });
+  };
+
+  const handleTodoKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    id: string
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTodo(id);
+    } else if (e.key === "Backspace") {
+      const todo = todos.find((t) => t.id === id);
+      if (todo?.text === "" && todos.length > 1) {
+        e.preventDefault();
+        removeTodo(id);
+      }
+    }
+  };
+
+  // ── Obstacle handler ──────────────────────────────────────────────────────────
   const handleObstacleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setObstacle(val);
-    scheduleDraftSave(activity, val, previews);
+    scheduleDraftSave(todos, val, previews);
   };
 
   // ── File helpers ──────────────────────────────────────────────────────────────
@@ -239,8 +330,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
             const newPreview = r.result as string;
             setPreviews((p) => {
               const updated = [...p, newPreview];
-              // Simpan draft dengan preview baru
-              scheduleDraftSave(activity, obstacle, updated);
+              scheduleDraftSave(todos, obstacle, updated);
               return updated;
             });
           }
@@ -248,7 +338,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
         r.readAsDataURL(f);
       });
     },
-    [hasSubmitted, selectedFiles.length, activity, obstacle, scheduleDraftSave]
+    [hasSubmitted, selectedFiles.length, todos, obstacle, scheduleDraftSave]
   );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,8 +351,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
     setSelectedFiles((p) => p.filter((_, i) => i !== idx));
     setPreviews((p) => {
       const updated = p.filter((_, i) => i !== idx);
-
-      scheduleDraftSave(activity, obstacle, updated);
+      scheduleDraftSave(todos, obstacle, updated);
       return updated;
     });
     setCurrentIndex((p) => Math.max(0, Math.min(p, selectedFiles.length - 2)));
@@ -308,7 +397,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
 
   // ── Reset & close ─────────────────────────────────────────────────────────────
   const resetFormFields = () => {
-    setActivity("");
+    setTodos([{ id: generateId(), text: "" }]);
     setObstacle("");
     setSelectedFiles([]);
     setPreviews([]);
@@ -319,9 +408,11 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
 
   const handleClose = () => {
     if (!isSubmitting && !isExporting) {
-      // Draft sudah tersimpan otomatis di Zustand → tidak perlu reset
-      // Hanya reset kalau belum submit DAN form kosong total
-      if (!hasSubmitted && !activity.trim() && !obstacle.trim() && previews.length === 0) {
+      const hasContent =
+        todos.some((t) => t.text.trim()) ||
+        obstacle.trim() ||
+        previews.length > 0;
+      if (!hasSubmitted && !hasContent) {
         if (selectedWorkspaceId) clearDraft(selectedWorkspaceId);
       }
       onClose();
@@ -341,8 +432,9 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
       showErrorToast("Workspace belum dipilih");
       return;
     }
-    if (!activity.trim()) {
-      showErrorToast("Kegiatan tidak boleh kosong");
+
+    if (!activityString.trim()) {
+      showErrorToast("Minimal 1 kegiatan harus diisi");
       return;
     }
 
@@ -353,7 +445,8 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
       const res = await workspaceAttendanceService.submit(
         selectedWorkspaceId,
         {
-          activity: activity.trim(),
+          // Joined string sent to API, e.g. "- Task A\n- Task B\n- Task C"
+          activity: activityString,
           obstacle: obstacle.trim(),
         },
         selectedFiles.length > 0 ? selectedFiles : undefined
@@ -367,9 +460,8 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
         setUploadProgress(100);
       }
 
-      // Simpan ke submitted store (sekaligus hapus draft otomatis)
       saveAttendance(selectedWorkspaceId, {
-        activity: activity.trim(),
+        activity: activityString,
         obstacle: obstacle.trim(),
         images: selectedFiles,
         previews: previews,
@@ -545,22 +637,120 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                   />
                 </div>
 
-                {/* Kegiatan */}
+                {/* ── Kegiatan (Dynamic To-Do List) ─────────────────────────── */}
                 <div className="space-y-2">
-                  <Label htmlFor="activity">
-                    Kegiatan yang Dilakukan <span className="text-destructive">*</span>
-                  </Label>
-                  <Textarea
-                    id="activity"
-                    value={activity}
-                    onChange={handleActivityChange}
-                    placeholder="Deskripsikan kegiatan yang dilakukan hari ini..."
-                    rows={3}
-                    disabled={isSubmitting || hasSubmitted}
-                    className="min-h-20 resize-none"
-                    required
-                    readOnly={hasSubmitted}
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label>
+                      Kegiatan yang Dilakukan{" "}
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    {!hasSubmitted && (
+                      <span className="text-xs text-muted-foreground">
+                        {todos.filter((t) => t.text.trim()).length} item
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="rounded-md border border-border bg-background divide-y divide-border overflow-hidden">
+                    {todos.map((todo, index) => (
+                      <div
+                        key={todo.id}
+                        className="flex items-center gap-1 px-2 group"
+                      >
+                        {/* Drag handle (visual only) */}
+                        {!hasSubmitted && (
+                          <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0 cursor-grab" />
+                        )}
+
+                        {/* Bullet number */}
+                        <span className="text-xs text-muted-foreground w-5 shrink-0 text-center select-none">
+                          {index + 1}.
+                        </span>
+
+                        {/* Input */}
+                        {hasSubmitted ? (
+                          <p className="flex-1 text-sm py-2.5 px-1 text-foreground">
+                            {todo.text || (
+                              <span className="text-muted-foreground italic">—</span>
+                            )}
+                          </p>
+                        ) : (
+                          <input
+                            ref={(el) => {
+                              if (el) todoInputRefs.current.set(todo.id, el);
+                              else todoInputRefs.current.delete(todo.id);
+                            }}
+                            type="text"
+                            value={todo.text}
+                            onChange={(e) => updateTodo(todo.id, e.target.value)}
+                            onKeyDown={(e) => handleTodoKeyDown(e, todo.id)}
+                            placeholder={
+                              index === 0
+                                ? "Deskripsikan kegiatan utama..."
+                                : "Tambah kegiatan lain..."
+                            }
+                            disabled={isSubmitting}
+                            className={cn(
+                              "flex-1 text-sm py-2.5 px-1 bg-transparent outline-none",
+                              "placeholder:text-muted-foreground/50",
+                              "disabled:cursor-not-allowed disabled:opacity-50"
+                            )}
+                          />
+                        )}
+
+                        {/* Remove button */}
+                        {!hasSubmitted && (
+                          <button
+                            type="button"
+                            onClick={() => removeTodo(todo.id)}
+                            disabled={isSubmitting}
+                            className={cn(
+                              "w-5 h-5 rounded flex items-center justify-center shrink-0",
+                              "text-muted-foreground/0 group-hover:text-muted-foreground/60",
+                              "hover:text-destructive! hover:bg-destructive/10 transition-all",
+                              "disabled:pointer-events-none"
+                            )}
+                            tabIndex={-1}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Add new item row */}
+                    {!hasSubmitted && (
+                      <button
+                        type="button"
+                        onClick={() => addTodo()}
+                        disabled={isSubmitting}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-3 py-2",
+                          "text-xs text-muted-foreground hover:text-foreground",
+                          "hover:bg-muted/50 transition-colors",
+                          "disabled:pointer-events-none disabled:opacity-50"
+                        )}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah kegiatan</span>
+                        <span className="ml-auto text-muted-foreground/40 font-mono">
+                          Enter ↵
+                        </span>
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Tekan{" "}
+                    <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">
+                      Enter
+                    </kbd>{" "}
+                    untuk menambah baris •{" "}
+                    <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">
+                      Backspace
+                    </kbd>{" "}
+                    di baris kosong untuk menghapus
+                  </p>
                 </div>
 
                 {/* Kendala */}
@@ -600,7 +790,11 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                           setPreviews([]);
                           setCurrentIndex(0);
                           if (selectedWorkspaceId) {
-                            saveDraft(selectedWorkspaceId, { activity, obstacle, previews: [] });
+                            saveDraft(selectedWorkspaceId, {
+                              activity: activityString,
+                              obstacle,
+                              previews: [],
+                            });
                           }
                         }}
                         disabled={isSubmitting}
@@ -623,7 +817,9 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                           : "cursor-pointer"
                       )}
                       onClick={() =>
-                        !isSubmitting && selectedFiles.length === 0 && fileInputRef.current?.click()
+                        !isSubmitting &&
+                        selectedFiles.length === 0 &&
+                        fileInputRef.current?.click()
                       }
                       onDragEnter={selectedFiles.length === 0 ? onDragEnter : undefined}
                       onDragOver={selectedFiles.length === 0 ? onDragOver : undefined}
@@ -638,11 +834,15 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                       />
                       <p className="text-sm text-muted-foreground">
                         {isDragging ? (
-                          <span className="font-medium text-primary">Drop gambar di sini</span>
+                          <span className="font-medium text-primary">
+                            Drop gambar di sini
+                          </span>
                         ) : (
                           <>
                             Drag & drop atau{" "}
-                            <span className="underline font-medium">klik untuk upload</span>
+                            <span className="underline font-medium">
+                              klik untuk upload
+                            </span>
                           </>
                         )}
                       </p>
@@ -723,7 +923,9 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                           className="h-8 w-8 shrink-0"
                           disabled={!canNext || isSubmitting || hasSubmitted}
                           onClick={() =>
-                            setCurrentIndex((p) => Math.min(previews.length - 1, p + 4))
+                            setCurrentIndex((p) =>
+                              Math.min(previews.length - 1, p + 4)
+                            )
                           }
                         >
                           <ChevronRight className="w-4 h-4" />
@@ -732,7 +934,8 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
 
                       {previews.length > 4 && (
                         <p className="text-xs text-center text-muted-foreground">
-                          {currentIndex + 1}–{Math.min(currentIndex + 4, previews.length)} dari{" "}
+                          {currentIndex + 1}–
+                          {Math.min(currentIndex + 4, previews.length)} dari{" "}
                           {previews.length} foto
                         </p>
                       )}
@@ -767,7 +970,6 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
 
                       <Button
                         type="button"
-                        // variant="outline"
                         onClick={handleExportPdf}
                         disabled={isExporting || isSubmitting || !exportDate}
                         className="shrink-0 gap-1.5 bg-sky-500 hover:bg-sky-600 text-white"
@@ -782,7 +984,6 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
                     </div>
                   </div>
                 )}
-
               </div>
             </ScrollArea>
           </div>
@@ -791,7 +992,6 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
           <DialogFooter className="px-6 py-4 border-t mt-0 shrink-0">
             <Button
               type="button"
-              // variant="outline"
               onClick={handleClose}
               disabled={isSubmitting || isExporting}
               className="hover:bg-red-500"
@@ -801,7 +1001,7 @@ export function AbsensiDialog({ isOpen, onClose }: AbsensiDialogProps) {
             {!hasSubmitted && (
               <Button
                 type="submit"
-                disabled={isSubmitting || !activity.trim()}
+                disabled={isSubmitting || !activityString.trim()}
                 className="bg-sky-500 hover:bg-sky-600 text-white w-32"
               >
                 {isSubmitting ? (

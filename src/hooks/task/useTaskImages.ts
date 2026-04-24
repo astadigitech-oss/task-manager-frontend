@@ -29,17 +29,26 @@ export function useTaskImages(
             }
 
             const validImages = res.data
-                .filter(img => {
-                    if (!img.url) {
+                .filter(img => img.url)
+                .map((img, index) => {
+                    let type: "before" | "after" | undefined = img.type;
 
-                        return false;
+                    // 🚨 Karena backend tidak kirim type
+                    // kita pakai fallback sementara
+
+                    if (!type) {
+                        // contoh logic sederhana:
+                        // separuh pertama = before
+                        // separuh kedua = after
+                        type = index % 2 === 0 ? "before" : "after";
                     }
-                    return true;
-                })
-                .map(img => ({
-                    ...img,
-                    image_url: img.url
-                }));
+
+                    return {
+                        ...img,
+                        type,
+                        image_url: img.url
+                    };
+                });
 
             return validImages;
         },
@@ -56,70 +65,91 @@ export function useTaskImages(
 }
 
 /**
- * Hook untuk upload single task image
+ * Hook fetch images before
  */
-export function useUploadTaskImage() {
-    const queryClient = useQueryClient();
+export function useTaskImagesBefore(
+    workspaceId: number | null,
+    projectId: number | null,
+    taskId: number | null
+) {
+    return useQuery({
+        queryKey: taskKeys.imagesBefore(workspaceId || 0, projectId || 0, taskId || 0),
+        queryFn: async () => {
+            if (!workspaceId || !projectId || !taskId || workspaceId === 0) return [];
+            const res = await taskImageService.list(workspaceId, projectId, taskId);
+            if (!res.success || !res.data) return [];
+            // Fallback: jika type tidak ada, filter dengan nama file atau urutan
+            return res.data
+                .filter((img, index) => {
+                    if (!img.url) return false;
 
-    return useMutation({
-        mutationFn: async ({
-            workspaceId,
-            projectId,
-            taskId,
-            file,
-            options
-        }: {
-            workspaceId: number;
-            projectId: number;
-            taskId: number;
-            file: File;
-            options?: { title?: string; description?: string; onProgress?: (progress: number) => void };
-        }) => {
+                    // ✅ PRIORITAS 1: pakai type jika ada
+                    if (img.type) return img.type === "before";
 
-            const validation = taskImageService.validateFile(file);
-            if (!validation.valid) {
-                throw new Error(validation.error || "File tidak valid");
-            }
+                    // ✅ PRIORITAS 2: pakai title (jika kamu kirim dari upload)
+                    if (img.title?.toLowerCase().includes("before")) return true;
 
-            const res = await taskImageService.upload(
-                workspaceId,
-                projectId,
-                taskId,
-                file,
-                options
-            );
-
-            if (!res.success || !res.data) {
-                throw new Error("Gagal upload gambar");
-            }
-
-            return { workspaceId, projectId, taskId, data: res.data };
+                    // ✅ PRIORITAS 3 (fallback terakhir): urutan
+                    return index % 2 === 0; // asumsi genap = before
+                })
+                .map(img => ({
+                    ...img,
+                    type: "before", // 🔥 penting untuk konsistensi
+                    image_url: img.url
+                }));
         },
-        onSuccess: ({ workspaceId, projectId, taskId }) => {
-            invalidateTaskQueries.taskImages(queryClient, workspaceId, projectId, taskId);
-            invalidateTaskQueries.allInProject(queryClient, workspaceId, projectId);
-            showSuccessToast("Gambar berhasil diupload!");
-        },
-        onError: (error: any) => {
-            const message = error.message || "Gagal upload gambar";
-            showErrorToast(message);
-        },
+        enabled: !!workspaceId && !!projectId && !!taskId && workspaceId > 0,
+        staleTime: 3 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
     });
 }
 
 /**
- * Hook untuk upload multiple task images
+ * Hook fetch images after
  */
-export function useUploadMultipleTaskImages() {
+export function useTaskImagesAfter(
+    workspaceId: number | null,
+    projectId: number | null,
+    taskId: number | null
+) {
+    return useQuery({
+        queryKey: taskKeys.imagesAfter(workspaceId || 0, projectId || 0, taskId || 0),
+        queryFn: async () => {
+            if (!workspaceId || !projectId || !taskId || workspaceId === 0) return [];
+            const res = await taskImageService.list(workspaceId, projectId, taskId);
+            if (!res.success || !res.data) return [];
+            // Fallback: jika type tidak ada, filter dengan nama file atau urutan
+            return res.data
+                .filter((img, index) => {
+                    if (!img.url) return false;
+
+                    if (img.type) return img.type === "after";
+
+                    if (img.title?.toLowerCase().includes("after")) return true;
+
+                    return index % 2 !== 0; // ganjil = after
+                })
+                .map(img => ({
+                    ...img,
+                    type: "after",
+                    image_url: img.url
+                }));
+        },
+        enabled: !!workspaceId && !!projectId && !!taskId && workspaceId > 0,
+        staleTime: 3 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
+    });
+}
+
+/**
+ * Hook upload images before
+ */
+export function useUploadTaskImagesBefore() {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async ({
-            workspaceId,
-            projectId,
-            taskId,
-            files,
-            options
+            workspaceId, projectId, taskId, files, options
         }: {
             workspaceId: number;
             projectId: number;
@@ -127,40 +157,80 @@ export function useUploadMultipleTaskImages() {
             files: File[];
             options?: { onProgress?: (progress: number) => void };
         }) => {
-            const results = await taskImageService.uploadMultiple(
-                workspaceId,
-                projectId,
-                taskId,
-                files,
+            const results = await taskImageService.uploadMultipleByType(
+                workspaceId, projectId, taskId, files, "before",
                 {
                     onProgress: options?.onProgress,
                     onSingleComplete: (file, result) => {
-
                         queryClient.setQueryData(
-                            taskKeys.images(workspaceId, projectId, taskId),
-                            (old: TaskImageApi[] | undefined) => {
-                                if (!old) return [result];
-                                return [...old, result];
-                            }
+                            taskKeys.imagesBefore(workspaceId, projectId, taskId),
+                            (old: TaskImageApi[]) => old
+                                ? [...old, { ...result, type: "before" }]
+                                : [{ ...result, type: "before" }]
                         );
                     }
                 }
             );
-
             return { workspaceId, projectId, taskId, results };
         },
         onSuccess: ({ workspaceId, projectId, taskId, results }) => {
             if (results.length > 0) {
-                invalidateTaskQueries.taskImages(queryClient, workspaceId, projectId, taskId);
+                invalidateTaskQueries.taskImagesBefore(queryClient, workspaceId, projectId, taskId);
                 invalidateTaskQueries.allInProject(queryClient, workspaceId, projectId);
-                showSuccessToast(`${results.length} gambar berhasil diupload!`);
+                showSuccessToast(`${results.length} gambar before berhasil diupload!`);
             } else {
-                showErrorToast("Tidak ada gambar yang berhasil diupload");
+                showErrorToast("Tidak ada gambar before yang berhasil diupload");
             }
         },
         onError: (error: any) => {
-            const message = error?.message || "Gagal upload beberapa gambar";
-            showErrorToast(message);
+            showErrorToast(error?.message || "Gagal upload gambar before");
+        },
+    });
+}
+
+/**
+ * Hook upload images after
+ */
+export function useUploadTaskImagesAfter() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({
+            workspaceId, projectId, taskId, files, options
+        }: {
+            workspaceId: number;
+            projectId: number;
+            taskId: number;
+            files: File[];
+            options?: { onProgress?: (progress: number) => void };
+        }) => {
+            const results = await taskImageService.uploadMultipleByType(
+                workspaceId, projectId, taskId, files, "after",
+                {
+                    onProgress: options?.onProgress,
+                    onSingleComplete: (file, result) => {
+                        queryClient.setQueryData(
+                            taskKeys.imagesAfter(workspaceId, projectId, taskId),
+                            (old: TaskImageApi[]) => old
+                                ? [...old, { ...result, type: "after" }]
+                                : [{ ...result, type: "after" }]
+                        );
+                    }
+                }
+            );
+            return { workspaceId, projectId, taskId, results };
+        },
+        onSuccess: ({ workspaceId, projectId, taskId, results }) => {
+            if (results.length > 0) {
+                invalidateTaskQueries.taskImagesAfter(queryClient, workspaceId, projectId, taskId);
+                invalidateTaskQueries.allInProject(queryClient, workspaceId, projectId);
+                showSuccessToast(`${results.length} gambar after berhasil diupload!`);
+            } else {
+                showErrorToast("Tidak ada gambar after yang berhasil diupload");
+            }
+        },
+        onError: (error: any) => {
+            showErrorToast(error?.message || "Gagal upload gambar after");
         },
     });
 }
