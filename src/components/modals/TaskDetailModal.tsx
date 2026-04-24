@@ -47,6 +47,7 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [lightboxType, setLightboxType] = useState<"before" | "after">("before");
 
   const project = useMemo(
     () => projects.find(p => p.id === task.project_id),
@@ -97,15 +98,24 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
     }
   };
 
-  const imageUrls = useMemo(
+  // Separate before/after image URLs for lightbox
+  const imageUrlsBefore = useMemo(
     () =>
       taskImages
+        .filter(img => img.type === "before")
         .map((img) => resolveImageUrl(img.url))
         .filter((url): url is string => Boolean(url)),
     [taskImages]
   );
 
-
+  const imageUrlsAfter = useMemo(
+    () =>
+      taskImages
+        .filter(img => img.type === "after")
+        .map((img) => resolveImageUrl(img.url))
+        .filter((url): url is string => Boolean(url)),
+    [taskImages]
+  );
 
   const handleDownloadFile = useCallback((file: TaskFileApi) => {
     downloadFileMutation.mutate({
@@ -116,6 +126,9 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
       filename: file.filename,
     });
   }, [workspace_id, task.project_id, task.id, downloadFileMutation]);
+
+  const taskImagesBefore = useMemo(() => taskImages.filter(img => img.type === "before"), [taskImages]);
+  const taskImagesAfter = useMemo(() => taskImages.filter(img => img.type === "after"), [taskImages]);
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -308,6 +321,102 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                   </>
                 )}
 
+                {/* IMAGES SECTION — Before (kiri) & After (kanan) — View Only */}
+                {taskImages?.length > 0 && (
+                  <>
+                    <div className="space-y-3">
+                      <Label className="text-sm font-semibold">Images</Label>
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* BEFORE */}
+                        <div className="border rounded-lg p-4 space-y-3">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                            Before
+                          </p>
+                          {taskImagesBefore.length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic">No images</p>
+                          ) : (
+                            <div className="grid grid-cols-2 gap-2">
+                              {taskImagesBefore.map((img, index) => {
+                                const imageUrl = resolveImageUrl(img.url);
+                                if (!imageUrl) return null;
+                                return (
+                                  <div
+                                    key={img.id}
+                                    className="relative rounded-md border overflow-hidden aspect-video bg-muted group cursor-pointer"
+                                    onClick={() => {
+                                      setPreviewIndex(index);
+                                      setLightboxType("before");
+                                      setPreviewOpen(true);
+                                    }}
+                                  >
+                                    <img
+                                      src={imageUrl}
+                                      alt={img.title || "Before image"}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = "none";
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <div className="w-8 h-8 rounded-full bg-card/90 flex items-center justify-center">
+                                        <Maximize2 className="w-4 h-4" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* AFTER */}
+                        <div className="border rounded-lg p-4 space-y-3">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                            After
+                          </p>
+                          {taskImagesAfter.length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic">No images</p>
+                          ) : (
+                            <div className="grid grid-cols-2 gap-2">
+                              {taskImagesAfter.map((img, index) => {
+                                const imageUrl = resolveImageUrl(img.url);
+                                if (!imageUrl) return null;
+                                return (
+                                  <div
+                                    key={img.id}
+                                    className="relative rounded-md border overflow-hidden aspect-video bg-muted group cursor-pointer"
+                                    onClick={() => {
+                                      setPreviewIndex(index);
+                                      setLightboxType("after");
+                                      setPreviewOpen(true);
+                                    }}
+                                  >
+                                    <img
+                                      src={imageUrl}
+                                      alt={img.title || "After image"}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = "none";
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <div className="w-8 h-8 rounded-full bg-card/90 flex items-center justify-center">
+                                        <Maximize2 className="w-4 h-4" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <Separator />
+
                 {/* NOTES SECTION */}
                 <div className="space-y-1">
                   <Label>Notes</Label>
@@ -338,50 +447,6 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                     />
                   </>
                 )}
-
-                {/* ATTACHMENTS SECTION */}
-                {taskImages?.length > 0 && (
-                  <>
-                    <Separator />
-                    <div>
-                      <Label className="mb-3 block">Images ({taskImages.length})</Label>
-                      <div className="grid grid-cols-2 gap-4">
-                        {taskImages.map((img, index) => {
-                          const imageUrl = resolveImageUrl(img.url);
-                          if (!imageUrl) return null;
-
-                          return (
-                            <div
-                              key={img.id}
-                              className="relative rounded-lg border overflow-hidden aspect-video bg-muted group cursor-pointer"
-                            >
-                              <img
-                                src={imageUrl}
-                                alt={img.title || "Task image"}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
-                              />
-                              <div
-                                className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => {
-                                  setPreviewIndex(index);
-                                  setPreviewOpen(true);
-                                }}
-                              >
-                                <div className="w-10 h-10 rounded-full bg-card/90 flex items-center justify-center">
-                                  <Maximize2 className="w-5 h-5" />
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
             </ScrollArea>
           </div>
@@ -400,8 +465,10 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
         </div>
 
       </DialogContent>
+
+      {/* Lightbox — switch images array based on type */}
       <ImageLightBoxModal
-        images={imageUrls}
+        images={lightboxType === "before" ? imageUrlsBefore : imageUrlsAfter}
         initialIndex={previewIndex}
         open={previewOpen}
         onOpenChange={setPreviewOpen}

@@ -60,3 +60,12 @@ export const formatFileSize = (bytes: number): string => {
 
     return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 };
+
+/**
+ * Resolve dan filter URL yang valid (tidak kosong)
+ */
+export const resolveValidImageUrls = (urls: (string | null | undefined)[]): string[] => {
+    return urls
+        .map(resolveImageUrl)
+        .filter(url => url.length > 0); 
+};
