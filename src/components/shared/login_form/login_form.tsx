@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 import { useLogin } from '@/hooks/api/useAuth';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Role } from '@/types/shared/role';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { showErrorToast } from '@/lib/helpers/toast-helpers';
 
@@ -14,25 +16,26 @@ export function LoginForm() {
     const [showPassword, setShowPassword] = useState(false);
     const [form, setForm] = useState({ email: '', password: '' });
     const [errors, setErrors] = useState({ email: '', password: '' });
-    const [role, setRole] = useState<'admin' | 'member'>('member');
+    const [role, setRole] = useState<'admin' | 'member' | 'management'>('member');
 
     const { mutate: login, isPending } = useLogin();
+    const authStore = useAuthStore();
     const { setTheme } = useTheme();
 
     useEffect(() => {
-    const previousTheme = localStorage.getItem('app-theme');
-    
-    // Hanya set jika memang belum 'light'
-    if (previousTheme !== 'light') {
-        setTheme('light');
-    }
+        const previousTheme = localStorage.getItem('app-theme');
 
-    return () => {
-        if (previousTheme && previousTheme !== 'light') {
-            setTheme(previousTheme as 'light' | 'dark');
+        // Hanya set jika memang belum 'light'
+        if (previousTheme !== 'light') {
+            setTheme('light');
         }
-    };
-}, []); // Hapus setTheme dari dependency array
+
+        return () => {
+            if (previousTheme && previousTheme !== 'light') {
+                setTheme(previousTheme as 'light' | 'dark');
+            }
+        };
+    }, []); // Hapus setTheme dari dependency array
 
     const validateForm = () => {
         const newErrors = { email: '', password: '' };
@@ -64,6 +67,27 @@ export function LoginForm() {
 
         if (!validateForm()) {
             showErrorToast('Mohon periksa kembali form Anda');
+            return;
+        }
+
+
+        if (role === 'management') {
+            // Dummy login untuk management
+            const dummyUser = {
+                id: 9999, // harus number sesuai UserProfile
+                email: form.email,
+                name: 'Management User',
+                role: 'management' as Role,
+                avatar: null,
+                is_online: true,
+                last_seen: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                last_active_workspace_id: null,
+            };
+            // Set ke zustand agar layout membaca user
+            authStore.login({ user: dummyUser, token: 'dummy-token-management' });
+            window.location.href = '/management/dashboard';
             return;
         }
 
@@ -134,7 +158,7 @@ export function LoginForm() {
                     </div>
 
                     {/* Role Selector */}
-                    <div className="grid grid-cols-2 gap-3 p-2">
+                    <div className="grid grid-cols-2 gap-3">
                         <Button
                             type="button"
                             variant={role === 'member' ? 'default' : 'outline'}
@@ -156,6 +180,18 @@ export function LoginForm() {
                             Admin
                         </Button>
                     </div>
+                    {/* <div className="grid grid-cols-1 p-2">
+                        <Button
+                            type="button"
+                            variant={role === 'management' ? 'default' : 'outline'}
+                            onClick={() => setRole('management')}
+                            className={role === 'management'
+                                ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                                : 'bg-white/90 backdrop-blur-sm border-white/40 hover:bg-white text-gray-700'}
+                        >
+                            Management
+                        </Button>
+                    </div> */}
 
                     <Button
                         type="submit"

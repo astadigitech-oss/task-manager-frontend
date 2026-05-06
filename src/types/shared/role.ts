@@ -1,1 +1,1 @@
-export enum Role { ADMIN = "admin", MEMBER = "member"}
+export enum Role { ADMIN = "admin", MEMBER = "member", MANAGEMENT = "management" }

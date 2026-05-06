@@ -35,7 +35,8 @@ import {
   Loader2,
   Users,
   Image,
-  X
+  X,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils/utils";
 import { resolveImageUrl } from "@/lib/helpers/imageUrlHelper";
@@ -51,6 +52,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { TaskSortOption } from "@/types/shared/filter";
 import { TaskSortDropdown } from "../task/TaskSortDropdown";
 import { sortTasks } from "@/lib/utils/taskSorting";
@@ -79,75 +86,11 @@ const STATUS_COLOR_MAP: Record<TaskStatus, string> = {
   "done": "status-done",
 };
 
-const ProjectHeader = memo(({
-  project,
-  progress,
-  onNavigate
-}: {
-  project: any;
-  progress: number;
-  onNavigate: (page: string) => void;
-}) => (
-  <>
-    <Breadcrumb className="mb-2 sm:mb-3">
-      <BreadcrumbList>
-        <BreadcrumbItem>
-          <BreadcrumbLink
-            className="flex items-center gap-1 sm:gap-2 cursor-pointer text-xs sm:text-sm"
-            onClick={() => onNavigate("dashboard")}
-          >
-            <Home className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Dashboard</span>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          <BreadcrumbLink
-            className="flex items-center gap-1 sm:gap-2 cursor-pointer text-xs sm:text-sm"
-            onClick={() => onNavigate("projects")}
-          >
-            <FolderKanban className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Projects</span>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          <BreadcrumbPage className="text-xs sm:text-sm truncate max-w-37.5 sm:max-w-none">
-            {project.name}
-          </BreadcrumbPage>
-        </BreadcrumbItem>
-      </BreadcrumbList>
-    </Breadcrumb>
-
-    {/* Header: judul, deskripsi, progress bar, fix height */}
-    <div className="flex flex-col min-h-20 max-h-27.5 justify-between w-full mb-2">
-      <h1 className="text-lg sm:text-xl md:text-2xl font-bold truncate mb-1">
-        {project.name}
-      </h1>
-      <p
-        className="text-xs sm:text-sm text-muted-foreground mb-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full"
-        style={{ maxHeight: '1.5em' }}
-        title={project.description}
-      >
-        {project.description || <span className="text-muted-foreground">No description</span>}
-      </p>
-      <div className="flex flex-col w-full sm:max-w-md">
-        <div className="flex items-center justify-between mb-1 text-xs font-medium text-muted-foreground">
-          <span>Progress</span>
-          <span>{progress}% Complete</span>
-        </div>
-        <Progress value={progress} className="h-2" />
-      </div>
-    </div>
-  </>
-));
-
-ProjectHeader.displayName = "ProjectHeader";
-
 const TeamMembersSection = memo(({
   members,
   isLoading,
-  mode
+  mode,
+
 }: {
   members: any[];
   isLoading: boolean;
@@ -157,7 +100,6 @@ const TeamMembersSection = memo(({
     <div className="flex justify-between items-center mb-2 sm:mb-3">
       <h2 className="text-sm font-semibold">Team Members</h2>
     </div>
-
     <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-ring">
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
@@ -178,12 +120,8 @@ const TeamMembersSection = memo(({
                   className="h-7 w-7 sm:h-8 sm:w-8 shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium truncate">
-                    {member.name}
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
-                    {member.role}
-                  </p>
+                  <p className="text-xs sm:text-sm font-medium truncate">{member.name}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{member.role}</p>
                 </div>
               </div>
             </div>
@@ -197,8 +135,43 @@ const TeamMembersSection = memo(({
     </div>
   </div>
 ));
-
 TeamMembersSection.displayName = "TeamMembersSection";
+
+// Extracted outside ProjectBoardLayout so it's never recreated on parent re-render.
+// Previously defined as an inline function inside render → caused unmount/remount
+// every time hoveredStatus, sidebarOpen, or any other state changed.
+const SidebarContent = memo(({
+  members,
+  isLoadingMembers,
+  mode,
+  imageUrls,
+  currentImageIndex,
+  onPrevious,
+  onNext,
+  onOpenLightbox,
+}: {
+  members: any[];
+  isLoadingMembers: boolean;
+  mode: "admin" | "member";
+  imageUrls: string[];
+  currentImageIndex: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  onOpenLightbox: (index: number) => void;
+}) => (
+  <div className="flex flex-col h-full bg-sidebar">
+    <TeamMembersSection members={members} isLoading={isLoadingMembers} mode={mode} />
+    <ImageGallerySection
+      imageUrls={imageUrls}
+      currentIndex={currentImageIndex}
+      mode={mode}
+      onPrevious={onPrevious}
+      onNext={onNext}
+      onOpenLightbox={onOpenLightbox}
+    />
+  </div>
+));
+SidebarContent.displayName = "SidebarContent";
 
 function ProjectBoardLayout({
   project_id,
@@ -216,12 +189,8 @@ function ProjectBoardLayout({
   );
 
   const validWorkspaceId = useMemo(() => {
-    if (workspace_id && workspace_id > 0) {
-      return workspace_id;
-    }
-    if (project?.workspace_id) {
-      return project.workspace_id;
-    }
+    if (workspace_id && workspace_id > 0) return workspace_id;
+    if (project?.workspace_id) return project.workspace_id;
     return null;
   }, [workspace_id, project?.workspace_id]);
 
@@ -229,9 +198,7 @@ function ProjectBoardLayout({
   const { members: projectMembers, isLoading: isLoadingMembers } = useProjectMembers(project_id);
 
   const currentProjectMembers = useMemo(() => {
-    if (projectMembers.length > 0) {
-      return projectMembers;
-    }
+    if (projectMembers.length > 0) return projectMembers;
     return project?.members ?? [];
   }, [projectMembers, project?.members]);
 
@@ -244,15 +211,14 @@ function ProjectBoardLayout({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [globalSortOption, setGlobalSortOption] = useState<TaskSortOption>("manual");
 
   const { data: projectImages = [] } = useProjectImages(project_id);
   const deleteMutation = useDeleteProjectImage(project_id);
 
   const displayedTasks = useMemo(() => {
     return mode === "member" && user
-      ? tasks.filter((task) =>
-        task.members?.some(m => m.user_id === Number(user.id))
-      )
+      ? tasks.filter((task) => task.members?.some((m) => m.user_id === Number(user.id)))
       : tasks;
   }, [tasks, mode, user]);
 
@@ -262,27 +228,21 @@ function ProjectBoardLayout({
   );
 
   const myTasksCount = useMemo(
-    () => (user ? tasks.filter((task) =>
-      task.members?.some(m => m.user_id === Number(user.id))
-    ).length : 0),
+    () => (user ? tasks.filter((task) => task.members?.some((m) => m.user_id === Number(user.id))).length : 0),
     [tasks, user]
   );
-
   const allTasksCount = tasks.length;
 
   const handlePreviousImage = useCallback(() => {
     setCurrentImageIndex((prev) => Math.max(0, prev - 1));
   }, []);
-
   const handleNextImage = useCallback(() => {
     setCurrentImageIndex((prev) => Math.min(imageUrls.length - 1, prev + 1));
   }, [imageUrls.length]);
-
   const handleOpenLightbox = useCallback((index: number) => {
     setLightboxIndex(index);
     setLightboxOpen(true);
   }, []);
-
   const handleDeleteImage = async (index: number) => {
     const img = projectImages[index];
     if (!img) return;
@@ -293,31 +253,46 @@ function ProjectBoardLayout({
     async (e: React.DragEvent, status: TaskStatus) => {
       e.preventDefault();
       const taskId = e.dataTransfer.getData("text/plain");
-
       if (taskId && validWorkspaceId) {
         try {
           await updateTaskMutation.mutateAsync({
             workspaceId: validWorkspaceId,
             projectId: project_id,
             taskId: Number(taskId),
-            payload: { status }
+            payload: { status },
           });
         } catch (err) {
           console.error("Failed to update task:", err);
         }
       }
-
       setHoveredStatus(null);
     },
     [project_id, validWorkspaceId, updateTaskMutation]
   );
 
   useEffect(() => {
-    if (validWorkspaceId && project_id) {
-      setSelectedWorkspaceId(validWorkspaceId);
-      setSelectedProjectId(project_id);
-    }
+    if (!validWorkspaceId || !project_id) return;
+    setSelectedWorkspaceId(validWorkspaceId);
+    setSelectedProjectId(project_id);
   }, [validWorkspaceId, project_id, setSelectedWorkspaceId, setSelectedProjectId]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("task-sort-preference");
+      if (saved) setGlobalSortOption(saved as TaskSortOption);
+    } catch (err) {
+      console.warn("Failed to load sort preference:", err);
+    }
+  }, []);
+
+  const handleGlobalSortChange = useCallback((newSort: TaskSortOption) => {
+    setGlobalSortOption(newSort);
+    try {
+      localStorage.setItem("task-sort-preference", newSort);
+    } catch (err) {
+      console.warn("Failed to save sort preference:", err);
+    }
+  }, []);
 
   if (!project) {
     return (
@@ -327,32 +302,6 @@ function ProjectBoardLayout({
     );
   }
 
-  // ADD: Sort state
-  const [globalSortOption, setGlobalSortOption] =
-    useState<TaskSortOption>('manual');
-
-  // Load sort preference on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('task-sort-preference');
-      if (saved) {
-        setGlobalSortOption(saved as TaskSortOption);
-      }
-    } catch (err) {
-      console.warn('Failed to load sort preference:', err);
-    }
-  }, []);
-
-  // Save preference when changed
-  const handleGlobalSortChange = useCallback((newSort: TaskSortOption) => {
-    setGlobalSortOption(newSort);
-    try {
-      localStorage.setItem('task-sort-preference', newSort);
-    } catch (err) {
-      console.warn('Failed to save sort preference:', err);
-    }
-  }, []);
-
   if (!validWorkspaceId) {
     return (
       <div className="flex items-center justify-center h-screen px-4">
@@ -361,7 +310,7 @@ function ProjectBoardLayout({
             Invalid workspace_id
           </p>
           <p className="text-muted-foreground text-xs sm:text-sm">
-            workspace_id = {workspace_id}, project.workspace_id = {project.workspace_id || 'undefined'}
+            workspace_id = {workspace_id}, project.workspace_id = {project.workspace_id || "undefined"}
           </p>
         </div>
       </div>
@@ -369,197 +318,332 @@ function ProjectBoardLayout({
   }
 
   const canCreateTask = mode === "admin";
-  const getStatusColor = (status: TaskStatus): string =>
-    STATUS_COLOR_MAP[status] || "status-on-board";
+  const getStatusColor = (status: TaskStatus): string => STATUS_COLOR_MAP[status] || "status-on-board";
 
-  // Sidebar Content Component
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-sidebar">
-      <TeamMembersSection
-        members={currentProjectMembers}
-        isLoading={isLoadingMembers}
-        mode={mode}
-      />
+  // Memoize per-column sorted tasks to avoid recomputing on every render
+  // (e.g. when hoveredStatus changes during drag-and-drop).
+  const sortedTasksByColumn = useMemo(() => {
+    const map: Record<TaskStatus, ReturnType<typeof sortTasks>> = {} as any;
+    for (const col of COLUMNS) {
+      const columnTasks = displayedTasks.filter((t) => t.status === col.status);
+      map[col.status] = sortTasks(columnTasks, globalSortOption);
+    }
+    return map;
+  }, [displayedTasks, globalSortOption]);
 
-      <ImageGallerySection
-        imageUrls={imageUrls}
-        currentIndex={currentImageIndex}
-        mode={mode}
-        onPrevious={handlePreviousImage}
-        onNext={handleNextImage}
-        onOpenLightbox={handleOpenLightbox}
-      />
-    </div>
+  const sortedListTasks = useMemo(
+    () => sortTasks(displayedTasks, globalSortOption),
+    [displayedTasks, globalSortOption]
   );
+
+  // Guard: only update hoveredStatus when value actually changes to prevent
+  // cascading re-renders across all kanban columns during drag.
+  const handleDragEnter = useCallback((status: TaskStatus) => {
+    setHoveredStatus((prev) => (prev === status ? prev : status));
+  }, []);
+  const handleDragLeave = useCallback(() => {
+    setHoveredStatus(null);
+  }, []);
 
   return (
     <div className="flex flex-col h-full">
-      {/* HEADER SECTION - Responsive */}
-      <header className="shrink-0 flex flex-col border-b p-3 sm:p-4 shadow-sm">
-        {/* Row 1: Breadcrumb */}
-        <Breadcrumb className="mb-2 sm:mb-3">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink
-                className="flex items-center gap-1 sm:gap-2 cursor-pointer text-xs sm:text-sm"
-                onClick={() => onNavigate("dashboard")}
-              >
-                <Home className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Dashboard</span>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink
-                className="flex items-center gap-1 sm:gap-2 cursor-pointer text-xs sm:text-sm"
-                onClick={() => onNavigate("projects")}
-              >
-                <FolderKanban className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Projects</span>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage className="text-xs sm:text-sm truncate max-w-37.5 sm:max-w-none">
-                {project.name}
-              </BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-        {/* Row 2: Info kiri + Actions kanan — sejajar dalam 1 baris */}
-        <div className="flex items-start justify-between gap-4">
-          {/* Kiri: Judul, Deskripsi, Progress */}
-          <div className="flex flex-col min-w-0 flex-1">
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold truncate mb-1">
-              {project.name}
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-2 truncate">
-              {project.description || "No description"}
-            </p>
-            <div className="flex flex-col w-full sm:max-w-md">
-              <div className="flex items-center justify-between mb-1 text-xs font-medium text-muted-foreground">
-                <span>Progress</span>
-                <span>{progress}% Complete</span>
-              </div>
+      {/* ───────────────────────── HEADER ───────────────────────── */}
+      <header className="shrink-0 flex flex-col border-b shadow-sm">
 
-              {/* Segmented bar */}
-              <div className="flex h-2 w-full rounded-full overflow-hidden bg-muted gap-px">
-                {breakdown.done > 0 && <div className="bg-green-500  transition-all" style={{ width: `${breakdown.done}%` }} title={`Done: ${breakdown.done}%`} />}
-                {breakdown.on_progress > 0 && <div className="bg-blue-500   transition-all" style={{ width: `${breakdown.on_progress}%` }} title={`On Progress: ${breakdown.on_progress}%`} />}
-                {breakdown.on_board > 0 && <div className="bg-gray-500 transition-all" style={{ width: `${breakdown.on_board}%` }} title={`On Board: ${breakdown.on_board}%`} />}
-                {breakdown.pending > 0 && <div className="bg-yellow-500 transition-all" style={{ width: `${breakdown.pending}%` }} title={`Pending: ${breakdown.pending}%`} />}
-                {breakdown.canceled > 0 && <div className="bg-red-500    transition-all" style={{ width: `${breakdown.canceled}%` }} title={`Canceled: ${breakdown.canceled}%`} />}
-              </div>
+        {/* ── Shared Sheet component (used by both mobile & sm trigger) ── */}
+        {/* Defined once to avoid duplicate Sheet instances */}
 
-              {/* Legend */}
-              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
-                {breakdown.done > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-green-500" />Done {breakdown.done}%</span>}
-                {breakdown.on_progress > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-blue-500" />On Progress {breakdown.on_progress}%</span>}
-                {breakdown.on_board > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-gray-500" />On Board {breakdown.on_board}%</span>}
-                {breakdown.pending > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-yellow-500" />Pending {breakdown.pending}%</span>}
-                {breakdown.canceled > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-red-500" />Canceled {breakdown.canceled}%</span>}
+        {/* ════════════════ MOBILE LAYOUT (< sm) ════════════════ */}
+        <div className="flex flex-col gap-2.5 px-3 pt-2.5 pb-2 sm:hidden">
+
+          {/* Row 1: Breadcrumb */}
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink className="flex items-center gap-1 cursor-pointer text-xs" onClick={() => onNavigate("dashboard")}>
+                  <Home className="w-3 h-3" />
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink className="flex items-center gap-1 cursor-pointer text-xs" onClick={() => onNavigate("projects")}>
+                  <FolderKanban className="w-3 h-3" />
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="text-xs truncate max-w-[180px]">{project.name}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+
+          {/* Row 2: Title + "+ New Task" button side by side */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-base font-bold truncate leading-tight">{project.name}</h1>
+              <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                {project.description || "No description"}
+              </p>
+            </div>
+            {/* Primary CTA always visible */}
+            {mode === "admin" && <CreateTaskModal project_id={project_id} />}
+            {mode === "member" && (
+              <div className="flex items-center px-2 py-1 badge-low rounded-md shrink-0">
+                <span className="text-[11px] font-medium whitespace-nowrap">My Tasks: {myTasksCount}</span>
               </div>
+            )}
+          </div>
+
+          {/* Row 3: Progress bar */}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between text-[10px] font-medium text-muted-foreground">
+              <span>Progress</span>
+              <span>{progress}% Complete</span>
+            </div>
+            <div className="flex h-2 w-full rounded-full overflow-hidden bg-muted gap-px">
+              {breakdown.done > 0 && <div className="bg-green-500 transition-all" style={{ width: `${breakdown.done}%` }} />}
+              {breakdown.on_progress > 0 && <div className="bg-blue-500 transition-all" style={{ width: `${breakdown.on_progress}%` }} />}
+              {breakdown.on_board > 0 && <div className="bg-gray-500 transition-all" style={{ width: `${breakdown.on_board}%` }} />}
+              {breakdown.pending > 0 && <div className="bg-yellow-500 transition-all" style={{ width: `${breakdown.pending}%` }} />}
+              {breakdown.canceled > 0 && <div className="bg-red-500 transition-all" style={{ width: `${breakdown.canceled}%` }} />}
+            </div>
+            {/* Compact legend in a single scrollable row */}
+            <div className="flex gap-x-3 overflow-x-auto scrollbar-none">
+              {breakdown.done > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground whitespace-nowrap"><span className="inline-block h-1.5 w-1.5 rounded-sm bg-green-500 shrink-0" />Done {breakdown.done}%</span>}
+              {breakdown.on_progress > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground whitespace-nowrap"><span className="inline-block h-1.5 w-1.5 rounded-sm bg-blue-500 shrink-0" />Progress {breakdown.on_progress}%</span>}
+              {breakdown.on_board > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground whitespace-nowrap"><span className="inline-block h-1.5 w-1.5 rounded-sm bg-gray-500 shrink-0" />Board {breakdown.on_board}%</span>}
+              {breakdown.pending > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground whitespace-nowrap"><span className="inline-block h-1.5 w-1.5 rounded-sm bg-yellow-500 shrink-0" />Pending {breakdown.pending}%</span>}
+              {breakdown.canceled > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground whitespace-nowrap"><span className="inline-block h-1.5 w-1.5 rounded-sm bg-red-500 shrink-0" />Canceled {breakdown.canceled}%</span>}
             </div>
           </div>
 
-          {/* Kanan: Action Buttons */}
-          <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
-            {mode === "admin" && <UploadImageDialog project_id={project_id} />}
-
-            <TaskSortDropdown
-              value={globalSortOption}
-              onChange={handleGlobalSortChange}
-            />
-
-            {/* View Toggle */}
+          {/* Row 4: Toolbar — view toggle | sort | team | more */}
+          <div className="flex items-center gap-1.5 pt-0.5">
+            {/* View toggle */}
             <div className="flex">
               <Button
                 variant={view === "kanban" ? "default" : "outline"}
                 size="sm"
-                className={cn("gap-2 px-3 rounded-r-none", view === "kanban" ? "bg-sky-500 hover:bg-sky-600 text-white" : "text-foreground")}
+                className={cn("px-2.5 h-8 rounded-r-none text-xs", view === "kanban" ? "bg-sky-500 hover:bg-sky-600 text-white" : "")}
                 onClick={() => setView("kanban")}
               >
-                <LayoutGrid className="w-4 h-4" />
-                {/* <span className="hidden sm:inline">Kanban</span> */}
+                <LayoutGrid className="w-3.5 h-3.5" />
               </Button>
               <Button
                 variant={view === "list" ? "default" : "outline"}
                 size="sm"
-                className={cn("gap-2 px-3 rounded-l-none", view === "list" ? "bg-sky-500 hover:bg-sky-600 text-white" : "text-foreground")}
+                className={cn("px-2.5 h-8 rounded-l-none text-xs", view === "list" ? "bg-sky-500 hover:bg-sky-600 text-white" : "")}
                 onClick={() => setView("list")}
               >
-                <List className="w-4 h-4" />
-                {/* <span className="hidden sm:inline">List</span> */}
+                <List className="w-3.5 h-3.5" />
               </Button>
             </div>
 
-            {/* Mobile sheet trigger */}
+            {/* Sort */}
+            <TaskSortDropdown value={globalSortOption} onChange={handleGlobalSortChange} />
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Task count for admin */}
+            {mode === "admin" && (
+              <div className="flex items-center px-2 py-1 badge-normal rounded-md">
+                <span className="text-[11px] font-medium whitespace-nowrap">Tasks: {allTasksCount}</span>
+              </div>
+            )}
+
+            {/* Team sheet */}
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="md:hidden gap-2 px-3">
-                  <Users className="w-4 h-4" />
-                  <span className="text-xs">Team</span>
+                <Button variant="outline" size="sm" className="px-2.5 h-8">
+                  <Users className="w-3.5 h-3.5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent
-                side="right"
-                className="w-70 sm:w-[320px] p-0 flex flex-col"
-              >
+              <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
                 <SheetHeader className="px-4 py-3 border-b shrink-0">
-                  <SheetTitle className="text-base font-semibold text-left">
-                    {project.name}
-                  </SheetTitle>
-                  <SheetDescription className="text-xs text-left">
-                    Team members and project gallery
-                  </SheetDescription>
+                  <SheetTitle className="text-base font-semibold text-left">{project.name}</SheetTitle>
+                  <SheetDescription className="text-xs text-left">Team members and project gallery</SheetDescription>
                 </SheetHeader>
-
                 <div className="flex-1 overflow-hidden">
-                  <SidebarContent />
+                  <SidebarContent
+                    members={currentProjectMembers}
+                    isLoadingMembers={isLoadingMembers}
+                    mode={mode}
+                    imageUrls={imageUrls}
+                    currentImageIndex={currentImageIndex}
+                    onPrevious={handlePreviousImage}
+                    onNext={handleNextImage}
+                    onOpenLightbox={handleOpenLightbox}
+                  />
                 </div>
               </SheetContent>
             </Sheet>
-
-            {mode === "admin" && <ExportTasksModal
-              projectId={project_id}
-              projectName={project?.name || "Project"}
-              tasks={displayedTasks}
-            />}
-            {mode === "admin" && <CreateTaskModal project_id={project_id} />}
-
-            {/* Task count badge */}
-            {mode === "member" && (
-              <div className="flex items-center gap-2 px-3 py-2 badge-low">
-                <span className="text-sm font-medium">My Tasks: {myTasksCount}</span>
-              </div>
-            )}
             {mode === "admin" && (
-              <div className="flex items-center gap-2 px-3 py-2 badge-normal">
-                <span className="text-sm font-medium">All Tasks: {allTasksCount}</span>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="px-2.5 h-8">
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem asChild>
+                    <div className="w-full"><UploadImageDialog project_id={project_id} /></div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <div className="w-full">
+                      <ExportTasksModal
+                        projectId={project_id}
+                        projectName={project?.name || "Project"}
+                        tasks={displayedTasks}
+                      />
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>
+
+        {/* ════════════════ DESKTOP LAYOUT (≥ sm) ════════════════ */}
+        <div className="hidden sm:flex flex-col gap-2 px-4 py-3">
+
+          {/* Row 1: Breadcrumb */}
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink className="flex items-center gap-2 cursor-pointer text-sm" onClick={() => onNavigate("dashboard")}>
+                  <Home className="w-4 h-4" />
+                  <span>Dashboard</span>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink className="flex items-center gap-2 cursor-pointer text-sm" onClick={() => onNavigate("projects")}>
+                  <FolderKanban className="w-4 h-4" />
+                  <span>Projects</span>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="text-sm">{project.name}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+
+          {/* Row 2: Info left | Actions right */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col min-w-0 flex-1">
+              <h1 className="text-xl md:text-2xl font-bold truncate leading-tight mb-0.5">{project.name}</h1>
+              <p className="text-sm text-muted-foreground truncate mb-2">{project.description || "No description"}</p>
+              <div className="flex flex-col w-full sm:max-w-md">
+                <div className="flex items-center justify-between mb-1 text-xs font-medium text-muted-foreground">
+                  <span>Progress</span>
+                  <span>{progress}% Complete</span>
+                </div>
+                <div className="flex h-2 w-full rounded-full overflow-hidden bg-muted gap-px">
+                  {breakdown.done > 0 && <div className="bg-green-500 transition-all" style={{ width: `${breakdown.done}%` }} title={`Done: ${breakdown.done}%`} />}
+                  {breakdown.on_progress > 0 && <div className="bg-blue-500 transition-all" style={{ width: `${breakdown.on_progress}%` }} title={`On Progress: ${breakdown.on_progress}%`} />}
+                  {breakdown.on_board > 0 && <div className="bg-gray-500 transition-all" style={{ width: `${breakdown.on_board}%` }} title={`On Board: ${breakdown.on_board}%`} />}
+                  {breakdown.pending > 0 && <div className="bg-yellow-500 transition-all" style={{ width: `${breakdown.pending}%` }} title={`Pending: ${breakdown.pending}%`} />}
+                  {breakdown.canceled > 0 && <div className="bg-red-500 transition-all" style={{ width: `${breakdown.canceled}%` }} title={`Canceled: ${breakdown.canceled}%`} />}
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+                  {breakdown.done > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-green-500" />Done {breakdown.done}%</span>}
+                  {breakdown.on_progress > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-blue-500" />On Progress {breakdown.on_progress}%</span>}
+                  {breakdown.on_board > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-gray-500" />On Board {breakdown.on_board}%</span>}
+                  {breakdown.pending > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-yellow-500" />Pending {breakdown.pending}%</span>}
+                  {breakdown.canceled > 0 && <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-red-500" />Canceled {breakdown.canceled}%</span>}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+              {mode === "admin" && <UploadImageDialog project_id={project_id} />}
+              <TaskSortDropdown value={globalSortOption} onChange={handleGlobalSortChange} />
+              <div className="flex">
+                <Button
+                  variant={view === "kanban" ? "default" : "outline"}
+                  size="sm"
+                  className={cn("gap-2 px-3 rounded-r-none", view === "kanban" ? "bg-sky-500 hover:bg-sky-600 text-white" : "text-foreground")}
+                  onClick={() => setView("kanban")}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={view === "list" ? "default" : "outline"}
+                  size="sm"
+                  className={cn("gap-2 px-3 rounded-l-none", view === "list" ? "bg-sky-500 hover:bg-sky-600 text-white" : "text-foreground")}
+                  onClick={() => setView("list")}
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              </div>
+              <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="md:hidden gap-2 px-3">
+                    <Users className="w-4 h-4" />
+                    <span className="text-xs">Team</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[320px] p-0 flex flex-col">
+                  <SheetHeader className="px-4 py-3 border-b shrink-0">
+                    <SheetTitle className="text-base font-semibold text-left">{project.name}</SheetTitle>
+                    <SheetDescription className="text-xs text-left">Team members and project gallery</SheetDescription>
+                  </SheetHeader>
+                  <div className="flex-1 overflow-hidden">
+                    <SidebarContent
+                      members={currentProjectMembers}
+                      isLoadingMembers={isLoadingMembers}
+                      mode={mode}
+                      imageUrls={imageUrls}
+                      currentImageIndex={currentImageIndex}
+                      onPrevious={handlePreviousImage}
+                      onNext={handleNextImage}
+                      onOpenLightbox={handleOpenLightbox}
+                    />
+                  </div>
+                </SheetContent>
+              </Sheet>
+              {mode === "admin" && (
+                <ExportTasksModal projectId={project_id} projectName={project?.name || "Project"} tasks={displayedTasks} />
+              )}
+              {mode === "admin" && <CreateTaskModal project_id={project_id} />}
+              {mode === "member" && (
+                <div className="flex items-center gap-2 px-3 py-2 badge-low rounded-md">
+                  <span className="text-sm font-medium">My Tasks: {myTasksCount}</span>
+                </div>
+              )}
+              {mode === "admin" && (
+                <div className="flex items-center gap-2 px-3 py-2 badge-normal rounded-md">
+                  <span className="text-sm font-medium">All Tasks: {allTasksCount}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
       </header>
 
       {/* Member Alert */}
       {mode === "member" && (
-        <div className="shrink-0 p-3 sm:p-4">
-          <Alert className="surface-elevated border-border">
-            <Info className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
-            <AlertDescription className="text-foreground text-xs sm:text-sm">
-              You're viewing only tasks assigned to you. Total project tasks: {allTasksCount}
+        <div className="shrink-0 px-3 py-2 sm:px-4 sm:py-3">
+          <Alert className="surface-elevated border-border py-2">
+            <Info className="h-3 w-3 sm:h-4 sm:w-4 text-primary mt-0.5" />
+            <AlertDescription className="text-foreground text-[11px] sm:text-sm leading-snug">
+              Menampilkan task yang ditugaskan ke Anda. Total project: {allTasksCount} task.
             </AlertDescription>
           </Alert>
         </div>
       )}
 
-      {/* Main Project Board */}
+      {/* ───────────────────────── BOARD BODY ───────────────────────── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
         <section
           className={cn(
-            "flex-1 p-3 sm:p-4",
-            view === "kanban" ? "overflow-x-auto overflow-y-hidden" : "overflow-y-auto",
+            "flex-1",
+            view === "kanban"
+              ? "overflow-x-auto overflow-y-hidden p-2 sm:p-3 md:p-4"
+              : "overflow-y-auto p-2 sm:p-3 md:p-4",
             "scrollbar-thin scrollbar-thumb-sidebar-ring"
           )}
         >
@@ -569,28 +653,23 @@ function ProjectBoardLayout({
             </div>
           ) : view === "kanban" ? (
             <ScrollArea className="flex-1 w-full h-full">
-              <div className="flex gap-3 sm:gap-4 min-w-max h-full items-start pb-4">
+              <div className="flex gap-2 sm:gap-3 md:gap-4 min-w-max h-full items-start pb-4">
                 {COLUMNS.map((col) => {
-                  const columnTasks = displayedTasks.filter(
-                    (t) => t.status === col.status
-                  );
-
-                  const sortedColumnTasks = sortTasks(columnTasks, globalSortOption);
-
+                  const sortedColumnTasks = sortedTasksByColumn[col.status];
 
                   return (
                     <Card
                       key={col.status}
                       className={cn(
-                        "w-64 sm:w-72 shrink-0 p-3 sm:p-4 grid grid-rows-[auto_1fr] gap-3 sm:gap-4",
+                        "w-56 xs:w-60 sm:w-64 md:w-68 lg:w-72 shrink-0 p-2.5 sm:p-3 md:p-4 grid grid-rows-[auto_1fr] gap-2 sm:gap-3 md:gap-4",
                         mode === "member"
-                          ? "max-h-[calc(100vh-16rem)] sm:max-h-[calc(100vh-14rem)] md:max-h-[calc(100vh-17rem)] lg:max-h-[calc(100vh-20rem)] xl:max-h-[calc(100vh-23rem)]"
-                          : "max-h-[calc(100vh-12rem)] sm:max-h-[calc(100vh-10rem)] md:max-h-[calc(100vh-13rem)] lg:max-h-[calc(100vh-16rem)] xl:max-h-[calc(100vh-19rem)]",
+                          ? "max-h-[calc(100dvh-18rem)] sm:max-h-[calc(100dvh-16rem)] md:max-h-[calc(100dvh-17rem)] lg:max-h-[calc(100dvh-20rem)]"
+                          : "max-h-[calc(100dvh-14rem)] sm:max-h-[calc(100dvh-12rem)] md:max-h-[calc(100dvh-13rem)] lg:max-h-[calc(100dvh-16rem)]",
                         hoveredStatus === col.status ? "ring-2 ring-dashed ring-primary/40" : ""
                       )}
                       onDragOver={(e) => e.preventDefault()}
-                      onDragEnter={() => setHoveredStatus(col.status)}
-                      onDragLeave={() => setHoveredStatus(null)}
+                      onDragEnter={() => handleDragEnter(col.status)}
+                      onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, col.status)}
                     >
                       <div className="flex justify-between items-center">
@@ -601,13 +680,11 @@ function ProjectBoardLayout({
                             getStatusColor(col.status)
                           )}
                         >
-                          <span className="hidden sm:inline">{col.label}</span>
-                          <span className="sm:hidden">{col.label.split(' ')[0]}</span>
-                          {" "}({columnTasks.length})
+                          {col.label} ({sortedColumnTasks.length})
                         </Badge>
                       </div>
 
-                      <ScrollArea className="flex-1 min-h-0 pr-3">
+                      <ScrollArea className="flex-1 min-h-0 pr-2 sm:pr-3">
                         <div className="space-y-2">
                           <TaskCard
                             tasks={sortedColumnTasks}
@@ -626,9 +703,9 @@ function ProjectBoardLayout({
             </ScrollArea>
           ) : (
             <ScrollArea className="flex-1 h-full">
-              <div className="p-3 sm:p-4">
+              <div className="p-0 sm:p-2">
                 <TaskList
-                  tasks={sortTasks(displayedTasks, globalSortOption)}
+                  tasks={sortedListTasks}
                   project_id={Number(project_id)}
                   workspace_id={validWorkspaceId}
                   readOnly={!canCreateTask}
@@ -639,8 +716,17 @@ function ProjectBoardLayout({
         </section>
 
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex flex-col w-64 lg:w-72 border-l overflow-hidden">
-          <SidebarContent />
+        <aside className="hidden md:flex flex-col w-60 lg:w-72 border-l overflow-hidden">
+          <SidebarContent
+            members={currentProjectMembers}
+            isLoadingMembers={isLoadingMembers}
+            mode={mode}
+            imageUrls={imageUrls}
+            currentImageIndex={currentImageIndex}
+            onPrevious={handlePreviousImage}
+            onNext={handleNextImage}
+            onOpenLightbox={handleOpenLightbox}
+          />
         </aside>
       </div>
 

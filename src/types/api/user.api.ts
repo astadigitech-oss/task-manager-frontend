@@ -30,7 +30,6 @@ export interface UserApi {
     email: string;
     role: Role;
     avatar: string | null;
-    // profile_img: string | null;
     is_online: boolean;
     last_seen: string | null;
     created_at: string;

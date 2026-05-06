@@ -1,3 +1,4 @@
+// WorkspaceContext.tsx
 "use client";
 
 import {
@@ -40,18 +41,36 @@ interface WorkspaceContextType {
   refetchWorkspaces: () => void;
 }
 
-export const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
-  undefined
-);
+export const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
+
+// ── helpers: per-user localStorage key ──────────────────────────────────────
+const getStorageKey = (userId: string | number) => `defaultWorkspaceId_${userId}`;
+
+const loadPersistedWorkspaceId = (userId: string | number): number | null => {
+  try {
+    const raw = localStorage.getItem(getStorageKey(userId));
+    const parsed = raw ? parseInt(raw, 10) : NaN;
+    return isNaN(parsed) ? null : parsed;
+  } catch {
+    return null;
+  }
+};
+
+const persistWorkspaceId = (userId: string | number, id: number) => {
+  try {
+    localStorage.setItem(getStorageKey(userId), String(id));
+  } catch {
+    // ignore
+  }
+};
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const { isAuthenticated, defaultWorkspaceId, setDefaultWorkspaceId } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const userId = user?.id ?? null;
 
-  const [selectedWorkspaceId, setSelectedWorkspaceIdState] =
-    useState<number | null>(null);
+  const [selectedWorkspaceId, setSelectedWorkspaceIdState] = useState<number | null>(null);
 
-  // Fetch Workspaces dengan React Query
   const {
     data: workspacesData,
     isLoading,
@@ -60,77 +79,61 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     queryKey: workspaceKeys.list(),
     queryFn: async () => {
       const res = await workspaceService.list();
-      if (!res.success || !res.data) {
-        throw new Error("Gagal memuat workspaces");
-      }
+      if (!res.success || !res.data) throw new Error("Gagal memuat workspaces");
       return res.data;
     },
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: (failureCount, error) => {
-      if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
-        return false;
-      }
+      if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false;
       return failureCount < 2;
     },
   });
 
+  // ── Restore last-used workspace per user on load ──────────────────────────
   useEffect(() => {
-    if (isLoading || !workspacesData?.length) return;
+    if (isLoading || !workspacesData?.length || !userId) return;
+    if (selectedWorkspaceId !== null) return; // already set
 
-    if (selectedWorkspaceId === null) {
-      if (defaultWorkspaceId) {
-        const exists = workspacesData.find(ws => ws.id === defaultWorkspaceId);
-        if (exists) {
-          setSelectedWorkspaceIdState(defaultWorkspaceId);
-          return;
-        }
+    const persisted = loadPersistedWorkspaceId(userId);
+    if (persisted) {
+      const exists = workspacesData.find(ws => ws.id === persisted);
+      if (exists) {
+        setSelectedWorkspaceIdState(persisted);
+        return;
       }
-
-      setSelectedWorkspaceIdState(workspacesData[0].id);
-      setDefaultWorkspaceId(workspacesData[0].id);
     }
-  }, [isLoading, workspacesData, selectedWorkspaceId, defaultWorkspaceId, setDefaultWorkspaceId]);
+
+    // fallback: first workspace
+    setSelectedWorkspaceIdState(workspacesData[0].id);
+    persistWorkspaceId(userId, workspacesData[0].id);
+  }, [isLoading, workspacesData, selectedWorkspaceId, userId]);
 
   const setSelectedWorkspaceId = useCallback((id: number | null) => {
     setSelectedWorkspaceIdState(id);
-
-    if (id !== null) {
-      setDefaultWorkspaceId(id);
+    if (id !== null && userId !== null) {
+      persistWorkspaceId(userId, id);
     }
-  }, [setDefaultWorkspaceId]);
+  }, [userId]);
 
+  // ── Mutations (unchanged) ─────────────────────────────────────────────────
   const createMutation = useMutation({
     mutationFn: async (payload: WorkspaceRequest) => {
       const res = await workspaceService.create(payload);
-      if (!res.success || !res.data) {
-        throw new Error("Gagal membuat workspace");
-      }
+      if (!res.success || !res.data) throw new Error("Gagal membuat workspace");
       return res.data;
     },
     onError: (error: any) => {
-      console.error("Create workspace error:", error);
-      const message = error instanceof ApiError
-        ? error.message
-        : "Gagal membuat workspace";
+      const message = error instanceof ApiError ? error.message : "Gagal membuat workspace";
       showErrorToast(message);
     },
   });
 
-  // Update Workspace Mutation
   const updateMutation = useMutation({
-    mutationFn: async ({
-      id,
-      payload
-    }: {
-      id: number;
-      payload: Partial<WorkspaceRequest>
-    }) => {
+    mutationFn: async ({ id, payload }: { id: number; payload: Partial<WorkspaceRequest> }) => {
       const res = await workspaceService.update(id, payload);
-      if (!res.success || !res.data) {
-        throw new Error("Gagal update workspace");
-      }
+      if (!res.success || !res.data) throw new Error("Gagal update workspace");
       return res.data;
     },
     onSuccess: (data) => {
@@ -139,116 +142,71 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       showSuccessToast("Workspace berhasil diperbarui!");
     },
     onError: (error: any) => {
-      console.error("Update workspace error:", error);
-      const message = error instanceof ApiError
-        ? error.message
-        : "Gagal update workspace";
+      const message = error instanceof ApiError ? error.message : "Gagal update workspace";
       showErrorToast(message);
     },
   });
 
-  // Delete Workspace Mutation
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await workspaceService.softDelete(id);
-    },
+    mutationFn: async (id: number) => { await workspaceService.softDelete(id); },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.lists() });
       showSuccessToast("Workspace berhasil dihapus!");
     },
     onError: (error: any) => {
-      console.error("Delete workspace error:", error);
-      const message = error instanceof ApiError
-        ? error.message
-        : "Gagal menghapus workspace";
+      const message = error instanceof ApiError ? error.message : "Gagal menghapus workspace";
       showErrorToast(message);
     },
   });
 
-  // Add Bulk Members Mutation
   const addBulkMembersMutation = useMutation({
-    mutationFn: async ({
-      workspace_id,
-      user_ids
-    }: {
-      workspace_id: number;
-      user_ids: number[]
-    }) => {
+    mutationFn: async ({ workspace_id, user_ids }: { workspace_id: number; user_ids: number[] }) => {
       await workspaceMembersService.addBulk(workspace_id, user_ids);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: workspaceKeys.members(variables.workspace_id)
-      });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.members(variables.workspace_id) });
       showSuccessToast(`${variables.user_ids.length} anggota berhasil ditambahkan!`);
     },
     onError: (error: any) => {
-      console.error("Add bulk members error:", error);
-      const message = error instanceof ApiError
-        ? error.message
-        : "Gagal menambahkan anggota";
+      const message = error instanceof ApiError ? error.message : "Gagal menambahkan anggota";
       showErrorToast(message);
     },
   });
 
-  // Wrapper functions
-  const createWorkspace = useCallback(
-    async (payload: WorkspaceRequest): Promise<WorkspaceApi | null> => {
-      try {
-        const result = await createMutation.mutateAsync(payload);
-        return result;
-      } catch (error) {
-        console.error("Create workspace error:", error);
-        return null;
-      }
-    },
-    [createMutation]
-  );
+  const createWorkspace = useCallback(async (payload: WorkspaceRequest): Promise<WorkspaceApi | null> => {
+    try { return await createMutation.mutateAsync(payload); }
+    catch { return null; }
+  }, [createMutation]);
 
-  const updateWorkspace = useCallback(
-    async (id: number, payload: Partial<WorkspaceRequest>) => {
-      await updateMutation.mutateAsync({ id, payload });
-    },
-    [updateMutation]
-  );
+  const updateWorkspace = useCallback(async (id: number, payload: Partial<WorkspaceRequest>) => {
+    await updateMutation.mutateAsync({ id, payload });
+  }, [updateMutation]);
 
-  const softDeleteWorkspace = useCallback(
-    async (id: number) => {
-      await deleteMutation.mutateAsync(id);
-    },
-    [deleteMutation]
-  );
+  const softDeleteWorkspace = useCallback(async (id: number) => {
+    await deleteMutation.mutateAsync(id);
+  }, [deleteMutation]);
 
-  const addBulkMembersToWorkspace = useCallback(
-    async (workspace_id: number, user_ids: number[]) => {
-      await addBulkMembersMutation.mutateAsync({ workspace_id, user_ids });
-    },
-    [addBulkMembersMutation]
-  );
+  const addBulkMembersToWorkspace = useCallback(async (workspace_id: number, user_ids: number[]) => {
+    await addBulkMembersMutation.mutateAsync({ workspace_id, user_ids });
+  }, [addBulkMembersMutation]);
 
-  const refetchWorkspaces = useCallback(() => {
-    refetch();
-  }, [refetch]);
+  const refetchWorkspaces = useCallback(() => { refetch(); }, [refetch]);
 
-  const selectedWorkspace = workspacesData?.find(
-    ws => ws.id === selectedWorkspaceId
-  ) || null;
+  const selectedWorkspace = workspacesData?.find(ws => ws.id === selectedWorkspaceId) || null;
 
   return (
-    <WorkspaceContext.Provider
-      value={{
-        workspaces: workspacesData || [],
-        isLoading,
-        selectedWorkspaceId,
-        setSelectedWorkspaceId,
-        selectedWorkspace,
-        createWorkspace,
-        updateWorkspace,
-        softDeleteWorkspace,
-        addBulkMembersToWorkspace,
-        refetchWorkspaces,
-      }}
-    >
+    <WorkspaceContext.Provider value={{
+      workspaces: workspacesData || [],
+      isLoading,
+      selectedWorkspaceId,
+      setSelectedWorkspaceId,
+      selectedWorkspace,
+      createWorkspace,
+      updateWorkspace,
+      softDeleteWorkspace,
+      addBulkMembersToWorkspace,
+      refetchWorkspaces,
+    }}>
       {children}
     </WorkspaceContext.Provider>
   );
@@ -256,7 +214,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
 export function useWorkspace() {
   const context = useContext(WorkspaceContext);
-  if (!context)
-    throw new Error("useWorkspace must be used inside WorkspaceProvider");
+  if (!context) throw new Error("useWorkspace must be used inside WorkspaceProvider");
   return context;
 }

@@ -13,15 +13,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    // wait until client mounted and Zustand hydration completed
-    if (!mounted || !isHydrated) return;
+useEffect(() => {
+  if (!mounted || !isHydrated) return;
 
-    if (isAuthenticated && user) {
-      // replace to avoid history stack issues
-      router.replace(`/${user.role}/dashboard`);
-    }
-  }, [mounted, isHydrated, isAuthenticated, user, router]);
+  if (isAuthenticated && user) {
+    // Normalize role untuk redirect
+    const role = user.role?.toLowerCase();
+    router.replace(`/${role}/dashboard`);
+  }
+}, [mounted, isHydrated, isAuthenticated, user, router]);
 
   return (
     <div>

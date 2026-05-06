@@ -16,13 +16,14 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { useState, useMemo } from "react";
+import { useTask } from "@/context/TaskContext";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { useProject } from "@/context/ProjectContext";
 import { CreateWorkspaceDialog } from "@/components/modals/CreateWorkspaceDialog";
 import { EditWorkspaceDialog } from "@/components/modals/EditWorkspaceModal";
 import { useModal } from "@/hooks/useModal";
 import { cn } from "@/lib/utils/utils";
-import { getFilteredMenuItems } from "@/components/shared/sidebarConfig";
+import { getFilteredMenuItems, Role } from "@/components/shared/sidebarConfig";
 import { useAuthStore } from "@/store/useAuthStore";
 import {
   DropdownMenu,
@@ -84,7 +85,9 @@ export function AdminSidebar({
   } = useProject();
 
   const createWsDialog = useModal();
-  const menuItems = getFilteredMenuItems(true);
+
+  const role: Role = "admin";
+  const menuItems = getFilteredMenuItems(role);
 
   const isMenuActive = (menuId: string) => {
     const current = pathname.split("/").filter(Boolean).pop() || "dashboard";
@@ -101,12 +104,19 @@ export function AdminSidebar({
     setExpandedWorkspaces(newSet);
   };
 
+  // const { setSelectedProjectId } = useTask();
+
   const handleWorkspaceClick = (workspace_id: number) => {
     setSelectedWorkspaceId(workspace_id);
+    setExpandedWorkspaces(prev => new Set(prev).add(workspace_id));
     onNavigate?.("projects");
   };
 
   const handleProjectClick = (project_id: number) => {
+    const project = projects.find(p => p.id === project_id);
+    if (project?.workspace_id) {
+      setSelectedWorkspaceId(project.workspace_id);
+    }
     onNavigate?.("project-detail", project_id.toString());
   };
 
@@ -261,7 +271,7 @@ export function AdminSidebar({
             </span>
           </div>
         </div>
-        
+
         <Separator />
 
         {/* Fixed Navigation Section */}
