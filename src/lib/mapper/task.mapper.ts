@@ -108,7 +108,7 @@ export function mapTask(api: any): TaskApi {
 
         overdue_duration: api.overdue_duration ? Math.floor(api.overdue_duration / 60) : 0,
         is_overdue: (api.overdue_duration ?? 0) > 0,
-        order_index: (api.order) ,
+        order_index: (api.order),
 
         notes: api.notes ?? "",
         created_at: parseDateTime(api.created_at) ?? new Date().toISOString(),
@@ -132,7 +132,88 @@ export function mapTask(api: any): TaskApi {
             : [],
 
         workspace_id: 0,
+        status_durations: normalizeStatusDurations(api.status_durations),
     };
+}
+
+// ============================================
+// STATUS DURATION HELPERS
+// ============================================
+
+/**
+ * Format menit ke string readable
+ * 90 -> "1h 30m" | 1440 -> "1d" | 30 -> "30m"
+ */
+export function formatStatusDuration(minutes: number): string {
+    if (minutes <= 0) return "< 1m";
+    if (minutes < 60) return `${minutes}m`;
+
+    const days = Math.floor(minutes / (60 * 24));
+    const hours = Math.floor((minutes % (60 * 24)) / 60);
+    const mins = minutes % 60;
+
+    if (days > 0 && hours > 0) return `${days}d ${hours}h`;
+    if (days > 0) return `${days}d`;
+    if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
+    return `${hours}h`;
+}
+
+/**
+ * Hitung live duration untuk status yang sedang aktif
+ * (last_entered_at sampai sekarang)
+ */
+export function getLiveStatusDuration(enteredAt: string): number {
+    try {
+        const entered = new Date(enteredAt).getTime();
+        if (isNaN(entered)) return 0;
+        return Math.floor((Date.now() - entered) / (1000 * 60));
+    } catch {
+        return 0;
+    }
+}
+
+/**
+ * Ambil total durasi suatu status dari status_durations.
+ * Jika ini status aktif saat ini, tambahkan live duration.
+ */
+export function getStatusTotalDuration(
+    statusDurations: Record<string, any> | undefined,
+    status: string,
+    isCurrentStatus: boolean
+): number {
+    if (!statusDurations?.[status]) return 0;
+
+    const data = statusDurations[status];
+    
+    // data sekarang adalah { total_minutes: number } setelah dinormalize
+    let total: number = data.total_minutes ?? 0;
+
+    if (isCurrentStatus && data.last_entered_at) {
+        total += getLiveStatusDuration(data.last_entered_at);
+    }
+
+    return total;
+}
+
+function normalizeStatusDurations(
+    raw: Record<string, any> | undefined
+): Record<string, { total_minutes: number }> {
+    if (!raw) return {};
+
+    const result: Record<string, { total_minutes: number }> = {};
+
+    for (const [status, value] of Object.entries(raw)) {
+        if (typeof value === "number") {
+            // Backend kirim dalam milidetik
+            result[status] = {
+                total_minutes: Math.floor(value / 1000 / 60)
+            };
+        } else if (typeof value === "object" && value !== null) {
+            result[status] = value;
+        }
+    }
+
+    return result;
 }
 
 // ============================================

@@ -17,7 +17,7 @@ import { useState, useMemo } from "react";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { useProject } from "@/context/ProjectContext";
 import { cn } from "@/lib/utils/utils";
-import { getFilteredMenuItems } from "@/components/shared/sidebarConfig";
+import { getFilteredMenuItems, Role } from "@/components/shared/sidebarConfig";
 import { useAuthStore } from "@/store/useAuthStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -40,7 +40,6 @@ export function MemberSidebar({ isOpen, isCollapsed = false, onToggleCollapse, o
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
 
-
   const {
     workspaces,
     isLoading: isLoadingWorkspaces,
@@ -53,8 +52,8 @@ export function MemberSidebar({ isOpen, isCollapsed = false, onToggleCollapse, o
     isLoading: isLoadingProjects,
   } = useProject();
 
-  // Filter menu items untuk member (isAdmin = false)
-  const menuItems = getFilteredMenuItems(false);
+  const role: Role = "member";
+  const menuItems = getFilteredMenuItems(role);
 
   const isMenuActive = (menuId: string) => {
     const current = pathname.split("/").filter(Boolean).pop() || "dashboard";

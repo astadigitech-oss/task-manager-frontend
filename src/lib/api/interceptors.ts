@@ -38,8 +38,8 @@ export const setupRequestInterceptor = (axiosInstance: AxiosInstance) => {
     axiosInstance.interceptors.request.use(
         (config: InternalAxiosRequestConfig) => {
             const token = useAuthStore.getState().token;
-            
-            
+
+
             if (token) {
                 config.headers = config.headers ?? {};
                 config.headers["Authorization"] = `Bearer ${token}`;
@@ -131,31 +131,33 @@ export const setupResponseInterceptor = (axiosInstance: AxiosInstance) => {
             // ==========================================
             // 401 UNAUTHORIZED - Logout & Redirect
             // ==========================================
+            // Di bagian 401 handler
             if (status === 401) {
-                const isLoginRequest =
-                    error.config?.url?.includes("/auth/login");
+                const isLoginRequest = error.config?.url?.includes("/auth/login");
 
                 if (isLoginRequest) {
                     return Promise.reject(
                         new ApiError(
                             status,
-                            error.response.data?.message ||
-                            "Email atau password salah",
+                            error.response.data?.message || "Email atau password salah",
                             error.response.data
                         )
                     );
                 }
 
+                // ← Tambahkan ini
+                const currentUser = useAuthStore.getState().user;
+                const isManagement = String(currentUser?.role).toLowerCase() === 'management';
+                if (isManagement) {
+                    return Promise.reject(new ApiError(status, "Unauthorized"));
+                }
+
                 console.warn(" 401 Unauthorized - Logging out...");
                 useAuthStore.getState().logout();
-
                 if (typeof window !== "undefined") {
                     window.location.href = "/auth/login";
                 }
-
-                return Promise.reject(
-                    new ApiError(status, "Sesi Anda telah berakhir")
-                );
+                return Promise.reject(new ApiError(status, "Sesi Anda telah berakhir"));
             }
 
             // ==========================================
@@ -169,9 +171,9 @@ export const setupResponseInterceptor = (axiosInstance: AxiosInstance) => {
                     data: error.response.data
                 });
 
-                const forbiddenMessage = 
+                const forbiddenMessage =
                     error.response.data?.error ||
-                    error.response.data?.message || 
+                    error.response.data?.message ||
                     "Anda tidak memiliki akses ke resource ini";
 
                 const isQueryRequest = error.config?.url?.includes('/api/');

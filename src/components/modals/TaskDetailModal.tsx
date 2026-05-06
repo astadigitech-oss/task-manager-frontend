@@ -28,6 +28,7 @@ import {
 import { FilesSection } from "../task/task-detail/FilesSection";
 import { useDownloadTaskFile, useTaskFiles } from "@/hooks/task/useTaskFiles";
 import { ScrollArea } from "../ui/scroll-area";
+import { StatusDurationTracker } from "../task/task-detail/StatusDurationTracker";
 
 interface TaskDetailModalProps {
   task: TaskApi;
@@ -304,9 +305,12 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                     )}
 
                     <Separator />
+
+                    <StatusDurationTracker task={task} />
+
+                    <Separator />
                   </>
                 )}
-
 
                 {/* DESCRIPTION SECTION */}
                 {task.description && (

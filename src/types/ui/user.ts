@@ -1,4 +1,4 @@
-export type Role = "admin" | "member";
+export type Role = "admin" | "member" | "management";
 export type Division = "frontend" | "backend" | "fullstack" | "ui_ux" | "project_management" | "devops";
 
 

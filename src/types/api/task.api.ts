@@ -56,6 +56,7 @@ export interface TaskApi {
     overdue_duration?: number | null;
     order_index: number;
     task_members?: TaskMemberApi[];
+    status_durations?: Record<string, StatusDurationData>;
 }
 
 export interface TaskMemberApi {
@@ -112,6 +113,18 @@ export interface TaskSortConfig {
     value: TaskSortOption;
     label: string;
     icon?: React.ComponentType<{ className?: string }>;
+}
+
+export interface StatusDurationEntry {
+    entered_at: string;
+    exited_at?: string | null;
+    duration_minutes?: number | null;
+}
+
+export interface StatusDurationData {
+    total_minutes: number;
+    last_entered_at?: string;
+    entries?: StatusDurationEntry[];
 }
 
 export type TaskMemberListResponse = ApiResponse<TaskMemberApi[]>;

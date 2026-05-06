@@ -8,36 +8,44 @@ import {
 } from "lucide-react";
 
 export interface MenuItem {
-  id: string;
+    id: string;
   title: string;
   icon: React.FC<React.SVGProps<SVGSVGElement>>;
-  adminOnly?: boolean;
+  roles?: Role[];
 }
+
+export type Role = "admin" | "member" | "management";
 
 export const menuItems: MenuItem[] = [
   {
     id: "dashboard",
     title: "Dashboard",
     icon: LayoutDashboard,
+    roles: ["admin", "member", "management"],
   },
   {
     id: "projects",
     title: "Projects",
     icon: FolderKanban,
+    roles: ["admin", "member"],
   },
   {
     id: "team",
     title: "Team",
     icon: Users,
-    adminOnly: true,
+    roles: ["admin"],
   },
   {
     id: "settings",
     title: "Settings",
     icon: Settings,
+    roles: ["admin", "member", "management"],
   },
 ];
 
-export const getFilteredMenuItems = (isAdmin: boolean) => {
-  return menuItems.filter(item => isAdmin || !item.adminOnly);
+export const getFilteredMenuItems = (role: Role) => {
+  return menuItems.filter(item => {
+    if (!item.roles) return true;
+    return item.roles.includes(role);
+  });
 };
