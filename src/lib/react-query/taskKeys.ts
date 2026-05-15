@@ -22,6 +22,8 @@ export const taskKeys = {
     imagesAfter: (workspaceId: number, projectId: number, taskId: number) =>
         [...taskKeys.all, 'images', 'after', { workspaceId, projectId, taskId }] as const,
 
+    pendingHistory: (workspaceId: number, projectId: number) =>
+        [...taskKeys.all, 'pending-history', { workspaceId, projectId }] as const,
 };
 
 export const invalidateTaskQueries = {
@@ -29,6 +31,9 @@ export const invalidateTaskQueries = {
     allInProject: (queryClient: any, workspaceId: number, projectId: number) => {
         queryClient.invalidateQueries({
             queryKey: taskKeys.list(workspaceId, projectId)
+        });
+        queryClient.invalidateQueries({
+            queryKey: taskKeys.pendingHistory(workspaceId, projectId)
         });
     },
 
@@ -65,6 +70,12 @@ export const invalidateTaskQueries = {
     taskFiles: (queryClient: any, workspaceId: number, projectId: number, taskId: number) => {
         queryClient.invalidateQueries({
             queryKey: taskKeys.images(workspaceId, projectId, taskId)
+        });
+    },
+
+    pendingHistory: (queryClient: any, workspaceId: number, projectId: number) => {
+        queryClient.invalidateQueries({
+            queryKey: taskKeys.pendingHistory(workspaceId, projectId)
         });
     },
 };

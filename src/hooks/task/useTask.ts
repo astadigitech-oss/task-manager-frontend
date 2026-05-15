@@ -248,6 +248,13 @@ export function useUpdateTask() {
 
                         if (payload.status !== undefined) {
                             updates.status = payload.status ?? task.status;
+
+                            if (payload.status === "pending") {
+                                updates.has_been_pending = true;
+                            }
+                            if (task.has_been_pending) {
+                                updates.has_been_pending = true;
+                            }
                         }
 
                         if (payload.priority !== undefined) {
