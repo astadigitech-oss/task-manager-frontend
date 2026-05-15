@@ -57,6 +57,7 @@ export interface TaskApi {
     order_index: number;
     task_members?: TaskMemberApi[];
     status_durations?: Record<string, StatusDurationData>;
+    has_been_pending?: boolean;
 }
 
 export interface TaskMemberApi {

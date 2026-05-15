@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { AlertTriangle, Flag, Layout, Maximize2, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Flag, Layout, Maximize2, CheckCircle2, Clock } from "lucide-react";
 import { resolveImageUrl } from "@/lib/helpers/imageUrlHelper";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ import {
   getTaskDeadlineStatus,
   formatFinishedAt,
   formatOverdueDisplay,
+  formatStatusDuration,
 } from "@/lib/mapper/task.mapper";
 import { FilesSection } from "../task/task-detail/FilesSection";
 import { useDownloadTaskFile, useTaskFiles } from "@/hooks/task/useTaskFiles";
@@ -204,6 +205,17 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                       {deadlineStatus.message}
                     </Badge>
                   )}
+
+                  {/* di dalam div badges, setelah badge deadlineStatus */}
+                  {/* {task.has_been_pending && (
+                    <Badge
+                      variant="outline"
+                      className="gap-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700"
+                    >
+                      <Clock className="w-3 h-3" />
+                      
+                    </Badge>
+                  )} */}
                 </div>
 
                 <Separator />
@@ -302,6 +314,37 @@ export function TaskDetailModal({ task, onClose, onEdit, workspace_id }: TaskDet
                           </div>
                         </div>
                       </div>
+                    )}
+
+                    {task.has_been_pending && (
+                      <>
+                        <div className="flex items-start gap-3 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-4">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+                            <Clock className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-foreground">
+                              Task Masuk ke Status Pending
+                            </p>
+                            {(() => {
+                              const pendingMins =
+                                task.status_durations?.["pending"]?.total_minutes ?? 0;
+                              return pendingMins > 0 ? (
+                                <>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">
+                                    Total waktu di pending:
+                                  </p>
+                                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-amber-300 dark:border-amber-700 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300">
+                                    <Clock className="h-3 w-3" />
+                                    {formatStatusDuration(pendingMins)}
+                                  </span>
+                                </>
+                              ) : null;
+                            })()}
+                          </div>
+                        </div>
+                        <Separator />
+                      </>
                     )}
 
                     <Separator />

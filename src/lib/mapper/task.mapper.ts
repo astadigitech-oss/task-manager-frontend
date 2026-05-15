@@ -133,8 +133,65 @@ export function mapTask(api: any): TaskApi {
 
         workspace_id: 0,
         status_durations: normalizeStatusDurations(api.status_durations),
+        has_been_pending: deriveHasBeenPending(api),
     };
 }
+
+// ============================================
+// STATUS PENDING HELPERS
+// ============================================
+
+function deriveHasBeenPending(api: any): boolean {
+    // 1. Jika backend sudah kirim field ini, pakai langsung
+    if (typeof api.has_been_pending === "boolean") {
+        return api.has_been_pending;
+    }
+
+    // 2. Cek dari status_durations
+    const durations = api.status_durations;
+    if (durations && typeof durations === "object") {
+        const pendingData = durations["pending"];
+        if (pendingData) {
+            // Format: { total_minutes: number } atau number (ms)
+            const minutes = typeof pendingData === "number"
+                ? Math.floor(pendingData / 1000 / 60)
+                : (pendingData.total_minutes ?? 0);
+            if (minutes > 0) return true;
+        }
+    }
+
+    // 3. Fallback: status saat ini adalah pending
+    return api.status === "pending";
+}
+
+/**
+ * Cek apakah task pernah masuk status pending
+ */
+export function taskHasBeenPending(task: TaskApi): boolean {
+    return task.has_been_pending === true;
+}
+
+/**
+ * Cek apakah task sedang pending saat ini
+ */
+export function isCurrentlyPending(task: TaskApi): boolean {
+    return task.status === "pending";
+}
+
+/**
+ * Hitung berapa lama task sudah/pernah di status pending (menit)
+ */
+export function getPendingDurationMinutes(task: TaskApi): number {
+    return getStatusTotalDuration(
+        task.status_durations,
+        "pending",
+        task.status === "pending"   // live jika sedang pending
+    );
+}
+
+// ============================================
+
+
 
 // ============================================
 // STATUS DURATION HELPERS
@@ -184,7 +241,7 @@ export function getStatusTotalDuration(
     if (!statusDurations?.[status]) return 0;
 
     const data = statusDurations[status];
-    
+
     // data sekarang adalah { total_minutes: number } setelah dinormalize
     let total: number = data.total_minutes ?? 0;
 
