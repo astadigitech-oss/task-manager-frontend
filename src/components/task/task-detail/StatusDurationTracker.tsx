@@ -117,47 +117,6 @@ export function StatusDurationTracker({ task }: StatusDurationTrackerProps) {
                 ))}
             </div>
 
-            {/* Detail per status — tampil jika sudah ada riwayat */}
-            {/* {hasData && (
-                <div className="grid gap-2">
-                    {timeline
-                        .filter(e => e.hasEntered)
-                        .map(entry => (
-                            <div
-                                key={entry.status}
-                                className={`
-                                    flex items-center justify-between
-                                    rounded-lg border px-3 py-2 text-sm
-                                    ${entry.isCurrentStatus
-                                        ? "bg-sky-50 dark:bg-sky-950/20 border-sky-200 dark:border-sky-800"
-                                        : "bg-muted/30"
-                                    }
-                                `}
-                            >
-                                <div className="flex items-center gap-2">
-                                    {entry.isCurrentStatus
-                                        ? <Timer className="w-3.5 h-3.5 text-sky-500" />
-                                        : <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" />
-                                    }
-                                    <span className="font-medium">{entry.label}</span>
-                                    {entry.isCurrentStatus && (
-                                        <span className="text-xs text-sky-500">(aktif)</span>
-                                    )}
-                                </div>
-                                <span className={`font-mono text-sm font-semibold ${entry.isCurrentStatus
-                                        ? "text-sky-600 dark:text-sky-400"
-                                        : "text-foreground"
-                                    }`}>
-                                    {entry.totalMinutes > 0
-                                        ? formatStatusDuration(entry.totalMinutes)
-                                        : "< 1m"
-                                    }
-                                </span>
-                            </div>
-                        ))
-                    }
-                </div>
-            )} */}
         </div>
     );
 }
