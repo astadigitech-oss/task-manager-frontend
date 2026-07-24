@@ -52,7 +52,7 @@ export default function ManagementLayout({
                 <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
             </div>
 
-            <div className={`flex flex-1 overflow-hidden transition-all duration-300 ${sidebarWidth}`}>
+            <div className={`flex flex-1 overflow-hidden transition-all duration-300`}>
                 <ManagementSidebar
                     currentPage="dashboard"
                     isOpen={sidebarOpen}
@@ -78,7 +78,6 @@ export default function ManagementLayout({
                     </ScrollArea>
                 </div>
             </div>
-
         </main>
     );
 }
